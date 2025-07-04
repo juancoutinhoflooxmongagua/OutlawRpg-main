@@ -157,7 +157,7 @@ ITEMS_DATA = {
         "consumable": True,
         "type": "summon_boss",
         "boss_id_to_summon": "Devorador Abissal",
-        "description": "Invoca o Devorador Abissal para um desafio pessoal.",
+        "description": "Invoca o Devorador Abissal para um desafio personal.",
     },
     "invocador_inferno_guardiao": {
         "name": "Invocador do Inferno Guardião",
@@ -166,7 +166,7 @@ ITEMS_DATA = {
         "consumable": True,
         "type": "summon_boss",
         "boss_id_to_summon": "Inferno Guardião",
-        "description": "Invoca o Inferno Guardião para um desafio pessoal.",
+        "description": "Invoca o Inferno Guardião para um desafio personal.",
     },
     "invocador_tita_esquecido": {
         "name": "Invocador do Titã Esquecido",
@@ -175,7 +175,7 @@ ITEMS_DATA = {
         "consumable": True,
         "type": "summon_boss",
         "boss_id_to_summon": "Titã Esquecido",
-        "description": "Invoca o Titã Esquecido para um desafio pessoal.",
+        "description": "Invoca o Titã Esquecido para um desafio personal.",
     },
     "invocador_arauto_das_sombras": {
         "name": "Invocador do Arauto das Sombras",
@@ -184,7 +184,7 @@ ITEMS_DATA = {
         "consumable": True,
         "type": "summon_boss",
         "boss_id_to_summon": "Arauto das Sombras",
-        "description": "Invoca o Arauto das Sombras para um desafio pessoal.",
+        "description": "Invoca o Arauto das Sombras para um desafio personal.",
     },
     "invocador_anomalia_dimensional": {
         "name": "Invocador da Anomalia Dimensional",
@@ -193,7 +193,7 @@ ITEMS_DATA = {
         "consumable": True,
         "type": "summon_boss",
         "boss_id_to_summon": "Anomalia Dimensional",
-        "description": "Invoca a Anomalia Dimensional para um desafio pessoal.",
+        "description": "Invoca a Anomalia Dimensional para um desafio personal.",
     },
     "invocador_sentinela_celestial": {
         "name": "Invocador da Sentinela Celestial",
@@ -202,7 +202,7 @@ ITEMS_DATA = {
         "consumable": True,
         "type": "summon_boss",
         "boss_id_to_summon": "Sentinela Celestial",
-        "description": "Invoca a Sentinela Celestial para um desafio pessoal.",
+        "description": "Invoca a Sentinela Celestial para um desafio personal.",
     },
     "coleira_do_lobo": {
         "name": "Coleira do Lobo Alfa",
@@ -368,10 +368,10 @@ CLASS_TRANSFORMATIONS = {
             "emoji": "✨😇",
             "cost_energy": TRANSFORM_COST + 2,
             "duration_seconds": 7 * 60,
-            "healing_multiplier": 1.35,
-            "hp_multiplier": 1.20,
             "attack_multiplier": 1.0,
             "special_attack_multiplier": 1.05,
+            "hp_multiplier": 1.20,
+            "healing_multiplier": 1.35,
             "cooldown_reduction_percent": 0.05,
             "evasion_chance_bonus": 0.0,
             "required_blessing": "bencao_rei_henrique",
@@ -396,7 +396,34 @@ CLASS_TRANSFORMATIONS = {
             "attack_multiplier": 1.90,
             "special_attack_multiplier": 2.20,
             "evasion_chance_bonus": 0.05,
-            "required_blessing": "bencao_dracula",  # Corrigido para 'bencao_dracula'
+            "required_blessing": "bencao_dracula",
+        },
+    },
+    "Corpo Seco": {
+        "Fúria Imortal": {
+            "emoji": "💀",
+            "cost_energy": 1,
+            "duration_seconds": 1 * 60,
+            "attack_multiplier": 2.5,  # Grande bônus como proxy.
+            "special_attack_multiplier": 2.5,
+            "hp_multiplier": 0.5,  # Reduz o HP em 50% durante a transformação.
+            "healing_multiplier": 1.0,
+            "cooldown_reduction_percent": 0.0,
+            "evasion_chance_bonus": 0.0,
+            "note": "A mecânica exata de 'transformar 50% da vida em ataque' requer lógica adicional na função calculate_effective_stats em utils.py ou no comando 'transformar' em world_commands.py, para manipular dinamicamente o HP e o Ataque. Atualmente, o hp_multiplier reduz o HP, e o attack_multiplier fornece um grande bônus de ataque.",
+        },
+    },
+    "Domador": {
+        "Lobo Descontrolado": {
+            "emoji": "🐺",
+            "cost_energy": TRANSFORM_COST,
+            "duration_seconds": 4 * 60,
+            "attack_multiplier": 1.25,
+            "special_attack_multiplier": 1.25,
+            "hp_multiplier": 1.0,
+            "healing_multiplier": 1.0,
+            "cooldown_reduction_percent": 0.0,
+            "evasion_chance_bonus": 0.0,
         },
     },
 }
@@ -450,7 +477,7 @@ BOSSES_DATA = {
             "invocador_devorador_abissal": 1,
         },
         "spawn_locations": ["Vale do Inferno"],
-        "thumbnail": "https://c.tenor.com/7b901h1A43IAAAAd/inferno-guardian.gif",
+        "thumbnail": "https://c.tenor.com/7b9011A43IAAAAd/inferno-guardian.gif",
         "next_boss_unlock": "Titã Esquecido",
         "required_level": 10,
         "price_invoker": 6000,
@@ -777,7 +804,7 @@ PROFILE_IMAGES = {
     "Curandeiro": "https://i.ibb.co/3Y1sqWcP/image.png",
     "Vampiro": "https://i.imgur.com/X0E6qQL.png",
     "Domador": "https://i.imgur.com/example_tamer.png",  # <<-- Substitua com uma URL real para o Domador
-    "Corpo Seco": "https://imgs.search.brave.com/0-7XXiyDokmhrgN9p6TBkHv_Ah2SxtWlTCsHsNasvjU/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9zdGF0/aWMud2l4c3RhdGlj/LmNvbS9tZWRpYS8z/NzFhMTNfMzI2Njkx/MGRiNGU0NDA4Mzlk/YWIwZmNkZTg4ZTM3/ZWF-bXYyLmpwZy92/MS9jcm9wL3hfMCx5/XzMwNSx3XzE5MjAs/aF85MTUvZmlsbC93/XzYwMCxoXzI5MCxh/bF9jLHFfODAsdXNt/XzAuNjZfMS4wMF8w/LjAxLGVuY19hdmlm/LHF1YWxpdHlfYXV0/by9jb3Jwby1zZWNv/LmpwZw",  # <<-- Substitua com uma URL real para o Corpo Seco
+    "Corpo Seco": "https://imgs.search.brave.com/0-7XXiyDokmhrgN9p6TBkHv_Ah2SxtWlTCsHsNasvjU/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9zdGF0/aWMud2l4c3RhdGlj/LmNvbS9tZWRpYS8z/NzFhMTNfMzI2Njkx/MGRiNGU0NDA4Mzlk/YWIwZmNkZTg4ZTM3/ZWF-bXYyLmpwZy92/MS9jcm9wL3hfMCx5/XzMwNSx3XzE5MjAs/aF85MTUvZmlsbC93/XzYwMCxoXzI5MCxh/bF9jLHFfODAsdXNn/bV8wLjY2XzEuMDBf/MC4wMSxlbmNfYXZp/Zi9jb3Jwby1zZWNv/LmpwZw",  # <<-- Substitua com uma URL real para o Corpo Seco
     # Imagens das Transformações (precisam corresponder EXATAMENTE ao "name" em CLASS_TRANSFORMATIONS)
     "Lâmina Fantasma": "https://i.imgur.com/CnDR7eP.png",
     "Punho de Aço": "https://i.imgur.com/mDsfNyi.png",
