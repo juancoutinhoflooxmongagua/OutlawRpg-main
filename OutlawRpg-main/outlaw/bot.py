@@ -1,3 +1,4 @@
+# File: outlawrpg-main/OutlawRpg-main-1b3411704e409a7835735978fb4f9adc7aae2578/OutlawRpg-main/outlaw/bot.py
 import discord
 from discord.ext import commands, tasks
 from discord import app_commands, Embed, Color, Interaction
@@ -35,6 +36,7 @@ from data_manager import (
     load_clan_data,  # NEW
     save_clan_data,  # NEW
     clan_database,  # NEW
+    current_boss_data,  # This was added in the previous turn's data_manager.py fix
 )
 
 # Import utilities
@@ -174,7 +176,7 @@ class OutlawsBot(commands.Bot):
         print(
             f"Dados de {len(player_database)} jogadores carregados e estruturas de dados verificadas."
         )
-        data_manager.load_clan_data()  # NEW: Load clan data on bot ready
+        load_clan_data()  # NEW: Load clan data on bot ready - CORRIGIDO
         print(f"Dados de {len(clan_database)} clãs carregados.")  # NEW
 
     async def on_message(self, message):  # Modified on_message
@@ -182,7 +184,9 @@ class OutlawsBot(commands.Bot):
             return
 
         user_id = str(message.author.id)
-        player_data = data_manager.get_player_data(user_id)
+        player_data = get_player_data(
+            user_id
+        )  # Corrigido: get_player_data é chamado diretamente
 
         if player_data:
             current_time = datetime.now().timestamp()
@@ -203,7 +207,7 @@ class OutlawsBot(commands.Bot):
                 #     clan_data = clan_database.get(clan_id)
                 #     if clan_data:
                 #         clan_data["xp"] += effective_xp_gain # Clan gains XP from member activities
-                #         data_manager.save_clan_data() # Save clan data
+                #         save_clan_data() # Save clan data - Corrigido: save_clan_data é chamado diretamente
 
                 # Level up check
                 while player_data["xp"] >= calculate_xp_for_next_level(
@@ -297,124 +301,140 @@ class OutlawsBot(commands.Bot):
 
     @tasks.loop(seconds=15)  # Boss attacks every 15 seconds
     async def boss_attack_loop(self):
-        for user_id_str, player_data in player_database.items():
-            if player_data.get("status") in ["afk", "dead"]:
-                continue
+        # Corrigido: current_boss_data agora é uma variável global em data_manager
+        # e é importado diretamente.
+        if not current_boss_data or not current_boss_data.get("active_boss_id"):
+            return  # No active boss, nothing to do
 
-            player_boss_data = player_data.get("boss_data")
-            if not player_boss_data or not player_boss_data.get("current_boss_id"):
-                continue
+        active_boss_id = current_boss_data["active_boss_id"]
+        active_boss_info = BOSSES_DATA.get(active_boss_id)
 
-            active_boss_info = BOSSES_DATA.get(player_boss_data["current_boss_id"])
-            if not active_boss_info:
-                # Boss info not found, clear player's current boss state
-                player_boss_data["current_boss_id"] = None
-                player_boss_data["current_boss_hp"] = 0
-                player_boss_data["last_spawn_channel_id"] = None
-                save_data()
-                continue
-
-            channel_id = player_boss_data.get("last_spawn_channel_id")
-            if not channel_id:
-                # No channel ID, clear player's current boss state
-                player_boss_data["current_boss_id"] = None
-                player_boss_data["current_boss_hp"] = 0
-                player_boss_data["last_spawn_channel_id"] = None
-                save_data()
-                continue
-
-            channel = self.get_channel(channel_id)
-            if not channel:
-                # Channel not found, clear player's current boss state
-                player_boss_data["current_boss_id"] = None
-                player_boss_data["current_boss_hp"] = 0
-                player_boss_data["last_spawn_channel_id"] = None
-                save_data()
-                continue
-
-            target_member = self.get_guild(GUILD_ID).get_member(int(user_id_str))
-            if not target_member:
-                # Member not found in guild, clear player's current boss state
-                player_boss_data["current_boss_id"] = None
-                player_boss_data["current_boss_hp"] = 0
-                player_boss_data["last_spawn_channel_id"] = None
-                save_data()
-                continue
-
-            damage_to_deal = random.randint(
-                active_boss_info["attack"] // 2, active_boss_info["attack"]
+        if not active_boss_info:
+            print(
+                f"AVISO: Boss ativo com ID '{active_boss_id}' não encontrado em BOSSES_DATA."
             )
+            current_boss_data.clear()  # Clear invalid boss state
+            save_data()
+            return
 
-            player_effective_stats = calculate_effective_stats(player_data)
-            total_evasion_chance = player_effective_stats.get(
-                "evasion_chance_bonus", 0.0
+        channel_id = current_boss_data.get("channel_id")
+        if not channel_id:
+            print(f"AVISO: Boss '{active_boss_id}' não tem um channel_id configurado.")
+            return  # No channel to send messages
+
+        channel = self.get_channel(channel_id)
+        if not channel:
+            print(
+                f"AVISO: Canal '{channel_id}' para o boss '{active_boss_id}' não encontrado."
             )
+            current_boss_data.clear()  # Clear invalid boss state
+            save_data()
+            return
 
-            # Check for all active blessings that provide evasion
+        participants = list(current_boss_data.get("participants", []))
+        if not participants:
+            print(f"Boss {active_boss_id} não tem participantes ativos.")
+            return
+
+        # Choose a random participant to attack
+        target_user_id_str = random.choice(participants)
+        target_player_data = get_player_data(
+            target_user_id_str
+        )  # Corrigido: get_player_data é chamado diretamente
+
+        if not target_player_data or target_player_data.get("status") in [
+            "afk",
+            "dead",
+        ]:
+            # If target is AFK or dead, remove them from participants and try again next loop
+            current_boss_data["participants"].remove(target_user_id_str)
+            save_data()
+            return
+
+        target_member = self.get_guild(GUILD_ID).get_member(int(target_user_id_str))
+        if not target_member:
+            print(
+                f"Membro {target_user_id_str} não encontrado na guilda para ataque de boss."
+            )
+            current_boss_data["participants"].remove(target_user_id_str)
+            save_data()
+            return
+
+        damage_to_deal = random.randint(
+            active_boss_info["attack"] // 2, active_boss_info["attack"]
+        )
+
+        player_effective_stats = calculate_effective_stats(target_player_data)
+        total_evasion_chance = player_effective_stats.get("evasion_chance_bonus", 0.0)
+
+        # Check for all active blessings that provide evasion
+        for item_id, item_info in ITEMS_DATA.items():
+            if (
+                item_info.get("type") == "blessing_unlock"
+                and item_info.get("evasion_chance", 0.0) > 0
+            ):
+                if target_player_data.get(f"{item_id}_active", False):
+                    total_evasion_chance += item_info.get("evasion_chance", 0.0)
+
+        log_message = f"👹 **Fúria do {active_boss_info['name']}** ataca **{target_member.display_name}**!"
+
+        evaded = False
+        hp_stolen_on_evade = 0
+        # Apply evasion if player has enough total evasion chance and succeeds the roll
+        if random.random() < total_evasion_chance:
+            # Find the highest HP steal percentage from active blessings, if applicable
+            max_hp_steal_percent = 0.0
             for item_id, item_info in ITEMS_DATA.items():
                 if (
                     item_info.get("type") == "blessing_unlock"
                     and item_info.get("evasion_chance", 0.0) > 0
                 ):
-                    if player_data.get(f"{item_id}_active", False):
-                        total_evasion_chance += item_info.get("evasion_chance", 0.0)
+                    if target_player_data.get(f"{item_id}_active", False):
+                        max_hp_steal_percent = max(
+                            max_hp_steal_percent,
+                            item_info.get("hp_steal_percent_on_evade", 0.0),
+                        )
 
-            log_message = f"👹 **Fúria do {active_boss_info['name']}** ataca **{target_member.display_name}**!"
+            hp_stolen_on_evade = int(damage_to_deal * max_hp_steal_percent)
+            target_player_data["hp"] = min(
+                target_player_data["max_hp"],
+                target_player_data["hp"] + hp_stolen_on_evade,
+            )
+            log_message += f"\n👻 **DESVIADO!** Você evitou o ataque e sugou `{hp_stolen_on_evade}` HP!"
+            evaded = True
+        else:
+            target_player_data["hp"] -= damage_to_deal
+            log_message += f"\nVocê sofreu `{damage_to_deal}` de dano!"
 
-            evaded = False
-            hp_stolen_on_evade = 0
-            # Apply evasion if player has enough total evasion chance and succeeds the roll
-            if random.random() < total_evasion_chance:
-                # Find the highest HP steal percentage from active blessings, if applicable
-                max_hp_steal_percent = 0.0
-                for item_id, item_info in ITEMS_DATA.items():
-                    if (
-                        item_info.get("type") == "blessing_unlock"
-                        and item_info.get("evasion_chance", 0.0) > 0
-                    ):
-                        if player_data.get(f"{item_id}_active", False):
-                            max_hp_steal_percent = max(
-                                max_hp_steal_percent,
-                                item_info.get("hp_steal_percent_on_evade", 0.0),
-                            )
+        if target_player_data["hp"] <= 0:
+            target_player_data["hp"] = 0
+            target_player_data["status"] = "dead"
+            target_player_data["deaths"] += 1
+            log_message += "\n☠️ Você foi derrotado pelo Boss!"
+            # Remove from participants if dead
+            if target_user_id_str in current_boss_data["participants"]:
+                current_boss_data["participants"].remove(target_user_id_str)
 
-                hp_stolen_on_evade = int(damage_to_deal * max_hp_steal_percent)
-                player_data["hp"] = min(
-                    player_data["max_hp"], player_data["hp"] + hp_stolen_on_evade
-                )
-                log_message += f"\n👻 **DESVIADO!** Você evitou o ataque e sugou `{hp_stolen_on_evade}` HP!"
-                evaded = True
-            else:
-                player_data["hp"] -= damage_to_deal
-                log_message += f"\nVocê sofreu `{damage_to_deal}` de dano!"
+        save_data()  # Save player data and global boss data
 
-            if player_data["hp"] <= 0:
-                player_data["hp"] = 0
-                player_data["status"] = "dead"
-                player_data["deaths"] += 1
-                log_message += "\n☠️ Você foi derrotado pelo Boss!"
-
+        attack_embed = Embed(
+            title="Ataque de Boss!",
+            description=log_message,
+            color=Color.dark_orange(),
+        )
+        attack_embed.set_footer(
+            text=f"Sua vida: {max(0, target_player_data['hp'])}/{target_player_data['max_hp']}"
+        )
+        try:
+            await channel.send(target_member.mention, embed=attack_embed)
+        except Exception as e:
+            print(
+                f"Erro ao enviar mensagem de ataque de boss para {target_member.display_name} no canal {channel_id}: {e}"
+            )
+            # If message sending fails, consider the boss encounter invalid for this player
+            if target_user_id_str in current_boss_data["participants"]:
+                current_boss_data["participants"].remove(target_user_id_str)
             save_data()
-
-            attack_embed = Embed(
-                title="Ataque de Boss!",
-                description=log_message,
-                color=Color.dark_orange(),
-            )
-            attack_embed.set_footer(
-                text=f"Sua vida: {max(0, player_data['hp'])}/{player_data['max_hp']}"
-            )
-            try:
-                await channel.send(target_member.mention, embed=attack_embed)
-            except Exception as e:
-                print(
-                    f"Erro ao enviar mensagem de ataque de boss para {target_member.display_name} no canal {channel_id}: {e}"
-                )
-                # If message sending fails, consider the boss encounter invalid for this player
-                player_boss_data["current_boss_id"] = None
-                player_boss_data["current_boss_hp"] = 0
-                player_boss_data["last_spawn_channel_id"] = None
-                save_data()
 
     @tasks.loop(minutes=5)
     async def sync_roles_periodically(self):
@@ -620,7 +640,9 @@ class OutlawsBot(commands.Bot):
                 )
 
                 for member_id in clan["members"]:
-                    player_data = get_player_data(member_id)
+                    player_data = get_player_data(
+                        member_id
+                    )  # Corrigido: get_player_data é chamado diretamente
                     if player_data:
                         player_data["xp"] += xp_reward
                         player_data[
