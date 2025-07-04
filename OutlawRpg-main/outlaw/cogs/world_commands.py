@@ -427,6 +427,12 @@ class WorldCommands(commands.Cog):
                 name="Lorde Sanguinário (Vampiro)", value="Lorde Sanguinário"
             ),
             app_commands.Choice(
+                name="Fúria Imortal (Corpo Seco)", value="Fúria Imortal"
+            ),  # ADICIONADO
+            app_commands.Choice(
+                name="Lobo Descontrolado (Domador)", value="Lobo Descontrolado"
+            ),  # ADICIONADO
+            app_commands.Choice(
                 name="Lâmina Abençoada (Espadachim - Aura)", value="Lâmina Abençoada"
             ),
             app_commands.Choice(
@@ -566,6 +572,12 @@ class WorldCommands(commands.Cog):
             app_commands.Choice(
                 name="Lorde Sanguinário (Vampiro)", value="Lorde Sanguinário"
             ),
+            app_commands.Choice(
+                name="Fúria Imortal (Corpo Seco)", value="Fúria Imortal"
+            ),  # ADICIONADO
+            app_commands.Choice(
+                name="Lobo Descontrolado (Domador)", value="Lobo Descontrolado"
+            ),  # ADICIONADO
             app_commands.Choice(
                 name="Lâmina Abençoada (Espadachim - Aura)", value="Lâmina Abençoada"
             ),

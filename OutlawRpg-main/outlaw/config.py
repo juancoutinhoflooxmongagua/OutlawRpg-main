@@ -131,10 +131,10 @@ ITEMS_DATA = {
         "style_restriction": "Aura",
         "cost_energy": 5,
         "duration_seconds": 10 * 60,
-        "attack_multiplier": 1.20,
-        "special_attack_multiplier": 1.20,
-        "max_hp_multiplier": 1.20,
-        "cooldown_reduction_percent": 0.10,
+        "attack_multiplier": 1.15,
+        "special_attack_multiplier": 1.15,
+        "max_hp_multiplier": 1.15,
+        "cooldown_reduction_percent": 0.07,
         "emoji": "✨",
         "consumable": False,
         "type": "blessing_unlock",
@@ -143,16 +143,16 @@ ITEMS_DATA = {
     # NOVOS ITENS INVOCADORES DE BOSS (adicionados para permitir compra na loja)
     "invocador_colosso_de_pedra": {
         "name": "Invocador do Colosso de Pedra",
-        "price": 1000,  # Preço base, Colosso é o primeiro boss
+        "price": 1000,
         "emoji": "🔮",
         "consumable": True,
-        "type": "summon_boss",  # Novo tipo para invocar bosses
-        "boss_id_to_summon": "Colosso de Pedra",  # Qual boss este item invoca
+        "type": "summon_boss",
+        "boss_id_to_summon": "Colosso de Pedra",
         "description": "Invoca o Colosso de Pedra para um desafio pessoal.",
     },
     "invocador_devorador_abissal": {
         "name": "Invocador do Devorador Abissal",
-        "price": 2500,  # Preço escalado
+        "price": 2500,
         "emoji": "🔮",
         "consumable": True,
         "type": "summon_boss",
@@ -161,7 +161,7 @@ ITEMS_DATA = {
     },
     "invocador_inferno_guardiao": {
         "name": "Invocador do Inferno Guardião",
-        "price": 6000,  # Preço escalado
+        "price": 6000,
         "emoji": "🔮",
         "consumable": True,
         "type": "summon_boss",
@@ -170,7 +170,7 @@ ITEMS_DATA = {
     },
     "invocador_tita_esquecido": {
         "name": "Invocador do Titã Esquecido",
-        "price": 15000,  # Preço escalado
+        "price": 15000,
         "emoji": "🔮",
         "consumable": True,
         "type": "summon_boss",
@@ -179,7 +179,7 @@ ITEMS_DATA = {
     },
     "invocador_arauto_das_sombras": {
         "name": "Invocador do Arauto das Sombras",
-        "price": 40000,  # Preço escalado
+        "price": 40000,
         "emoji": "🔮",
         "consumable": True,
         "type": "summon_boss",
@@ -188,7 +188,7 @@ ITEMS_DATA = {
     },
     "invocador_anomalia_dimensional": {
         "name": "Invocador da Anomalia Dimensional",
-        "price": 100000,  # Preço escalado
+        "price": 100000,
         "emoji": "🔮",
         "consumable": True,
         "type": "summon_boss",
@@ -197,7 +197,7 @@ ITEMS_DATA = {
     },
     "invocador_sentinela_celestial": {
         "name": "Invocador da Sentinela Celestial",
-        "price": 250000,  # Preço escalado
+        "price": 250000,
         "emoji": "🔮",
         "consumable": True,
         "type": "summon_boss",
@@ -208,8 +208,8 @@ ITEMS_DATA = {
         "name": "Coleira do Lobo Alfa",
         "price": 7500,
         "class_restriction": "Domador",
-        "attack_bonus_percent": 0.08,  # Aumenta o dano do Domador e, por extensão, do lobo
-        "hp_bonus_flat": 30,  # Aumenta a vida do Domador e, por extensão, do lobo
+        "attack_bonus_percent": 0.08,
+        "hp_bonus_flat": 30,
         "emoji": "🦴",
         "consumable": False,
         "type": "equipable",
@@ -219,20 +219,19 @@ ITEMS_DATA = {
         "name": "Armadura de Osso Antigo",
         "price": 7500,
         "class_restriction": "Corpo Seco",
-        "hp_bonus_flat": 50,  # Aumenta a vida
-        "cooldown_reduction_percent": 0.10,  # Reduz cooldowns, complementando a defesa
+        "hp_bonus_flat": 50,
+        "cooldown_reduction_percent": 0.10,
         "emoji": "🛡️",
         "consumable": False,
         "type": "equipable",
         "description": "Uma armadura densa que aumenta seu HP em 50 e reduz o cooldown de habilidades em 10%.",
     },
-    # ITEM DE END-GAME (500.000 moedas)
     "coracao_do_universo": {
         "name": "Coração do Universo",
         "price": 500000,
         "emoji": "💖",
         "consumable": False,
-        "type": "unique_passive",  # Ou um novo tipo se tiver efeitos muito únicos
+        "type": "unique_passive",
         "description": "Um fragmento da criação. Concede +15% de ataque, +15% de HP, +50% de XP e Dinheiro, e reduz todos os cooldowns em 20%.",
         "attack_multiplier": 1.15,
         "max_hp_multiplier": 1.15,
@@ -242,8 +241,6 @@ ITEMS_DATA = {
     },
 }
 
-# NEW: Defines the kill goals for each location to drop a boss invoker.
-# This assumes any location where a boss *could* spawn will grant its invoker upon reaching the kill goal.
 LOCATION_KILL_GOALS = {
     "Floresta Sussurrante": {
         "kills_required": 60,
@@ -277,7 +274,6 @@ LOCATION_KILL_GOALS = {
 }
 
 
-# New dictionary for class transformations
 CLASS_TRANSFORMATIONS = {
     "Espadachim": {
         "Lâmina Fantasma": {
@@ -382,8 +378,8 @@ CLASS_TRANSFORMATIONS = {
             "emoji": "🧛",
             "cost_energy": TRANSFORM_COST,
             "duration_seconds": 5 * 60,
-            "attack_multiplier": 1.80,
-            "special_attack_multiplier": 2.00,
+            "attack_multiplier": 1.80,  # Revertido para original
+            "special_attack_multiplier": 2.00,  # Revertido para original
             "hp_multiplier": 1.05,
             "healing_multiplier": 1.0,
             "cooldown_reduction_percent": 0.0,
@@ -393,8 +389,8 @@ CLASS_TRANSFORMATIONS = {
             "emoji": CUSTOM_EMOJIS.get("transform", "✨"),
             "cost_energy": TRANSFORM_COST + 2,
             "duration_seconds": 7 * 60,
-            "attack_multiplier": 1.90,
-            "special_attack_multiplier": 2.20,
+            "attack_multiplier": 1.90,  # Revertido para original
+            "special_attack_multiplier": 2.20,  # Revertido para original
             "evasion_chance_bonus": 0.05,
             "required_blessing": "bencao_dracula",
         },
@@ -404,9 +400,9 @@ CLASS_TRANSFORMATIONS = {
             "emoji": "💀",
             "cost_energy": 1,
             "duration_seconds": 1 * 60,
-            "attack_multiplier": 2.5,  # Grande bônus como proxy.
+            "attack_multiplier": 2.5,
             "special_attack_multiplier": 2.5,
-            "hp_multiplier": 0.5,  # Reduz o HP em 50% durante a transformação.
+            "hp_multiplier": 0.7,
             "healing_multiplier": 1.0,
             "cooldown_reduction_percent": 0.0,
             "evasion_chance_bonus": 0.0,
@@ -444,8 +440,8 @@ BOSSES_DATA = {
         ],
         "thumbnail": "https://c.tenor.com/NLQ2AoVfEQUAAAAd/tenor.gif",
         "next_boss_unlock": "Devorador Abissal",
-        "required_level": 1,  # Nível mínimo para comprar o invocador
-        "price_invoker": 1000,  # Preço do invocador específico
+        "required_level": 1,
+        "price_invoker": 1000,
     },
     "Devorador Abissal": {
         "id": "devorador_abissal",
@@ -457,7 +453,7 @@ BOSSES_DATA = {
         "drops": {
             "super_pocao": 2,
             "invocador_colosso_de_pedra": 1,
-        },  # Dropa o invocador do boss anterior
+        },
         "spawn_locations": ["Abismo Sombrio"],
         "thumbnail": "https://c.tenor.com/f2S9_G2tEwAAAAAd/abyssal-devourer.gif",
         "next_boss_unlock": "Inferno Guardião",
@@ -526,9 +522,9 @@ BOSSES_DATA = {
         "xp_reward": 97656,
         "money_reward": 488280,
         "drops": {
-            "invocador_arauto_das_sombras": 1,  # Dropa invocador do boss anterior
-            "amuleto_de_pedra": 1,  # Amuleto já é único, garantido o drop apenas uma vez
-            "habilidade_inata": 1,  # Recompensa especial, não é item de inventário
+            "invocador_arauto_das_sombras": 1,
+            "amuleto_de_pedra": 1,
+            "habilidade_inata": 1,
         },
         "spawn_locations": ["Brecha das Terras"],
         "thumbnail": "https://c.tenor.com/gK9x2C34z4kAAAAd/dimensional-anomaly.gif",
@@ -544,14 +540,14 @@ BOSSES_DATA = {
         "xp_reward": 244140,
         "money_reward": 1220700,
         "drops": {
-            "invocador_anomalia_dimensional": 1,  # Dropa invocador do boss anterior
+            "invocador_anomalia_dimensional": 1,
             "amuleto_de_pedra": 1,
-            "habilidade_inata": 2,  # Pode ser XP ou compensação, ou outra mecânica
-            "bencao_rei_henrique": 1,  # Bênção já é única
+            "habilidade_inata": 2,
+            "bencao_rei_henrique": 1,
         },
         "spawn_locations": ["Paraíso"],
         "thumbnail": "https://c.tenor.com/f3k2b_9m0AAAAAd/celestial-sentinel.gif",
-        "next_boss_unlock": None,  # Último boss
+        "next_boss_unlock": None,
         "required_level": 50,
         "price_invoker": 250000,
     },
@@ -564,7 +560,7 @@ WORLD_MAP = {
         "emoji": "⛺",
         "conecta": ["Floresta Sussurrante"],
         "desc": "Um acampamento improvisado que serve de refúgio para os renegados.",
-        "required_previous_boss": None,  # No boss needed to enter
+        "required_previous_boss": None,
     },
     "Floresta Sussurrante": {
         "name": "Floresta Sussurrante",
@@ -588,7 +584,7 @@ WORLD_MAP = {
         "emoji": "🕳️",
         "conecta": ["Ruínas do Templo", "Vale do Inferno"],
         "desc": "Um abismo sem fim, onde as sombras se tornam presas fáceis para predadores famintos.",
-        "required_previous_boss": "Colosso de Pedra",  # Requires Colosso defeated to enter
+        "required_previous_boss": "Colosso de Pedra",
     },
     "Vale do Inferno": {
         "name": "Vale do Inferno",
@@ -596,7 +592,7 @@ WORLD_MAP = {
         "emoji": "🔥",
         "conecta": ["Abismo Sombrio", "Templo Esquecido"],
         "desc": "Um vale escaldante cheio de fogo e criaturas que sobrevivem ao calor infernal.",
-        "required_previous_boss": "Devorador Abissal",  # Requires Devorador defeated to enter
+        "required_previous_boss": "Devorador Abissal",
     },
     "Templo Esquecido": {
         "name": "Templo Esquecido",
@@ -800,23 +796,23 @@ PROFILE_IMAGES = {
     # Imagens das Classes Base
     "Espadachim": "https://i.imgur.com/RC3rJNc.png",
     "Lutador": "https://media.discordapp.net/attachments/1388860166648369184/1389495865567084605/Picsart_25-07-01_03-17-21-028.png?ex=6864d45d&is=686382dd&hm=73f2f3896118d1901ec30b0c8b7ef6739d400e6f06294d98891698e4f16622b6&=&format=webp&quality=lossless&width=608&height=608",
-    "Atirador": "https://media.tenor.com/hYzJPjRmvWAAAAAM/clown.gif",  # NOTE: This URL is very generic, consider replacing.
+    "Atirador": "https://media.tenor.com/hYzJPjRmvWAAAAAM/clown.gif",
     "Curandeiro": "https://i.ibb.co/3Y1sqWcP/image.png",
     "Vampiro": "https://i.imgur.com/X0E6qQL.png",
-    "Domador": "https://i.imgur.com/example_tamer.png",  # <<-- Substitua com uma URL real para o Domador
-    "Corpo Seco": "https://imgs.search.brave.com/0-7XXiyDokmhrgN9p6TBkHv_Ah2SxtWlTCsHsNasvjU/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9zdGF0/aWMud2l4c3RhdGlj/LmNvbS9tZWRpYS8z/NzFhMTNfMzI2Njkx/MGRiNGU0NDA4Mzlk/YWIwZmNkZTg4ZTM3/ZWF-bXYyLmpwZy92/MS9jcm9wL3hfMCx5/XzMwNSx3XzE5MjAs/aF85MTUvZmlsbC93/XzYwMCxoXzI5MCxh/bF9jLHFfODAsdXNn/bV8wLjY2XzEuMDBf/MC4wMSxlbmNfYXZp/Zi9jb3Jwby1zZWNv/LmpwZw",  # <<-- Substitua com uma URL real para o Corpo Seco
-    # Imagens das Transformações (precisam corresponder EXATAMENTE ao "name" em CLASS_TRANSFORMATIONS)
+    "Domador": "https://i.imgur.com/example_tamer.png",
+    "Corpo Seco": "https://imgs.search.brave.com/0-7XXiyDokmhrgN9p6TBkHv_Ah2SxtWlTCsHsNasvjU/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9zdGF0/aWMud2l4c3RhdGlj/LmNvbS9tZWRpYS8z/NzFhMTNfMzI2Njkx/MGRiNGU0NDA4Mzlk/YWIwZmNkZTg4ZTM3/ZWF-bXYyLmpwZy92/MS9jcm9wL3hfMCx5/XzMwNSx3XzE5MjAs/aF85MTUvZmlsbC93/XzYwMCxoXzI5MCxh/bF9jLHFfODAsdXNn/bV8wLjY2XzEuMDBf/MC4wMSxlbmNfYXZp/Zi9jb3Jwby1zZWNv/LmpwZw",
+    # Imagens das Transformações
     "Lâmina Fantasma": "https://i.imgur.com/CnDR7eP.png",
     "Punho de Aço": "https://i.imgur.com/mDsfNyi.png",
-    "Olho de Águia": "https://media.tenor.com/hYzJPjRmvWAAAAAM/clown.gifI",  # NOTE: This URL is very generic/broken, consider replacing.
+    "Olho de Águia": "https://media.tenor.com/hYzJPjRmvWAAAAAM/clown.gifI",
     "Bênção Vital": "https://i.ibb.co/5xScwp3Y/image.png",
     "Lorde Sanguinário": "https://i.imgur.com/eTaWLjx.png",
-    "Benção do Rei Henrique": "https://media.tenor.com/hYzJPjRmvWAAAAAM/clown.gifI",  # NOTE: This URL is very generic/broken, consider replacing.
-    "Lâmina Abençoada": "https://example.com/blade_blessed.png",  # Placeholder, replace with actual image URL
-    "Punho de Adamantium": "https://example.com/adamantium_fist.png",  # Placeholder, replace with actual image URL
-    "Visão Cósmica": "https://example.com/cosmic_sight.png",  # Placeholder, replace with actual image URL
+    "Benção do Rei Henrique": "https://media.tenor.com/hYzJPjRmvWAAAAAM/clown.gifI",
+    "Lâmina Abençoada": "https://example.com/blade_blessed.png",
+    "Punho de Adamantium": "https://example.com/adamantium_fist.png",
+    "Visão Cósmica": "https://example.com/cosmic_sight.png",
     "Toque Divino": "https://i.ibb.co/VcK0Mzyr/image.png",
-    "Rei da Noite": "https://example.com/night_king.png",  # Placeholder, replace with actual image URL
+    "Rei da Noite": "https://example.com/night_king.png",
 }
 
 
@@ -831,12 +827,11 @@ LEVEL_ROLES = {
 
 NEW_CHARACTER_ROLE_ID = 1388628499182518352
 
-# This is the TEMPLATE for the initial player boss data structure.
 DEFAULT_PLAYER_BOSS_DATA = {
     "current_boss_id": None,
     "current_boss_hp": 0,
     "last_spawn_channel_id": None,
     "boss_progression_level": "Colosso de Pedra",
     "defeated_bosses": [],
-    "last_spawn_timestamp": 0,  # Added for cooldown on boss spawn per player
+    "last_spawn_timestamp": 0,
 }

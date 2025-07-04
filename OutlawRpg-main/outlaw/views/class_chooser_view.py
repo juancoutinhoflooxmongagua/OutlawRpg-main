@@ -29,12 +29,8 @@ class ClassChooserView(ui.View):
             discord.SelectOption(label="Atirador", emoji="🏹"),
             discord.SelectOption(label="Curandeiro", emoji="🩹"),
             discord.SelectOption(label="Vampiro", emoji="🧛"),
-            discord.SelectOption(
-                label="Domador", emoji="🐺"
-            ),  # <--- ADICIONE ESTA LINHA
-            discord.SelectOption(
-                label="Corpo Seco", emoji="💀"
-            ),  # <--- ADICIONE ESTA LINHA
+            discord.SelectOption(label="Domador", emoji="🐺"),
+            discord.SelectOption(label="Corpo Seco", emoji="💀"),
         ],
     )
     async def class_select(self, i: Interaction, s: ui.Select):
@@ -90,44 +86,46 @@ class ClassChooserView(ui.View):
             base_stats["attack"] += 8
             base_stats["special_attack"] += 15
         elif self.chosen_class == "Domador":
-            base_stats["hp"] += 15  # HP base um pouco maior para o dono
+            base_stats["hp"] += 15
             base_stats["attack"] += 7
             base_stats["special_attack"] += 7
             # O dano e HP do lobo serão calculados em `calculate_effective_stats`
         elif self.chosen_class == "Corpo Seco":
-            base_stats["hp"] += 60  # HP significativamente maior
-            base_stats["attack"] -= 5  # Dano base menor
-            base_stats["special_attack"] -= 5  # Dano especial menor
-            player_database[user_id] = {
-                "name": i.user.display_name,
-                "class": self.chosen_class,
-                "style": self.chosen_style,
-                "xp": 0,
-                "level": 1,
-                "money": INITIAL_MONEY,
-                "hp": base_stats["hp"],
-                "max_hp": base_stats["hp"],
-                "base_attack": base_stats["attack"],
-                "base_special_attack": base_stats["special_attack"],
-                "inventory": {},
-                "cooldowns": {},
-                "status": "online",
-                "bounty": 0,
-                "kills": 0,
-                "deaths": 0,
-                "energy": MAX_ENERGY,
-                "current_transformation": None,
-                "transform_end_time": 0,
-                "aura_blessing_active": False,
-                "aura_blessing_end_time": 0,
-                "bencao_dracula_active": False,
-                "bencao_dracula_end_time": 0,
-                "amulet_used_since_revive": False,
-                "attribute_points": 0,
-                "location": STARTING_LOCATION,
-                "xptriple": False,
-                "money_double": False,
-            }
+            base_stats["hp"] += 60
+            base_stats["attack"] -= 5
+            base_stats["special_attack"] -= 5
+
+        # Bloco de inicialização da ficha do jogador movido para fora dos `if/elif` de classe
+        player_database[user_id] = {
+            "name": i.user.display_name,
+            "class": self.chosen_class,
+            "style": self.chosen_style,
+            "xp": 0,
+            "level": 1,
+            "money": INITIAL_MONEY,
+            "hp": base_stats["hp"],
+            "max_hp": base_stats["hp"],
+            "base_attack": base_stats["attack"],
+            "base_special_attack": base_stats["special_attack"],
+            "inventory": {},
+            "cooldowns": {},
+            "status": "online",
+            "bounty": 0,
+            "kills": 0,
+            "deaths": 0,
+            "energy": MAX_ENERGY,
+            "current_transformation": None,
+            "transform_end_time": 0,
+            "aura_blessing_active": False,
+            "aura_blessing_end_time": 0,
+            "bencao_dracula_active": False,
+            "bencao_dracula_end_time": 0,
+            "amulet_used_since_revive": False,
+            "attribute_points": 0,
+            "location": STARTING_LOCATION,
+            "xptriple": False,
+            "money_double": False,
+        }
 
         guild = i.guild
         if guild:

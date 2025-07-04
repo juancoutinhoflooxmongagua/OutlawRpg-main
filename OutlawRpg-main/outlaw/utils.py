@@ -7,7 +7,7 @@ from discord import Interaction, Embed, Color
 from config import (
     ITEMS_DATA,
     CLASS_TRANSFORMATIONS,
-    BOSSES_DATA,  # Correct: BOSSES_DATA (the definitions) is here
+    BOSSES_DATA,
     XP_PER_LEVEL_BASE,
     ATTRIBUTE_POINTS_PER_LEVEL,
     CRITICAL_CHANCE,
@@ -18,7 +18,6 @@ from config import (
     TRANSFORM_COST,
 )
 
-# Correct: import current_boss_data (the LIVE state) from data_manager
 from data_manager import save_data, get_player_data, current_boss_data
 
 
@@ -32,10 +31,7 @@ def calculate_effective_stats(raw_player_data: dict) -> dict:
     effective_data["attack_bonus_passive_percent"] = 0.0
     effective_data["healing_multiplier"] = 1.0
     effective_data["evasion_chance_bonus"] = 0.0
-    effective_data["cooldown_reduction_percent"] = (
-        0.0  # New: for general cooldown reduction
-    )
-    # Adicionar aqui os multiplicadores passivos para XP e Dinheiro
+    effective_data["cooldown_reduction_percent"] = 0.0
     effective_data["xp_multiplier_passive"] = 0.0
     effective_data["money_multiplier_passive"] = 0.0
 
@@ -45,12 +41,9 @@ def calculate_effective_stats(raw_player_data: dict) -> dict:
         effective_data["attack_bonus_passive_percent"] += habilidade_inata_info.get(
             "attack_bonus_passive_percent", 0.0
         )
-        effective_data[
-            "xp_multiplier_passive"
-        ] += habilidade_inata_info.get(  # Adicionar XP passivo da Habilidade Inata
+        effective_data["xp_multiplier_passive"] += habilidade_inata_info.get(
             "xp_multiplier_passive", 0.0
         )
-        # Habilidade Inata does not affect cooldown_reduction_percent directly by default
 
     # Initialize current attack/special_attack/max_hp with base values
     effective_data["attack"] = raw_player_data["base_attack"]
@@ -105,42 +98,23 @@ def calculate_effective_stats(raw_player_data: dict) -> dict:
             "cooldown_reduction_percent", 0.0
         )
 
-    # NOVO: Aplica bônus específicos para as classes Domador e Corpo Seco
     if effective_data["class"] == "Domador":
-        # Lobo adiciona 50% do ataque base do Domador
         effective_data["attack"] = int(
-            effective_data["attack"] + (raw_player_data["base_attack"] * 0.50)
-        )
+            effective_data["attack"] * 1.20
+        )  # Ajustado de 1.35
         effective_data["special_attack"] = int(
-            effective_data["special_attack"]
-            + (raw_player_data["base_special_attack"] * 0.50)
-        )
-        # Lobo adiciona 50% do HP máximo base do Domador
+            effective_data["special_attack"] * 1.20
+        )  # Ajustado de 1.35
         effective_data["max_hp"] = int(
-            effective_data["max_hp"] + (raw_player_data["max_hp"] * 0.50)
-        )
-        effective_data["hp"] = min(
-            raw_player_data["hp"], effective_data["max_hp"]
-        )  # Ajusta HP atual
+            effective_data["max_hp"] * 1.15
+        )  # Ajustado de 1.25
+        effective_data["hp"] = min(raw_player_data["hp"], effective_data["max_hp"])
     elif effective_data["class"] == "Corpo Seco":
-        # --- ALTERAÇÕES PARA BALANCEAMENTO DO CORPO SECO ---
-        # Aumentar HP efetivo para ser mais tanque
-        effective_data["max_hp"] = int(
-            effective_data["max_hp"] * 1.50  # Aumentado de 1.35 para 1.50
-        )
-        effective_data["hp"] = min(
-            raw_player_data["hp"], effective_data["max_hp"]
-        )  # Ajusta HP atual
-        # Reduzir penalidade de ataque para que cause mais dano
-        effective_data["attack"] = int(
-            effective_data["attack"] * 0.95  # Aumentado de 0.90 para 0.95
-        )
-        effective_data["special_attack"] = int(
-            effective_data["special_attack"] * 0.95  # Aumentado de 0.90 para 0.95
-        )
-        # Adicionar pequena chance de evasão para aumentar sobrevivência
-        effective_data["evasion_chance_bonus"] += 0.10  # Aumentado de 0.05 para 0.10
-        # ----------------------------------------------------
+        effective_data["max_hp"] = int(effective_data["max_hp"] * 1.50)
+        effective_data["hp"] = min(raw_player_data["hp"], effective_data["max_hp"])
+        effective_data["attack"] = int(effective_data["attack"] * 1.05)
+        effective_data["special_attack"] = int(effective_data["special_attack"] * 1.05)
+        effective_data["evasion_chance_bonus"] += 0.10
 
     # Apply item bonuses based on inventory (after transformations for proper stacking)
     inventory = effective_data.get("inventory", {})
@@ -166,14 +140,11 @@ def calculate_effective_stats(raw_player_data: dict) -> dict:
             effective_data["attack"]
             * (1 + espada_fantasma_info.get("attack_bonus_percent", 0.0))
         )
-        # Apply penalty to the calculated max_hp based on previous buffs
         effective_data["max_hp"] = int(
             effective_data["max_hp"]
             * (1 - espada_fantasma_info.get("hp_penalty_percent", 0.0))
         )
-        effective_data["hp"] = min(
-            effective_data["hp"], effective_data["max_hp"]
-        )  # Adjust current HP
+        effective_data["hp"] = min(effective_data["hp"], effective_data["max_hp"])
 
     # Cajado do Curandeiro: Increases healing effectiveness
     cajado_curandeiro_info = ITEMS_DATA.get("cajado_curandeiro", {})
@@ -240,14 +211,11 @@ def calculate_effective_stats(raw_player_data: dict) -> dict:
             "cooldown_reduction_percent", 0.0
         )
 
-    # Apply remaining passive attack bonus from "Habilidade Inata" (final layer)
-    # Este já considera o xp_multiplier_passive da Habilidade Inata, mas agora também do Coração do Universo.
     effective_data["attack"] = int(
         effective_data["attack"]
         * (1 + effective_data.get("attack_bonus_passive_percent", 0.0))
     )
 
-    # Ensure HP doesn't exceed new max_hp after all calculations
     effective_data["hp"] = min(raw_player_data["hp"], effective_data["max_hp"])
 
     return effective_data
@@ -390,11 +358,44 @@ async def run_turn_based_combat(
 
     player_stats = calculate_effective_stats(raw_player_data)
 
+    owner_display_hp = player_hp
+    wolf_display_hp = 0
+    owner_display_max_hp = player_stats["max_hp"]
+    wolf_display_max_hp = 0
+    player_hp_display_text = ""
+
+    if raw_player_data["class"] == "Domador":
+        owner_base_for_ratio = raw_player_data["max_hp"]
+        wolf_base_for_ratio = int(raw_player_data["max_hp"] * 0.50)
+
+        total_ratio_base = owner_base_for_ratio + wolf_base_for_ratio
+
+        if total_ratio_base > 0:
+            owner_ratio = owner_base_for_ratio / total_ratio_base
+
+            owner_display_hp = int(player_hp * owner_ratio)
+            wolf_display_hp = player_hp - owner_display_hp
+
+            owner_display_max_hp = int(player_stats["max_hp"] * owner_ratio)
+            wolf_display_max_hp = player_stats["max_hp"] - owner_display_max_hp
+        else:
+            owner_display_hp = player_hp
+            owner_display_max_hp = player_stats["max_hp"]
+            wolf_display_hp = 0
+            wolf_display_max_hp = 0
+
+        player_hp_display_text = (
+            f"❤️ Você: {max(0, owner_display_hp)}/{owner_display_max_hp}\n"
+            f"🐺 Lobo: {max(0, wolf_display_hp)}/{wolf_display_max_hp}"
+        )
+    else:
+        player_hp_display_text = f"❤️ {player_hp}/{player_stats['max_hp']}"
+
     embed = Embed(title=f"⚔️ Batalha Iniciada! ⚔️", color=Color.orange())
     embed.set_thumbnail(url=enemy.get("thumb"))
     embed.add_field(
         name=interaction.user.display_name,
-        value=f"❤️ {player_hp}/{player_stats['max_hp']}",
+        value=player_hp_display_text,
         inline=True,
     )
     embed.add_field(
@@ -413,6 +414,9 @@ async def run_turn_based_combat(
         player_dmg = 0
         attack_type_name = ""
         crit_msg = ""
+        owner_dmg_display = 0
+        wolf_dmg_display = 0
+        is_domador_attack = False
 
         cost_energy_special = TRANSFORM_COST
         cost_energy_special = max(
@@ -423,21 +427,35 @@ async def run_turn_based_combat(
             ),
         )
 
+        if raw_player_data["class"] == "Domador":
+            is_domador_attack = True
+            base_owner_attack = raw_player_data["base_attack"]
+            base_wolf_attack = int(raw_player_data["base_attack"] * 0.50)
+
+            base_owner_special_attack = raw_player_data["base_special_attack"]
+            base_wolf_special_attack = int(
+                raw_player_data["base_special_attack"] * 0.50
+            )
+
         if turn == 1:
             if initial_attack_style == "basico":
                 player_dmg = random.randint(
                     player_stats["attack"] // 2, player_stats["attack"]
                 )
                 attack_type_name = "Ataque Básico"
-                if raw_player_data["class"] == "Vampiro":
-                    heal_from_vampire_basic = int(player_dmg * 0.5)
-                    raw_player_data["hp"] = min(
-                        raw_player_data["max_hp"],
-                        raw_player_data["hp"] + heal_from_vampire_basic,
-                    )
-                    log.append(
-                        f"🩸 Você sugou `{heal_from_vampire_basic}` HP do inimigo!"
-                    )
+
+                if is_domador_attack:
+                    total_base_attack_for_display = base_owner_attack + base_wolf_attack
+                    if total_base_attack_for_display > 0:
+                        owner_dmg_display = int(
+                            player_dmg
+                            * (base_owner_attack / total_base_attack_for_display)
+                        )
+                        wolf_dmg_display = player_dmg - owner_dmg_display
+                    else:
+                        owner_dmg_display = player_dmg
+                        wolf_dmg_display = 0
+
             elif initial_attack_style == "especial":
                 if raw_player_data["energy"] < cost_energy_special:
                     player_dmg = random.randint(
@@ -449,6 +467,21 @@ async def run_turn_based_combat(
                     log.append(
                         "⚠️ Energia insuficiente para Ataque Especial. Usando Ataque Básico."
                     )
+
+                    if is_domador_attack:
+                        total_base_attack_for_display = (
+                            base_owner_attack + base_wolf_attack
+                        )
+                        if total_base_attack_for_display > 0:
+                            owner_dmg_display = int(
+                                player_dmg
+                                * (base_owner_attack / total_base_attack_for_display)
+                            )
+                            wolf_dmg_display = player_dmg - owner_dmg_display
+                        else:
+                            owner_dmg_display = player_dmg
+                            wolf_dmg_display = 0
+
                 else:
                     player_dmg = random.randint(
                         int(player_stats["special_attack"] * 0.8),
@@ -459,46 +492,128 @@ async def run_turn_based_combat(
                         0, raw_player_data["energy"] - cost_energy_special
                     )
 
-                    if raw_player_data["class"] == "Vampiro":
-                        heal_from_vampire_special = int(player_dmg * 0.75)
-                        raw_player_data["hp"] = min(
-                            raw_player_data["max_hp"],
-                            raw_player_data["hp"] + heal_from_vampire_special,
+                    if is_domador_attack:
+                        total_base_special_attack_for_display = (
+                            base_owner_special_attack + base_wolf_special_attack
                         )
-                        log.append(
-                            f"🧛 Você sugou `{heal_from_vampire_special}` HP do inimigo com seu ataque especial!"
-                        )
+                        if total_base_special_attack_for_display > 0:
+                            owner_dmg_display = int(
+                                player_dmg
+                                * (
+                                    base_owner_special_attack
+                                    / total_base_special_attack_for_display
+                                )
+                            )
+                            wolf_dmg_display = player_dmg - owner_dmg_display
+                        else:
+                            owner_dmg_display = player_dmg
+                            wolf_dmg_display = 0
+
         else:
             player_dmg = random.randint(
                 player_stats["attack"] // 2, player_stats["attack"]
             )
             attack_type_name = "Ataque Básico"
-            if raw_player_data["class"] == "Vampiro":
+
+            if is_domador_attack:
+                total_base_attack_for_display = base_owner_attack + base_wolf_attack
+                if total_base_attack_for_display > 0:
+                    owner_dmg_display = int(
+                        player_dmg * (base_owner_attack / total_base_attack_for_display)
+                    )
+                    wolf_dmg_display = player_dmg - owner_dmg_display
+                else:
+                    owner_dmg_display = player_dmg
+                    wolf_dmg_display = 0
+
+        if random.random() < CRITICAL_CHANCE:
+            player_dmg = int(player_dmg * CRITICAL_MULTIPLIER)
+            crit_msg = "💥 **CRÍTICO!** "
+            if is_domador_attack:
+                if initial_attack_style == "basico" or (
+                    turn == 1
+                    and initial_attack_style == "especial"
+                    and raw_player_data["energy"] < cost_energy_special
+                ):
+                    total_base_attack_for_display = base_owner_attack + base_wolf_attack
+                    if total_base_attack_for_display > 0:
+                        owner_dmg_display = int(
+                            player_dmg
+                            * (base_owner_attack / total_base_attack_for_display)
+                        )
+                        wolf_dmg_display = player_dmg - owner_dmg_display
+                elif initial_attack_style == "especial":
+                    total_base_special_attack_for_display = (
+                        base_owner_special_attack + base_wolf_special_attack
+                    )
+                    if total_base_special_attack_for_display > 0:
+                        owner_dmg_display = int(
+                            player_dmg
+                            * (
+                                base_owner_special_attack
+                                / total_base_special_attack_for_display
+                            )
+                        )
+                        wolf_dmg_display = player_dmg - owner_dmg_display
+
+        if raw_player_data["class"] == "Vampiro":
+            if attack_type_name == "Ataque Básico":
                 heal_from_vampire_basic = int(player_dmg * 0.5)
                 raw_player_data["hp"] = min(
                     raw_player_data["max_hp"],
                     raw_player_data["hp"] + heal_from_vampire_basic,
                 )
                 log.append(f"🩸 Você sugou `{heal_from_vampire_basic}` HP do inimigo!")
-
-        if random.random() < CRITICAL_CHANCE:
-            player_dmg = int(player_dmg * CRITICAL_MULTIPLIER)
-            crit_msg = "💥 **CRÍTICO!** "
+            elif attack_type_name == "Ataque Especial":
+                heal_from_vampire_special = int(player_dmg * 0.75)
+                raw_player_data["hp"] = min(
+                    raw_player_data["max_hp"],
+                    raw_player_data["hp"] + heal_from_vampire_special,
+                )
+                log.append(
+                    f"🧛 Você sugou `{heal_from_vampire_special}` HP do inimigo com seu ataque especial!"
+                )
 
         enemy_hp -= player_dmg
-        log.append(
-            f"➡️ **Turno {turn}**: {crit_msg}Você usou **{attack_type_name}** e causou `{player_dmg}` de dano."
-        )
+
+        if is_domador_attack:
+            log.append(
+                f"➡️ **Turno {turn}**: {crit_msg}Você e seu lobo usaram **{attack_type_name}** e causaram `{player_dmg}` de dano (Você: `{owner_dmg_display}`, Lobo: `{wolf_dmg_display}`)."
+            )
+        else:
+            log.append(
+                f"➡️ **Turno {turn}**: {crit_msg}Você usou **{attack_type_name}** e causou `{player_dmg}` de dano."
+            )
+
         if len(log) > 5:
             log.pop(0)
 
         player_hp = raw_player_data["hp"]
 
+        if raw_player_data["class"] == "Domador":
+            owner_base_for_ratio = raw_player_data["max_hp"]
+            wolf_base_for_ratio = int(raw_player_data["max_hp"] * 0.50)
+            total_ratio_base = owner_base_for_ratio + wolf_base_for_ratio
+
+            if total_ratio_base > 0:
+                owner_ratio = owner_base_for_ratio / total_ratio_base
+                owner_display_hp = int(player_hp * owner_ratio)
+                wolf_display_hp = player_hp - owner_display_hp
+            else:
+                owner_display_hp = player_hp
+                wolf_display_hp = 0
+            player_hp_display_text = (
+                f"❤️ Você: {max(0, owner_display_hp)}/{owner_display_max_hp}\n"
+                f"🐺 Lobo: {max(0, wolf_display_hp)}/{wolf_display_max_hp}"
+            )
+        else:
+            player_hp_display_text = f"❤️ {max(0, player_hp)}/{player_stats['max_hp']}"
+
         embed.description = "\n".join(log)
         embed.set_field_at(
             0,
             name=interaction.user.display_name,
-            value=f"❤️ {max(0, player_hp)}/{player_stats['max_hp']}",
+            value=player_hp_display_text,
             inline=True,
         )
         embed.set_field_at(
@@ -540,11 +655,32 @@ async def run_turn_based_combat(
             if len(log) > 5:
                 log.pop(0)
             player_hp = raw_player_data["hp"]
+
+            if raw_player_data["class"] == "Domador":
+                owner_base_for_ratio = raw_player_data["max_hp"]
+                wolf_base_for_ratio = int(raw_player_data["max_hp"] * 0.50)
+                total_ratio_base = owner_base_for_ratio + wolf_base_for_ratio
+                if total_ratio_base > 0:
+                    owner_ratio = owner_base_for_ratio / total_ratio_base
+                    owner_display_hp = int(player_hp * owner_ratio)
+                    wolf_display_hp = player_hp - owner_display_hp
+                else:
+                    owner_display_hp = player_hp
+                    wolf_display_hp = 0
+                player_hp_display_text = (
+                    f"❤️ Você: {max(0, owner_display_hp)}/{owner_display_max_hp}\n"
+                    f"🐺 Lobo: {max(0, wolf_display_hp)}/{wolf_display_max_hp}"
+                )
+            else:
+                player_hp_display_text = (
+                    f"❤️ {max(0, player_hp)}/{player_stats['max_hp']}"
+                )
+
             embed.description = "\n".join(log)
             embed.set_field_at(
                 0,
                 name=interaction.user.display_name,
-                value=f"❤️ {max(0, player_hp)}/{player_stats['max_hp']}",
+                value=player_hp_display_text,
                 inline=True,
             )
             await interaction.edit_original_response(embed=embed)
@@ -568,11 +704,32 @@ async def run_turn_based_combat(
             log.append("✨ **Amuleto de Pedra ativado!** Você sobreviveu por um triz!")
             if len(log) > 5:
                 log.pop(0)
+
+            if raw_player_data["class"] == "Domador":
+                owner_base_for_ratio = raw_player_data["max_hp"]
+                wolf_base_for_ratio = int(raw_player_data["max_hp"] * 0.50)
+                total_ratio_base = owner_base_for_ratio + wolf_base_for_ratio
+                if total_ratio_base > 0:
+                    owner_ratio = owner_base_for_ratio / total_ratio_base
+                    owner_display_hp = int(player_hp * owner_ratio)
+                    wolf_display_hp = player_hp - owner_display_hp
+                else:
+                    owner_display_hp = player_hp
+                    wolf_display_hp = 0
+                player_hp_display_text = (
+                    f"❤️ Você: {max(0, owner_display_hp)}/{owner_display_max_hp}\n"
+                    f"🐺 Lobo: {max(0, wolf_display_hp)}/{wolf_display_max_hp}"
+                )
+            else:
+                player_hp_display_text = (
+                    f"❤️ {max(0, player_hp)}/{player_stats['max_hp']}"
+                )
+
             embed.description = "\n".join(log)
             embed.set_field_at(
                 0,
                 name=interaction.user.display_name,
-                value=f"❤️ {max(0, player_hp)}/{player_stats['max_hp']}",
+                value=player_hp_display_text,
                 inline=True,
             )
             await interaction.edit_original_response(embed=embed)
@@ -583,11 +740,35 @@ async def run_turn_based_combat(
         if len(log) > 5:
             log.pop(0)
 
+        if raw_player_data["class"] == "Domador":
+            owner_base_for_ratio = raw_player_data["max_hp"]
+            wolf_base_for_ratio = int(raw_player_data["max_hp"] * 0.50)
+            total_ratio_base = owner_base_for_ratio + wolf_base_for_ratio
+            if total_ratio_base > 0:
+                owner_ratio = owner_base_for_ratio / total_ratio_base
+                owner_display_hp = int(player_hp * owner_ratio)
+                wolf_display_hp = player_hp - owner_display_hp
+            else:
+                owner_display_hp = player_hp
+                wolf_display_hp = 0
+            player_hp_display_text = (
+                f"❤️ Você: {max(0, owner_display_hp)}/{owner_display_max_hp}\n"
+                f"🐺 Lobo: {max(0, wolf_display_hp)}/{wolf_display_max_hp}"
+            )
+        else:
+            player_hp_display_text = f"❤️ {max(0, player_hp)}/{player_stats['max_hp']}"
+
         embed.description = "\n".join(log)
         embed.set_field_at(
             0,
             name=interaction.user.display_name,
-            value=f"❤️ {max(0, player_hp)}/{player_stats['max_hp']}",
+            value=player_hp_display_text,
+            inline=True,
+        )
+        embed.set_field_at(
+            1,
+            name=enemy["name"],
+            value=f"❤️ {max(0, enemy_hp)}/{enemy['hp']}",
             inline=True,
         )
         await interaction.edit_original_response(embed=embed)
@@ -610,7 +791,6 @@ async def run_turn_based_combat(
 
         xp_gain_raw = enemy["xp"]
 
-        # Aplicar multiplicadores de XP passivos (Habilidade Inata e Coração do Universo)
         xp_gain_raw = int(
             xp_gain_raw * (1 + player_stats.get("xp_multiplier_passive", 0.0))
         )
@@ -622,7 +802,6 @@ async def run_turn_based_combat(
             xp_gain = xp_gain_raw
             xp_message = f"✨ +{xp_gain} XP"
 
-        # Remover a lógica duplicada de mensagem de XP, já que o multiplicador passivo é aplicado acima
         if player_stats.get(
             "xp_multiplier_passive", 0.0
         ) > 0 and not raw_player_data.get("xptriple"):
@@ -635,7 +814,6 @@ async def run_turn_based_combat(
             xp_message = f"✨ +{xp_gain} XP (triplicado + Bônus Passivo: +{int(player_stats['xp_multiplier_passive']*100)}%!)"
 
         money_gain_raw = enemy["money"]
-        # Aplicar multiplicadores de Dinheiro passivos (Coração do Universo)
         money_gain_raw = int(
             money_gain_raw * (1 + player_stats.get("money_multiplier_passive", 0.0))
         )
