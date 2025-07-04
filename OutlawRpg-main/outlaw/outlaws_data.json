@@ -3,16 +3,20 @@
         "name": "\u23e4\u035f\u035e\u035f\uaab6\u0362Red X\uaac2",
         "class": "Corpo Seco",
         "style": "Aura",
-        "xp": 20,
+        "xp": 50,
         "level": 1,
-        "money": 97,
+        "money": 97999491539,
         "hp": 160,
         "max_hp": 160,
         "base_attack": 5,
         "base_special_attack": 15,
-        "inventory": {},
+        "inventory": {
+            "coracao_do_universo": 1,
+            "armadura_de_osso": 1,
+            "invocador_colosso_de_pedra": 1
+        },
         "cooldowns": {
-            "work_cooldown": 1751652776.054367
+            "work_cooldown": 1751658210.915421
         },
         "status": "online",
         "bounty": 0,

@@ -2,30 +2,50 @@ import discord
 from discord import ui, ButtonStyle, Interaction, Embed, Color
 
 from data_manager import get_player_data, save_data
-from config import ITEMS_DATA, BOSSES_DATA  # Import BOSSES_DATA for invoker info
+from config import ITEMS_DATA, BOSSES_DATA
 
 
 class ShopView(ui.View):
     def __init__(self):
         super().__init__(timeout=180)
+        self.current_category = None  # To keep track of the active category
 
-        general_items_list = []
-        invoker_items_list = []
+        # Categorize items
+        self.potions_items = []
+        self.general_items = []
+        self.invoker_items = []
 
         for item_id, item_info in ITEMS_DATA.items():
-            if item_info.get("price") is not None:
-                if item_info.get("type") == "summon_boss":
-                    invoker_items_list.append((item_id, item_info))
-                else:
-                    general_items_list.append((item_id, item_info))
+            if item_info.get("price") is not None:  # Only show purchasable items
+                item_type = item_info.get("type")
+                item_subtype = item_info.get("subtype")  # Get the subtype
 
-        # Add buttons for general items
+                if item_type == "consumable" and item_subtype == "potion":
+                    self.potions_items.append((item_id, item_info))
+                elif item_type == "summon_boss":
+                    self.invoker_items.append((item_id, item_info))
+                else:  # All other items: general consumables (non-potions), equipables, blessing unlocks, etc.
+                    self.general_items.append((item_id, item_info))
+
+        self._add_category_buttons()
+
+    def _add_category_buttons(self):
+        """Adds buttons for category selection."""
+        self.clear_items()
+        self.add_item(self.CategoryButton("Itens", "general", row=0))
+        self.add_item(self.CategoryButton("Invocadores", "invokers", row=0))
+
+    def _add_item_buttons(self, items_list):
+        """Adds specific item buttons to the view, handling row placement."""
+        self.clear_items()  # Clear previous buttons
+
         current_row = 0
-        for item_id, item_info in general_items_list:
+        buttons_in_current_row = 0
+
+        for item_id, item_info in items_list:
             label = item_info.get("name", item_id.replace("_", " ").title())
             emoji = item_info.get("emoji", "💰")
 
-            # Special label for unlockable blessings
             if item_info.get("type") == "blessing_unlock":
                 label = f"Desbloquear {label}"
 
@@ -35,35 +55,46 @@ class ShopView(ui.View):
                     price=item_info["price"],
                     label=label,
                     emoji=emoji,
-                    row=current_row,  # Keep on same row until it fills up
+                    row=current_row,
                 )
             )
-            # You might want to dynamically increase row here, but for simplicity, let discord handle wrapping
+            buttons_in_current_row += 1
+            if buttons_in_current_row == 5:
+                current_row += 1
+                buttons_in_current_row = 0
 
-        # Add buttons for invoker items on a new row (or after general items)
-        # Assuming we want invoker buttons on row 1, if general items were on row 0.
-        # This assumes general_items_list does not fill more than 5 buttons on row 0
-        # If it does, you'll need to dynamically manage row numbers.
-        invoker_row_start = (
-            len(general_items_list) // 5
-        ) + 1  # Calculates starting row for invokers
+        # Add a "Voltar" (Back) button at the end
+        self.add_item(self.BackButton(row=current_row + 1))
 
-        for item_id, item_info in invoker_items_list:
-            label = item_info.get("name", item_id.replace("_", " ").title())
-            emoji = item_info.get("emoji", "🔮")
-            price = item_info["price"]  # Use price from ITEMS_DATA for display
+    class CategoryButton(ui.Button):
+        def __init__(self, label: str, category_key: str, row: int):
+            super().__init__(label=label, style=ButtonStyle.secondary, row=row)
+            self.category_key = category_key
 
-            self.add_item(
-                self.BuyButton(
-                    item_id=item_id,
-                    price=price,
-                    label=label,
-                    emoji=emoji,
-                    row=invoker_row_start,
-                )
+        async def callback(self, i: Interaction):
+            view: ShopView = self.view  # Get the parent view instance
+            view.current_category = self.category_key
+
+            if self.category_key == "potions":
+                view._add_item_buttons(view.potions_items)
+            elif self.category_key == "general":
+                view._add_item_buttons(view.general_items)
+            elif self.category_key == "invokers":
+                view._add_item_buttons(view.invoker_items)
+
+            await i.response.edit_message(view=view)
+
+    class BackButton(ui.Button):
+        def __init__(self, row: int):
+            super().__init__(
+                label="Voltar", style=ButtonStyle.danger, emoji="🔙", row=row
             )
-            # Again, assuming invoker_items_list does not fill more than 5 buttons per row
-            # If it does, you'll need dynamic row management.
+
+        async def callback(self, i: Interaction):
+            view: ShopView = self.view
+            view._add_category_buttons()  # Go back to category selection
+            view.current_category = None
+            await i.response.edit_message(view=view)
 
     class BuyButton(ui.Button):
         def __init__(self, item_id: str, price: int, label: str, emoji: str, row: int):
@@ -113,7 +144,6 @@ class ShopView(ui.View):
                 await i.response.send_message("Dinheiro insuficiente!", ephemeral=True)
                 return
 
-            # Check specific conditions for Summon Boss items
             if item_info.get("type") == "summon_boss":
                 boss_id_to_summon = item_info.get("boss_id_to_summon")
                 boss_info = BOSSES_DATA.get(boss_id_to_summon)
@@ -125,7 +155,6 @@ class ShopView(ui.View):
                     )
                     return
 
-                # Check player level requirement to BUY THE INVOKER
                 if player_data["level"] < boss_info.get("required_level", 1):
                     await i.response.send_message(
                         f"Você precisa ser Nível {boss_info.get('required_level', 1)} para comprar este invocador.",
@@ -133,7 +162,6 @@ class ShopView(ui.View):
                     )
                     return
 
-                # Check progression: Player can only buy invoker for their current progression boss OR for bosses they already defeated
                 player_progression_boss = player_data["boss_data"].get(
                     "boss_progression_level"
                 )
@@ -151,8 +179,7 @@ class ShopView(ui.View):
                     )
                     return
 
-            # Prevent buying multiple unique permanent items (e.g., amulets, equipables, blessings)
-            if item_info.get("consumable") == False:  # Only applies to non-consumables
+            if item_info.get("consumable") == False:
                 if player_data["inventory"].get(self.item_id, 0) > 0:
                     await i.response.send_message(
                         f"Você já possui o(a) **{ITEMS_DATA[self.item_id]['name']}**!",
@@ -165,7 +192,6 @@ class ShopView(ui.View):
                 player_data["inventory"].get(self.item_id, 0) + 1
             )
 
-            # Apply HP bonuses/penalties on purchase (for equipable items)
             if item_info.get("type") == "equipable":
                 if self.item_id == "manopla_lutador":
                     hp_gain_from_item = ITEMS_DATA["manopla_lutador"].get(
@@ -188,3 +214,12 @@ class ShopView(ui.View):
             await i.response.send_message(
                 f"**{i.user.display_name}** comprou 1x {ITEMS_DATA[self.item_id]['name']}!"
             )
+            # After purchase, re-display the items in the current category
+            view: ShopView = self.view
+            if view.current_category == "potions":
+                view._add_item_buttons(view.potions_items)
+            elif view.current_category == "general":
+                view._add_item_buttons(view.general_items)
+            elif view.current_category == "invokers":
+                view._add_item_buttons(view.invoker_items)
+            await i.message.edit(view=view)
