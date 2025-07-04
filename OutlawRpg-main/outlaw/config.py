@@ -1,0 +1,733 @@
+# config.py
+
+# --- CONFIGURAÇÕES DE GAME DESIGN ---
+XP_PER_LEVEL_BASE = 150
+XP_PER_MESSAGE_COOLDOWN_SECONDS = 60
+ATTRIBUTE_POINTS_PER_LEVEL = 2
+CRITICAL_CHANCE = 0.10
+CRITICAL_MULTIPLIER = 1.5
+INITIAL_MONEY = 100
+INITIAL_HP = 100
+INITIAL_ATTACK = 10
+INITIAL_SPECIAL_ATTACK = 20
+REVIVE_COST = 55
+BOUNTY_PERCENTAGE = 0.20
+TRANSFORM_COST = 2
+MAX_ENERGY = 10
+STARTING_LOCATION = "Abrigo dos Foras-da-Lei"
+
+
+CUSTOM_EMOJIS = {
+    "espada_rpg": "<:espada_rpg:123456789012345678>",  # Substitua pelo ID real
+    "moeda_ouro": "<:moeda_ouro:987654321098765432>",  # Substitua pelo ID real
+    "vida_hp": "<:vida_hp:112233445566778899>",  # Substitua pelo ID real
+    "transform": "<a:aura:1389688598139371631>",  # Exemplo de gif/emoji animado
+    "machado_guerreiro": "<:machado_guerreiro:123123123123123123>",
+    "escudo_defesa": "<:escudo_defesa:456456456456456456>",
+    "xp_estrela": "<:xp_estrela:789789789789789789>",
+    "olho_secreto": "<:olho_secreto:123456789012345678>",
+    "ferramentas_dev": "<:ferramentas_dev:987654321098765432>",
+}
+
+
+# --- DADOS GLOBAIS DO JOGO ---
+ITEMS_DATA = {
+    "pocao": {
+        "name": "Poção de Vida",
+        "heal": 50,
+        "price": 75,
+        "emoji": "🧪",
+        "consumable": True,
+        "type": "healing",
+        "description": "Restaura uma pequena quantidade de HP.",
+    },
+    "super_pocao": {
+        "name": "Super Poção",
+        "heal": 120,
+        "price": 150,
+        "emoji": "🍶",
+        "consumable": True,
+        "type": "healing",
+        "description": "Restaura uma grande quantidade de HP.",
+    },
+    # REMOVIDO: "invocador" genérico
+    "amuleto_de_pedra": {
+        "name": "Amuleto de Pedra",
+        "effect": "second_chance",
+        "emoji": "🪨",
+        "price": None,
+        "consumable": False,
+        "type": "unique_passive",
+        "description": "Concede uma segunda chance em combate uma vez por batalha. Item permanente.",
+    },
+    "cajado_curandeiro": {
+        "name": "Cajado do Curandeiro",
+        "price": 5000,
+        "class_restriction": "Curandeiro",
+        "effect_multiplier": 1.20,
+        "emoji": "⚕️",
+        "consumable": False,
+        "type": "equipable",
+        "description": "Aumenta a eficácia de todas as suas curas em 20%.",
+    },
+    "manopla_lutador": {
+        "name": "Manopla do Lutador",
+        "price": 5000,
+        "class_restriction": "Lutador",
+        "attack_bonus_percent": 0.05,
+        "hp_bonus_flat": 20,
+        "emoji": "🥊",
+        "consumable": False,
+        "type": "equipable",
+        "description": "Aumenta seu ataque base em 5% e HP máximo em 20.",
+    },
+    "mira_semi_automatica": {
+        "name": "Mira Semi-Automática",
+        "price": 5000,
+        "class_restriction": "Atirador",
+        "cooldown_reduction_percent": 0.40,
+        "emoji": "🎯",
+        "consumable": False,
+        "type": "equipable",
+        "description": "Reduz o tempo de recarga do seu ataque especial em 40%.",
+    },
+    "espada_fantasma": {
+        "name": "Espada Fantasma",
+        "price": 5000,
+        "class_restriction": "Espadachim",
+        "attack_bonus_percent": 0.10,
+        "hp_penalty_percent": 0.20,
+        "emoji": "🗡️",
+        "consumable": False,
+        "type": "equipable",
+        "description": "Aumenta seu ataque em 10%, mas reduz seu HP máximo em 20%.",
+    },
+    "habilidade_inata": {
+        "name": "Habilidade Inata (Passiva)",
+        "xp_multiplier_passive": 0.10,
+        "attack_bonus_passive_percent": 0.05,
+        "type": "passive_style_bonus",  # Isso não é um item de inventário, é um bônus de estilo
+        "emoji": "💡",
+        "price": None,
+        "consumable": False,
+        "description": "Concede bônus passivos para ataque e XP com base no seu estilo de poder. Não é um item, e sim uma recompensa especial.",
+    },
+    "bencao_dracula": {
+        "name": "Bênção de Drácula",
+        "price": 10000,
+        "class_restriction": "Vampiro",
+        "cost_energy": 3,
+        "duration_seconds": 5 * 60,
+        "evasion_chance": 0.15,
+        "hp_steal_percent_on_evade": 0.25,
+        "emoji": "🦇",
+        "consumable": False,
+        "type": "blessing_unlock",
+        "description": "Bênção temporária que concede chance de desviar de ataques e roubar HP.",
+    },
+    "bencao_rei_henrique": {
+        "name": "Benção do Rei Henrique",
+        "price": 10000,
+        "style_restriction": "Aura",
+        "cost_energy": 5,
+        "duration_seconds": 10 * 60,
+        "attack_multiplier": 1.20,
+        "special_attack_multiplier": 1.20,
+        "max_hp_multiplier": 1.20,
+        "cooldown_reduction_percent": 0.10,
+        "emoji": "✨",
+        "consumable": False,
+        "type": "blessing_unlock",
+        "description": "Bênção temporária que aprimora muito seus atributos e reduz cooldowns.",
+    },
+    # NOVOS ITENS INVOCADORES DE BOSS (adicionados para permitir compra na loja)
+    "invocador_colosso_de_pedra": {
+        "name": "Invocador do Colosso de Pedra",
+        "price": 1000,  # Preço base, Colosso é o primeiro boss
+        "emoji": "🔮",
+        "consumable": True,
+        "type": "summon_boss",  # Novo tipo para invocar bosses
+        "boss_id_to_summon": "Colosso de Pedra",  # Qual boss este item invoca
+        "description": "Invoca o Colosso de Pedra para um desafio pessoal.",
+    },
+    "invocador_devorador_abissal": {
+        "name": "Invocador do Devorador Abissal",
+        "price": 2500,  # Preço escalado
+        "emoji": "🔮",
+        "consumable": True,
+        "type": "summon_boss",
+        "boss_id_to_summon": "Devorador Abissal",
+        "description": "Invoca o Devorador Abissal para um desafio pessoal.",
+    },
+    "invocador_inferno_guardiao": {
+        "name": "Invocador do Inferno Guardião",
+        "price": 6000,  # Preço escalado
+        "emoji": "🔮",
+        "consumable": True,
+        "type": "summon_boss",
+        "boss_id_to_summon": "Inferno Guardião",
+        "description": "Invoca o Inferno Guardião para um desafio pessoal.",
+    },
+    "invocador_tita_esquecido": {
+        "name": "Invocador do Titã Esquecido",
+        "price": 15000,  # Preço escalado
+        "emoji": "🔮",
+        "consumable": True,
+        "type": "summon_boss",
+        "boss_id_to_summon": "Titã Esquecido",
+        "description": "Invoca o Titã Esquecido para um desafio pessoal.",
+    },
+    "invocador_arauto_das_sombras": {
+        "name": "Invocador do Arauto das Sombras",
+        "price": 40000,  # Preço escalado
+        "emoji": "🔮",
+        "consumable": True,
+        "type": "summon_boss",
+        "boss_id_to_summon": "Arauto das Sombras",
+        "description": "Invoca o Arauto das Sombras para um desafio pessoal.",
+    },
+    "invocador_anomalia_dimensional": {
+        "name": "Invocador da Anomalia Dimensional",
+        "price": 100000,  # Preço escalado
+        "emoji": "🔮",
+        "consumable": True,
+        "type": "summon_boss",
+        "boss_id_to_summon": "Anomalia Dimensional",
+        "description": "Invoca a Anomalia Dimensional para um desafio pessoal.",
+    },
+    "invocador_sentinela_celestial": {
+        "name": "Invocador da Sentinela Celestial",
+        "price": 250000,  # Preço escalado
+        "emoji": "🔮",
+        "consumable": True,
+        "type": "summon_boss",
+        "boss_id_to_summon": "Sentinela Celestial",
+        "description": "Invoca a Sentinela Celestial para um desafio pessoal.",
+    },
+}
+
+# New dictionary for class transformations
+CLASS_TRANSFORMATIONS = {
+    "Espadachim": {
+        "Lâmina Fantasma": {
+            "emoji": "👻",
+            "cost_energy": TRANSFORM_COST,
+            "duration_seconds": 5 * 60,
+            "attack_multiplier": 1.20,
+            "special_attack_multiplier": 1.10,
+            "hp_multiplier": 0.90,
+            "healing_multiplier": 1.0,
+            "cooldown_reduction_percent": 0.0,
+            "evasion_chance_bonus": 0.0,
+        },
+        "Lâmina Abençoada": {
+            "emoji": "🌟👻",
+            "cost_energy": TRANSFORM_COST + 2,
+            "duration_seconds": 7 * 60,
+            "attack_multiplier": 1.30,
+            "special_attack_multiplier": 1.20,
+            "hp_multiplier": 0.95,
+            "healing_multiplier": 1.05,
+            "cooldown_reduction_percent": 0.05,
+            "evasion_chance_bonus": 0.0,
+            "required_blessing": "bencao_rei_henrique",
+        },
+    },
+    "Lutador": {
+        "Punho de Aço": {
+            "emoji": "💪",
+            "cost_energy": TRANSFORM_COST,
+            "duration_seconds": 5 * 60,
+            "attack_multiplier": 1.15,
+            "hp_multiplier": 1.15,
+            "healing_multiplier": 1.0,
+            "cooldown_reduction_percent": 0.0,
+            "evasion_chance_bonus": 0.0,
+        },
+        "Punho de Adamantium": {
+            "emoji": "💎💪",
+            "cost_energy": TRANSFORM_COST + 2,
+            "duration_seconds": 7 * 60,
+            "attack_multiplier": 1.25,
+            "hp_multiplier": 1.25,
+            "healing_multiplier": 1.05,
+            "cooldown_reduction_percent": 0.05,
+            "evasion_chance_bonus": 0.0,
+            "required_blessing": "bencao_rei_henrique",
+        },
+    },
+    "Atirador": {
+        "Olho de Águia": {
+            "emoji": "🦅",
+            "cost_energy": TRANSFORM_COST,
+            "duration_seconds": 5 * 60,
+            "attack_multiplier": 1.05,
+            "special_attack_multiplier": 1.25,
+            "cooldown_reduction_percent": 0.20,
+            "healing_multiplier": 1.0,
+            "hp_multiplier": 1.0,
+            "evasion_chance_bonus": 0.0,
+        },
+        "Visão Cósmica": {
+            "emoji": "👁️‍🗨️🦅",
+            "cost_energy": TRANSFORM_COST + 2,
+            "duration_seconds": 7 * 60,
+            "attack_multiplier": 1.10,
+            "special_attack_multiplier": 1.35,
+            "cooldown_reduction_percent": 0.30,
+            "healing_multiplier": 1.0,
+            "hp_multiplier": 1.0,
+            "evasion_chance_bonus": 0.0,
+            "required_blessing": "bencao_rei_henrique",
+        },
+    },
+    "Curandeiro": {
+        "Bênção Vital": {
+            "emoji": "😇",
+            "cost_energy": TRANSFORM_COST,
+            "duration_seconds": 5 * 60,
+            "healing_multiplier": 1.25,
+            "hp_multiplier": 1.10,
+            "attack_multiplier": 1.0,
+            "special_attack_multiplier": 1.0,
+            "cooldown_reduction_percent": 0.0,
+            "evasion_chance_bonus": 0.0,
+        },
+        "Toque Divino": {
+            "emoji": "✨😇",
+            "cost_energy": TRANSFORM_COST + 2,
+            "duration_seconds": 7 * 60,
+            "healing_multiplier": 1.35,
+            "hp_multiplier": 1.20,
+            "attack_multiplier": 1.0,
+            "special_attack_multiplier": 1.05,
+            "cooldown_reduction_percent": 0.05,
+            "evasion_chance_bonus": 0.0,
+            "required_blessing": "bencao_rei_henrique",
+        },
+    },
+    "Vampiro": {
+        "Lorde Sanguinário": {
+            "emoji": "🧛",
+            "cost_energy": TRANSFORM_COST,
+            "duration_seconds": 5 * 60,
+            "attack_multiplier": 1.80,
+            "special_attack_multiplier": 2.00,
+            "hp_multiplier": 1.05,
+            "healing_multiplier": 1.0,
+            "cooldown_reduction_percent": 0.0,
+            "evasion_chance_bonus": 0.0,
+        },
+        "Rei da Noite": {
+            "emoji": CUSTOM_EMOJIS.get("transform", "✨"),
+            "cost_energy": TRANSFORM_COST + 2,
+            "duration_seconds": 7 * 60,
+            "attack_multiplier": 1.90,
+            "special_attack_multiplier": 2.20,
+            "evasion_chance_bonus": 0.05,
+            "required_blessing": "bencao_dracula",  # Corrigido para 'bencao_dracula'
+        },
+    },
+}
+
+
+BOSSES_DATA = {
+    "Colosso de Pedra": {
+        "id": "colosso_de_pedra",
+        "name": "Colosso de Pedra",
+        "max_hp": 5000,
+        "attack": 150,
+        "xp_reward": 1000,
+        "money_reward": 5000,
+        "drops": {"amuleto_de_pedra": 1, "pocao": 10},
+        "spawn_locations": [
+            "Floresta Sussurrante",
+            "Ruínas do Templo",
+        ],
+        "thumbnail": "https://c.tenor.com/NLQ2AoVfEQUAAAAd/tenor.gif",
+        "next_boss_unlock": "Devorador Abissal",
+        "required_level": 1,  # Nível mínimo para comprar o invocador
+        "price_invoker": 1000,  # Preço do invocador específico
+    },
+    "Devorador Abissal": {
+        "id": "devorador_abissal",
+        "name": "Devorador Abissal",
+        "max_hp": 12500,
+        "attack": 375,
+        "xp_reward": 2500,
+        "money_reward": 12500,
+        "drops": {
+            "super_pocao": 2,
+            "invocador_colosso_de_pedra": 1,
+        },  # Dropa o invocador do boss anterior
+        "spawn_locations": ["Abismo Sombrio"],
+        "thumbnail": "https://c.tenor.com/f2S9_G2tEwAAAAAd/abyssal-devourer.gif",
+        "next_boss_unlock": "Inferno Guardião",
+        "required_level": 5,
+        "price_invoker": 2500,
+    },
+    "Inferno Guardião": {
+        "id": "inferno_guardiao",
+        "name": "Inferno Guardião",
+        "max_hp": 31250,
+        "attack": 937,
+        "xp_reward": 6250,
+        "money_reward": 31250,
+        "drops": {
+            "cajado_curandeiro": 1,
+            "manopla_lutador": 1,
+            "invocador_devorador_abissal": 1,
+        },
+        "spawn_locations": ["Vale do Inferno"],
+        "thumbnail": "https://c.tenor.com/7b901h1A43IAAAAd/inferno-guardian.gif",
+        "next_boss_unlock": "Titã Esquecido",
+        "required_level": 10,
+        "price_invoker": 6000,
+    },
+    "Titã Esquecido": {
+        "id": "tita_esquecido",
+        "name": "Titã Esquecido",
+        "max_hp": 78125,
+        "attack": 2342,
+        "xp_reward": 15625,
+        "money_reward": 78125,
+        "drops": {
+            "mira_semi_automatica": 1,
+            "espada_fantasma": 1,
+            "invocador_inferno_guardiao": 1,
+        },
+        "spawn_locations": ["Templo Esquecido"],
+        "thumbnail": "https://c.tenor.com/A6j5QjE2vVAAAAAd/forgotten-titan.gif",
+        "next_boss_unlock": "Arauto das Sombras",
+        "required_level": 15,
+        "price_invoker": 15000,
+    },
+    "Arauto das Sombras": {
+        "id": "arauto_das_sombras",
+        "name": "Arauto das Sombras",
+        "max_hp": 195312,
+        "attack": 5855,
+        "xp_reward": 39062,
+        "money_reward": 195312,
+        "drops": {
+            "bencao_dracula": 1,
+            "bencao_rei_henrique": 1,
+            "invocador_tita_esquecido": 1,
+        },
+        "spawn_locations": ["Portão das Sombras"],
+        "thumbnail": "https://c.tenor.com/y8m0v_eF2AAAAAd/shadow-herald.gif",
+        "next_boss_unlock": "Anomalia Dimensional",
+        "required_level": 20,
+        "price_invoker": 40000,
+    },
+    "Anomalia Dimensional": {
+        "id": "anomalia_dimensional",
+        "name": "Anomalia Dimensional",
+        "max_hp": 488280,
+        "attack": 14638,
+        "xp_reward": 97656,
+        "money_reward": 488280,
+        "drops": {
+            "invocador_arauto_das_sombras": 1,  # Dropa invocador do boss anterior
+            "amuleto_de_pedra": 1,  # Amuleto já é único, garantido o drop apenas uma vez
+            "habilidade_inata": 1,  # Recompensa especial, não é item de inventário
+        },
+        "spawn_locations": ["Brecha das Terras"],
+        "thumbnail": "https://c.tenor.com/gK9x2C34z4kAAAAd/dimensional-anomaly.gif",
+        "next_boss_unlock": "Sentinela Celestial",
+        "required_level": 30,
+        "price_invoker": 100000,
+    },
+    "Sentinela Celestial": {
+        "id": "sentinela_celestial",
+        "name": "Sentinela Celestial",
+        "max_hp": 1220700,
+        "attack": 36595,
+        "xp_reward": 244140,
+        "money_reward": 1220700,
+        "drops": {
+            "invocador_anomalia_dimensional": 1,  # Dropa invocador do boss anterior
+            "amuleto_de_pedra": 1,
+            "habilidade_inata": 2,  # Pode ser XP ou compensação, ou outra mecânica
+            "bencao_rei_henrique": 1,  # Bênção já é única
+        },
+        "spawn_locations": ["Paraíso"],
+        "thumbnail": "https://c.tenor.com/f3k2b_9m0AAAAAd/celestial-sentinel.gif",
+        "next_boss_unlock": None,  # Último boss
+        "required_level": 50,
+        "price_invoker": 250000,
+    },
+}
+
+WORLD_MAP = {
+    "Abrigo dos Foras-da-Lei": {
+        "name": "Abrigo dos Foras-da-Lei",
+        "type": "cidade",
+        "emoji": "⛺",
+        "conecta": ["Floresta Sussurrante"],
+        "desc": "Um acampamento improvisado que serve de refúgio para os renegados.",
+    },
+    "Floresta Sussurrante": {
+        "name": "Floresta Sussurrante",
+        "type": "selvagem",
+        "emoji": "🌳",
+        "conecta": ["Abrigo dos Foras-da-Lei", "Ruínas do Templo"],
+        "desc": "Uma mata densa e perigosa, onde criaturas espreitam nas sombras.",
+    },
+    "Ruínas do Templo": {
+        "name": "Ruínas do Templo",
+        "type": "selvagem",
+        "emoji": "🏛️",
+        "conecta": ["Floresta Sussurrante", "Abismo Sombrio"],
+        "desc": "Os restos de um antigo local de poder, agora habitado por guardiões de pedra.",
+    },
+    "Abismo Sombrio": {
+        "name": "Abismo Sombrio",
+        "type": "selvagem",
+        "emoji": "🕳️",
+        "conecta": ["Ruínas do Templo", "Vale do Inferno"],
+        "desc": "Um abismo sem fim, onde as sombras se tornam presas fáceis para predadores famintos.",
+    },
+    "Vale do Inferno": {
+        "name": "Vale do Inferno",
+        "type": "selvagem",
+        "emoji": "🔥",
+        "conecta": ["Abismo Sombrio", "Templo Esquecido"],
+        "desc": "Um vale escaldante cheio de fogo e criaturas que sobrevivem ao calor infernal.",
+    },
+    "Templo Esquecido": {
+        "name": "Templo Esquecido",
+        "type": "selvagem",
+        "emoji": "🏯",
+        "conecta": ["Vale do Inferno", "Portão das Sombras"],
+        "desc": "Ruínas antigas de um templo perdido no tempo, protegido por entidades místicas.",
+    },
+    "Portão das Sombras": {
+        "name": "Portão das Sombras",
+        "type": "selvagem",
+        "emoji": "🚪",
+        "conecta": ["Templo Esquecido", "Brecha das Terras"],
+        "desc": "Um portal sombrio que conecta os mundos, guardado por forças obscuras.",
+    },
+    "Brecha das Terras": {
+        "name": "Brecha das Terras",
+        "type": "selvagem",
+        "emoji": "🌌",
+        "conecta": ["Portão das Sombras", "Paraíso"],
+        "desc": "O ponto onde múltiplas realidades se encontram e o destino do mundo será decidido.",
+    },
+    "Paraíso": {
+        "name": "Paraíso",
+        "type": "cidade",
+        "emoji": "🌟",
+        "conecta": ["Brecha das Terras"],
+        "desc": "O santuário sagrado onde a paz e a luz reinam supremos, mas guardado por seres celestiais poderosos.",
+    },
+}
+
+ENEMIES = {
+    "Floresta Sussurrante": [
+        {
+            "name": "Lobo Faminto",
+            "hp": 60,
+            "attack": 12,
+            "xp": 25,
+            "money": 15,
+            "thumb": "https://c.tenor.com/v5Ik3wkrjlwAAAAC/tenor.gif",
+        },
+        {
+            "name": "Aranha Gigante",
+            "hp": 50,
+            "attack": 15,
+            "xp": 30,
+            "money": 20,
+            "thumb": "https://c.tenor.com/cBKUDbUVHSAAAAAC/tenor.gif",
+        },
+        {
+            "name": "Dragão de Komodo",
+            "hp": 70,
+            "attack": 10,
+            "xp": 28,
+            "money": 18,
+            "thumb": "https://c.tenor.com/gIzmfcS1-rcAAAAC/tenor.gif",
+        },
+    ],
+    "Ruínas do Templo": [
+        {
+            "name": "Guardião de Pedra",
+            "hp": 400,
+            "attack": 38,
+            "xp": 260,
+            "money": 200,
+            "thumb": "https://c.tenor.com/NLQ2AoVfEQUAAAAd/tenor.gif",
+        },
+        {
+            "name": "Espectro Antigo",
+            "hp": 90,
+            "attack": 102,
+            "xp": 80,
+            "money": 160,
+            "thumb": "https://c.tenor.com/tTXMqhKPCFwAAAAd/tenor.gif",
+        },
+        {
+            "name": "Gárgula Vingativa",
+            "hp": 220,
+            "attack": 50,
+            "xp": 65,
+            "money": 165,
+            "thumb": "https://c.tenor.com/Ub7Nd2q36RYAAAAd/tenor.gif",
+        },
+    ],
+    "Abismo Sombrio": [
+        {
+            "name": "Aranha das Sombras",
+            "hp": 80,
+            "attack": 18,
+            "xp": 35,
+            "money": 25,
+            "thumb": "https://c.tenor.com/Q1UgRkPJzMAAAAAC/spider-shadow.gif",
+        },
+        {
+            "name": "Serpente Abissal",
+            "hp": 90,
+            "attack": 22,
+            "xp": 40,
+            "money": 30,
+            "thumb": "https://c.tenor.com/n9Zyr_d-5O0AAAAC/sea-serpent.gif",
+        },
+    ],
+    "Vale do Inferno": [
+        {
+            "name": "Demônio Flamejante",
+            "hp": 100,
+            "attack": 28,
+            "xp": 50,
+            "money": 40,
+            "thumb": "https://c.tenor.com/vA1zDKkpFfIAAAAC/fire-demon.gif",
+        },
+        {
+            "name": "Cão Infernal",
+            "hp": 120,
+            "attack": 30,
+            "xp": 55,
+            "money": 45,
+            "thumb": "https://c.tenor.com/z8mELvPmsN8AAAAC/hellhound.gif",
+        },
+    ],
+    "Templo Esquecido": [
+        {
+            "name": "Guardião Espectral",
+            "hp": 150,
+            "attack": 35,
+            "xp": 70,
+            "money": 60,
+            "thumb": "https://c.tenor.com/Dq52zpNYdJ4AAAAC/ghost-guardian.gif",
+        },
+        {
+            "name": "Mago Ancião",
+            "hp": 130,
+            "attack": 40,
+            "xp": 75,
+            "money": 65,
+            "thumb": "https://c.tenor.com/ysXUvq-wT5MAAAAC/old-mage.gif",
+        },
+    ],
+    "Portão das Sombras": [
+        {
+            "name": "Sombra Errante",
+            "hp": 160,
+            "attack": 45,
+            "xp": 80,
+            "money": 70,
+            "thumb": "https://c.tenor.com/53EpyO-t1aIAAAAC/shadow-figure.gif",
+        },
+        {
+            "name": "Guardião das Trevas",
+            "hp": 180,
+            "attack": 50,
+            "xp": 90,
+            "money": 75,
+            "thumb": "https://c.tenor.com/EOhB81CS_2wAAAAC/dark-guardian.gif",
+        },
+    ],
+    "Brecha das Terras": [
+        {
+            "name": "Caótico Dimensional",
+            "hp": 300,
+            "attack": 80,
+            "xp": 150,
+            "money": 120,
+            "thumb": "https://c.tenor.com/GV31bRfFNy8AAAAC/dimensional-chaos.gif",
+        },
+        {
+            "name": "Guardião da Brecha",
+            "hp": 350,
+            "attack": 90,
+            "xp": 180,
+            "money": 150,
+            "thumb": "https://c.tenor.com/VuE-xM7RjTwAAAAC/gatekeeper.gif",
+        },
+    ],
+    "Paraíso": [
+        {
+            "name": "Arcanjo Guardião",
+            "hp": 500,
+            "attack": 120,
+            "xp": 300,
+            "money": 250,
+            "thumb": "https://c.tenor.com/89zGuwH3Ys8AAAAC/angelic.gif",
+        },
+        {
+            "name": "Serafim de Luz",
+            "hp": 550,
+            "attack": 130,
+            "xp": 350,
+            "money": 300,
+            "thumb": "https://c.tenor.com/I7CKPqu5XJMAAAAC/seraphim.gif",
+        },
+    ],
+}
+
+
+PROFILE_IMAGES = {
+    # Imagens das Classes Base
+    "Espadachim": "https://i.imgur.com/RC3rJNc.png",
+    "Lutador": "https://media.discordapp.net/attachments/1388860166648369184/1389495865567084605/Picsart_25-07-01_03-17-21-028.png?ex=6864d45d&is=686382dd&hm=73f2f3896118d1901ec30b0c8b7ef6739d400e6f06294d98891698e4f16622b6&=&format=webp&quality=lossless&width=608&height=608",
+    "Atirador": "https://media.tenor.com/hYzJPjRmvWAAAAAM/clown.gif",
+    "Curandeiro": "https://i.ibb.co/3Y1sqWcP/image.png",
+    "Vampiro": "https://i.imgur.com/X0E6qQL.png",
+    # Imagens das Transformações (precisam corresponder EXATAMENTE ao "name" em CLASS_TRANSFORMATIONS)
+    "Lâmina Fantasma": "https://i.imgur.com/CnDR7eP.png",
+    "Punho de Aço": "https://i.imgur.com/mDsfNyi.png",
+    "Olho de Águia": "https://media.tenor.com/hYzJPjRmvWAAAAAM/clown.gifI",
+    "Bênção Vital": "https://i.ibb.co/5xScwp3Y/image.png",
+    "Lorde Sanguinário": "https://i.imgur.com/eTaWLjx.png",
+    "Benção do Rei Henrique": "https://media.tenor.com/hYzJPjRmvWAAAAAM/clown.gifI",
+    "Lâmina Abençoada": "https://example.com/blade_blessed.png",
+    "Punho de Adamantium": "https://example.com/adamantium_fist.png",
+    "Visão Cósmica": "https://example.com/cosmic_sight.png",
+    "Toque Divino": "https://i.ibb.co/VcK0Mzyr/image.png",
+    "Rei da Noite": "https://example.com/night_king.png",
+}
+
+
+LEVEL_ROLES = {
+    2: 1389604381069938738,
+    5: 1389604398103269376,
+    10: 1389604405078134894,
+    20: 1389604420702048417,
+    35: 1389604431317827604,
+    50: 1389604749233487923,
+}
+
+NEW_CHARACTER_ROLE_ID = 1388628499182518352
+
+# This is the TEMPLATE for the initial global boss state.
+# It's a blueprint, NOT the live, changing state.
+DEFAULT_PLAYER_BOSS_DATA = {
+    "current_boss_id": None,
+    "current_boss_hp": 0,
+    "last_spawn_channel_id": None,
+    "boss_progression_level": "Colosso de Pedra",  # Player starts with this as their next unlockable boss
+    "defeated_bosses": [],
+}
