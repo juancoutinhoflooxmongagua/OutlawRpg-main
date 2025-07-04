@@ -8,9 +8,9 @@ from data_manager import get_player_data, save_data, player_database, current_bo
 from config import (
     ENEMIES,
     WORLD_MAP,
-    TRANSFORM_COST,
+    TRANSFORM_COST,  # <--- ADICIONE ESTA LINHA
     ITEMS_DATA,
-    CLASS_TRANSFORMATIONS,  # Add TRANSFORM_COST here
+    CLASS_TRANSFORMATIONS,
     CRITICAL_CHANCE,
     CRITICAL_MULTIPLIER,
     BOSSES_DATA,
@@ -18,6 +18,7 @@ from config import (
     INITIAL_ATTACK,
     INITIAL_SPECIAL_ATTACK,
 )
+
 from custom_checks import check_player_exists, is_in_wilderness
 from utils import calculate_effective_stats, run_turn_based_combat
 

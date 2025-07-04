@@ -204,18 +204,75 @@ ITEMS_DATA = {
         "boss_id_to_summon": "Sentinela Celestial",
         "description": "Invoca a Sentinela Celestial para um desafio pessoal.",
     },
+    "coleira_do_lobo": {
+        "name": "Coleira do Lobo Alfa",
+        "price": 7500,
+        "class_restriction": "Domador",
+        "attack_bonus_percent": 0.08,  # Aumenta o dano do Domador e, por extensão, do lobo
+        "hp_bonus_flat": 30,  # Aumenta a vida do Domador e, por extensão, do lobo
+        "emoji": "🦴",
+        "consumable": False,
+        "type": "equipable",
+        "description": "Fortalece seu companheiro lobo, aumentando seu ataque em 8% e HP em 30.",
+    },
+    "armadura_de_osso": {
+        "name": "Armadura de Osso Antigo",
+        "price": 7500,
+        "class_restriction": "Corpo Seco",
+        "hp_bonus_flat": 50,  # Aumenta a vida
+        "cooldown_reduction_percent": 0.10,  # Reduz cooldowns, complementando a defesa
+        "emoji": "🛡️",
+        "consumable": False,
+        "type": "equipable",
+        "description": "Uma armadura densa que aumenta seu HP em 50 e reduz o cooldown de habilidades em 10%.",
+    },
+    # ITEM DE END-GAME (500.000 moedas)
+    "coracao_do_universo": {
+        "name": "Coração do Universo",
+        "price": 500000,
+        "emoji": "💖",
+        "consumable": False,
+        "type": "unique_passive",  # Ou um novo tipo se tiver efeitos muito únicos
+        "description": "Um fragmento da criação. Concede +15% de ataque, +15% de HP, +50% de XP e Dinheiro, e reduz todos os cooldowns em 20%.",
+        "attack_multiplier": 1.15,
+        "max_hp_multiplier": 1.15,
+        "xp_multiplier_passive": 0.50,
+        "money_multiplier_passive": 0.50,
+        "cooldown_reduction_percent": 0.20,
+    },
 }
 
 # NEW: Defines the kill goals for each location to drop a boss invoker.
 # This assumes any location where a boss *could* spawn will grant its invoker upon reaching the kill goal.
 LOCATION_KILL_GOALS = {
-    "Floresta Sussurrante": {"kills_required": 60, "invoker_id": "invocador_colosso_de_pedra"},
-    "Ruínas do Templo": {"kills_required": 60, "invoker_id": "invocador_colosso_de_pedra"},
-    "Abismo Sombrio": {"kills_required": 60, "invoker_id": "invocador_devorador_abissal"},
-    "Vale do Inferno": {"kills_required": 60, "invoker_id": "invocador_inferno_guardiao"},
-    "Templo Esquecido": {"kills_required": 60, "invoker_id": "invocador_tita_esquecido"},
-    "Portão das Sombras": {"kills_required": 60, "invoker_id": "invocador_arauto_das_sombras"},
-    "Brecha das Terras": {"kills_required": 60, "invoker_id": "invocador_anomalia_dimensional"},
+    "Floresta Sussurrante": {
+        "kills_required": 60,
+        "invoker_id": "invocador_colosso_de_pedra",
+    },
+    "Ruínas do Templo": {
+        "kills_required": 60,
+        "invoker_id": "invocador_colosso_de_pedra",
+    },
+    "Abismo Sombrio": {
+        "kills_required": 60,
+        "invoker_id": "invocador_devorador_abissal",
+    },
+    "Vale do Inferno": {
+        "kills_required": 60,
+        "invoker_id": "invocador_inferno_guardiao",
+    },
+    "Templo Esquecido": {
+        "kills_required": 60,
+        "invoker_id": "invocador_tita_esquecido",
+    },
+    "Portão das Sombras": {
+        "kills_required": 60,
+        "invoker_id": "invocador_arauto_das_sombras",
+    },
+    "Brecha das Terras": {
+        "kills_required": 60,
+        "invoker_id": "invocador_anomalia_dimensional",
+    },
     "Paraíso": {"kills_required": 60, "invoker_id": "invocador_sentinela_celestial"},
 }
 
@@ -480,7 +537,7 @@ WORLD_MAP = {
         "emoji": "⛺",
         "conecta": ["Floresta Sussurrante"],
         "desc": "Um acampamento improvisado que serve de refúgio para os renegados.",
-        "required_previous_boss": None # No boss needed to enter
+        "required_previous_boss": None,  # No boss needed to enter
     },
     "Floresta Sussurrante": {
         "name": "Floresta Sussurrante",
@@ -488,7 +545,7 @@ WORLD_MAP = {
         "emoji": "🌳",
         "conecta": ["Abrigo dos Foras-da-Lei", "Ruínas do Templo"],
         "desc": "Uma mata densa e perigosa, onde criaturas espreitam nas sombras.",
-        "required_previous_boss": None
+        "required_previous_boss": None,
     },
     "Ruínas do Templo": {
         "name": "Ruínas do Templo",
@@ -496,7 +553,7 @@ WORLD_MAP = {
         "emoji": "🏛️",
         "conecta": ["Floresta Sussurrante", "Abismo Sombrio"],
         "desc": "Os restos de um antigo local de poder, agora habitado por guardiões de pedra.",
-        "required_previous_boss": None
+        "required_previous_boss": None,
     },
     "Abismo Sombrio": {
         "name": "Abismo Sombrio",
@@ -504,7 +561,7 @@ WORLD_MAP = {
         "emoji": "🕳️",
         "conecta": ["Ruínas do Templo", "Vale do Inferno"],
         "desc": "Um abismo sem fim, onde as sombras se tornam presas fáceis para predadores famintos.",
-        "required_previous_boss": "Colosso de Pedra" # Requires Colosso defeated to enter
+        "required_previous_boss": "Colosso de Pedra",  # Requires Colosso defeated to enter
     },
     "Vale do Inferno": {
         "name": "Vale do Inferno",
@@ -512,7 +569,7 @@ WORLD_MAP = {
         "emoji": "🔥",
         "conecta": ["Abismo Sombrio", "Templo Esquecido"],
         "desc": "Um vale escaldante cheio de fogo e criaturas que sobrevivem ao calor infernal.",
-        "required_previous_boss": "Devorador Abissal" # Requires Devorador defeated to enter
+        "required_previous_boss": "Devorador Abissal",  # Requires Devorador defeated to enter
     },
     "Templo Esquecido": {
         "name": "Templo Esquecido",
@@ -520,7 +577,7 @@ WORLD_MAP = {
         "emoji": "🏯",
         "conecta": ["Vale do Inferno", "Portão das Sombras"],
         "desc": "Ruínas antigas de um templo perdido no tempo, protegido por entidades místicas.",
-        "required_previous_boss": "Inferno Guardião"
+        "required_previous_boss": "Inferno Guardião",
     },
     "Portão das Sombras": {
         "name": "Portão das Sombras",
@@ -528,7 +585,7 @@ WORLD_MAP = {
         "emoji": "🚪",
         "conecta": ["Templo Esquecido", "Brecha das Terras"],
         "desc": "Um portal sombrio que conecta os mundos, guardado por forças obscuras.",
-        "required_previous_boss": "Titã Esquecido"
+        "required_previous_boss": "Titã Esquecido",
     },
     "Brecha das Terras": {
         "name": "Brecha das Terras",
@@ -536,7 +593,7 @@ WORLD_MAP = {
         "emoji": "🌌",
         "conecta": ["Portão das Sombras", "Paraíso"],
         "desc": "O ponto onde múltiplas realidades se encontram e o destino do mundo será decidido.",
-        "required_previous_boss": "Arauto das Sombras"
+        "required_previous_boss": "Arauto das Sombras",
     },
     "Paraíso": {
         "name": "Paraíso",
@@ -544,7 +601,7 @@ WORLD_MAP = {
         "emoji": "🌟",
         "conecta": ["Brecha das Terras"],
         "desc": "O santuário sagrado onde a paz e a luz reinam supremos, mas guardado por seres celestiais poderosos.",
-        "required_previous_boss": "Anomalia Dimensional"
+        "required_previous_boss": "Anomalia Dimensional",
     },
 }
 
@@ -716,21 +773,23 @@ PROFILE_IMAGES = {
     # Imagens das Classes Base
     "Espadachim": "https://i.imgur.com/RC3rJNc.png",
     "Lutador": "https://media.discordapp.net/attachments/1388860166648369184/1389495865567084605/Picsart_25-07-01_03-17-21-028.png?ex=6864d45d&is=686382dd&hm=73f2f3896118d1901ec30b0c8b7ef6739d400e6f06294d98891698e4f16622b6&=&format=webp&quality=lossless&width=608&height=608",
-    "Atirador": "https://media.tenor.com/hYzJPjRmvWAAAAAM/clown.gif", # NOTE: This URL is very generic, consider replacing.
+    "Atirador": "https://media.tenor.com/hYzJPjRmvWAAAAAM/clown.gif",  # NOTE: This URL is very generic, consider replacing.
     "Curandeiro": "https://i.ibb.co/3Y1sqWcP/image.png",
     "Vampiro": "https://i.imgur.com/X0E6qQL.png",
+    "Domador": "https://i.imgur.com/example_tamer.png",  # <<-- Substitua com uma URL real para o Domador
+    "Corpo Seco": "https://imgs.search.brave.com/0-7XXiyDokmhrgN9p6TBkHv_Ah2SxtWlTCsHsNasvjU/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9zdGF0/aWMud2l4c3RhdGlj/LmNvbS9tZWRpYS8z/NzFhMTNfMzI2Njkx/MGRiNGU0NDA4Mzlk/YWIwZmNkZTg4ZTM3/ZWF-bXYyLmpwZy92/MS9jcm9wL3hfMCx5/XzMwNSx3XzE5MjAs/aF85MTUvZmlsbC93/XzYwMCxoXzI5MCxh/bF9jLHFfODAsdXNt/XzAuNjZfMS4wMF8w/LjAxLGVuY19hdmlm/LHF1YWxpdHlfYXV0/by9jb3Jwby1zZWNv/LmpwZw",  # <<-- Substitua com uma URL real para o Corpo Seco
     # Imagens das Transformações (precisam corresponder EXATAMENTE ao "name" em CLASS_TRANSFORMATIONS)
     "Lâmina Fantasma": "https://i.imgur.com/CnDR7eP.png",
     "Punho de Aço": "https://i.imgur.com/mDsfNyi.png",
-    "Olho de Águia": "https://media.tenor.com/hYzJPjRmvWAAAAAM/clown.gifI", # NOTE: This URL is very generic/broken, consider replacing.
+    "Olho de Águia": "https://media.tenor.com/hYzJPjRmvWAAAAAM/clown.gifI",  # NOTE: This URL is very generic/broken, consider replacing.
     "Bênção Vital": "https://i.ibb.co/5xScwp3Y/image.png",
     "Lorde Sanguinário": "https://i.imgur.com/eTaWLjx.png",
-    "Benção do Rei Henrique": "https://media.tenor.com/hYzJPjRmvWAAAAAM/clown.gifI", # NOTE: This URL is very generic/broken, consider replacing.
-    "Lâmina Abençoada": "https://example.com/blade_blessed.png", # Placeholder, replace with actual image URL
-    "Punho de Adamantium": "https://example.com/adamantium_fist.png", # Placeholder, replace with actual image URL
-    "Visão Cósmica": "https://example.com/cosmic_sight.png", # Placeholder, replace with actual image URL
+    "Benção do Rei Henrique": "https://media.tenor.com/hYzJPjRmvWAAAAAM/clown.gifI",  # NOTE: This URL is very generic/broken, consider replacing.
+    "Lâmina Abençoada": "https://example.com/blade_blessed.png",  # Placeholder, replace with actual image URL
+    "Punho de Adamantium": "https://example.com/adamantium_fist.png",  # Placeholder, replace with actual image URL
+    "Visão Cósmica": "https://example.com/cosmic_sight.png",  # Placeholder, replace with actual image URL
     "Toque Divino": "https://i.ibb.co/VcK0Mzyr/image.png",
-    "Rei da Noite": "https://example.com/night_king.png", # Placeholder, replace with actual image URL
+    "Rei da Noite": "https://example.com/night_king.png",  # Placeholder, replace with actual image URL
 }
 
 
@@ -752,5 +811,5 @@ DEFAULT_PLAYER_BOSS_DATA = {
     "last_spawn_channel_id": None,
     "boss_progression_level": "Colosso de Pedra",
     "defeated_bosses": [],
-    "last_spawn_timestamp": 0, # Added for cooldown on boss spawn per player
+    "last_spawn_timestamp": 0,  # Added for cooldown on boss spawn per player
 }

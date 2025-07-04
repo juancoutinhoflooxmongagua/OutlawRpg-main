@@ -17,7 +17,7 @@ from config import (
     MAX_ENERGY,
     STARTING_LOCATION,
     LEVEL_ROLES,
-    # REMOVED: CURRENT_BOSS_STATE or INITIAL_GLOBAL_BOSS_STATE_TEMPLATE is NOT imported here.
+    TRANSFORM_COST,
 )
 
 # Correct: import current_boss_data (the LIVE state) from data_manager
@@ -37,12 +37,20 @@ def calculate_effective_stats(raw_player_data: dict) -> dict:
     effective_data["cooldown_reduction_percent"] = (
         0.0  # New: for general cooldown reduction
     )
+    # Adicionar aqui os multiplicadores passivos para XP e Dinheiro
+    effective_data["xp_multiplier_passive"] = 0.0
+    effective_data["money_multiplier_passive"] = 0.0
 
     # Apply passive bonuses from "Habilidade Inata" source of power (if active)
     habilidade_inata_info = ITEMS_DATA.get("habilidade_inata", {})
     if effective_data.get("style") == "Habilidade Inata":
         effective_data["attack_bonus_passive_percent"] += habilidade_inata_info.get(
             "attack_bonus_passive_percent", 0.0
+        )
+        effective_data[
+            "xp_multiplier_passive"
+        ] += habilidade_inata_info.get(  # Adicionar XP passivo da Habilidade Inata
+            "xp_multiplier_passive", 0.0
         )
         # Habilidade Inata does not affect cooldown_reduction_percent directly by default
 
@@ -99,6 +107,38 @@ def calculate_effective_stats(raw_player_data: dict) -> dict:
             "cooldown_reduction_percent", 0.0
         )
 
+    # NOVO: Aplica bônus específicos para as classes Domador e Corpo Seco
+    if effective_data["class"] == "Domador":
+        # Lobo adiciona 50% do ataque base do Domador
+        effective_data["attack"] = int(
+            effective_data["attack"] + (raw_player_data["base_attack"] * 0.50)
+        )
+        effective_data["special_attack"] = int(
+            effective_data["special_attack"]
+            + (raw_player_data["base_special_attack"] * 0.50)
+        )
+        # Lobo adiciona 50% do HP máximo base do Domador
+        effective_data["max_hp"] = int(
+            effective_data["max_hp"] + (raw_player_data["max_hp"] * 0.50)
+        )
+        effective_data["hp"] = min(
+            raw_player_data["hp"], effective_data["max_hp"]
+        )  # Ajusta HP atual
+    elif effective_data["class"] == "Corpo Seco":
+        # Alta defesa e vida
+        effective_data["max_hp"] = int(
+            effective_data["max_hp"] * 1.20
+        )  # +20% de HP efetivo
+        effective_data["hp"] = min(
+            raw_player_data["hp"], effective_data["max_hp"]
+        )  # Ajusta HP atual
+        effective_data["attack"] = int(
+            effective_data["attack"] * 0.85
+        )  # Reduz ataque em 15%
+        effective_data["special_attack"] = int(
+            effective_data["special_attack"] * 0.85
+        )  # Reduz ataque especial em 15%
+
     # Apply item bonuses based on inventory (after transformations for proper stacking)
     inventory = effective_data.get("inventory", {})
 
@@ -152,7 +192,53 @@ def calculate_effective_stats(raw_player_data: dict) -> dict:
             "cooldown_reduction_percent", 0.0
         )
 
+    # NOVO: Coleira do Lobo Alfa (Domador item)
+    coleira_lobo_info = ITEMS_DATA.get("coleira_do_lobo", {})
+    if inventory.get("coleira_do_lobo", 0) > 0 and effective_data["class"] == "Domador":
+        effective_data["attack"] = int(
+            effective_data["attack"]
+            * (1 + coleira_lobo_info.get("attack_bonus_percent", 0.0))
+        )
+        effective_data["max_hp"] = int(
+            effective_data["max_hp"] + coleira_lobo_info.get("hp_bonus_flat", 0)
+        )
+
+    # NOVO: Armadura de Osso Antigo (Corpo Seco item)
+    armadura_osso_info = ITEMS_DATA.get("armadura_de_osso", {})
+    if (
+        inventory.get("armadura_de_osso", 0) > 0
+        and effective_data["class"] == "Corpo Seco"
+    ):
+        effective_data["max_hp"] = int(
+            effective_data["max_hp"] + armadura_osso_info.get("hp_bonus_flat", 0)
+        )
+        effective_data["cooldown_reduction_percent"] += armadura_osso_info.get(
+            "cooldown_reduction_percent", 0.0
+        )
+
+    # NOVO: Coração do Universo (End-Game Item)
+    coracao_universo_info = ITEMS_DATA.get("coracao_do_universo", {})
+    if inventory.get("coracao_do_universo", 0) > 0:
+        effective_data["attack"] = int(
+            effective_data["attack"]
+            * coracao_universo_info.get("attack_multiplier", 1.0)
+        )
+        effective_data["max_hp"] = int(
+            effective_data["max_hp"]
+            * coracao_universo_info.get("max_hp_multiplier", 1.0)
+        )
+        effective_data["xp_multiplier_passive"] += coracao_universo_info.get(
+            "xp_multiplier_passive", 0.0
+        )
+        effective_data["money_multiplier_passive"] += coracao_universo_info.get(
+            "money_multiplier_passive", 0.0
+        )
+        effective_data["cooldown_reduction_percent"] += coracao_universo_info.get(
+            "cooldown_reduction_percent", 0.0
+        )
+
     # Apply remaining passive attack bonus from "Habilidade Inata" (final layer)
+    # Este já considera o xp_multiplier_passive da Habilidade Inata, mas agora também do Coração do Universo.
     effective_data["attack"] = int(
         effective_data["attack"]
         * (1 + effective_data.get("attack_bonus_passive_percent", 0.0))
@@ -521,11 +607,10 @@ async def run_turn_based_combat(
 
         xp_gain_raw = enemy["xp"]
 
-        xp_multiplier_passive = ITEMS_DATA.get("habilidade_inata", {}).get(
-            "xp_multiplier_passive", 0.0
+        # Aplicar multiplicadores de XP passivos (Habilidade Inata e Coração do Universo)
+        xp_gain_raw = int(
+            xp_gain_raw * (1 + player_stats.get("xp_multiplier_passive", 0.0))
         )
-        if raw_player_data.get("style") == "Habilidade Inata":
-            xp_gain_raw = int(xp_gain_raw * (1 + xp_multiplier_passive))
 
         if raw_player_data.get("xptriple") is True:
             xp_gain = xp_gain_raw * 3
@@ -534,26 +619,39 @@ async def run_turn_based_combat(
             xp_gain = xp_gain_raw
             xp_message = f"✨ +{xp_gain} XP"
 
-        if (
-            raw_player_data.get("style") == "Habilidade Inata"
-            and xp_multiplier_passive > 0
-            and not raw_player_data.get("xptriple")
+        # Remover a lógica duplicada de mensagem de XP, já que o multiplicador passivo é aplicado acima
+        if player_stats.get(
+            "xp_multiplier_passive", 0.0
+        ) > 0 and not raw_player_data.get("xptriple"):
+            xp_message += (
+                f" (Bônus Passivo: +{int(player_stats['xp_multiplier_passive']*100)}%!)"
+            )
+        elif player_stats.get("xp_multiplier_passive", 0.0) > 0 and raw_player_data.get(
+            "xptriple"
         ):
-            xp_message += f" (Habilidade Inata: +{int(xp_multiplier_passive*100)}%!)"
-        elif (
-            raw_player_data.get("style") == "Habilidade Inata"
-            and xp_multiplier_passive > 0
-            and raw_player_data.get("xptriple")
-        ):
-            xp_message = f"✨ +{xp_gain} XP (triplicado + Habilidade Inata: +{int(xp_multiplier_passive*100)}%!)"
+            xp_message = f"✨ +{xp_gain} XP (triplicado + Bônus Passivo: +{int(player_stats['xp_multiplier_passive']*100)}%!)"
 
         money_gain_raw = enemy["money"]
+        # Aplicar multiplicadores de Dinheiro passivos (Coração do Universo)
+        money_gain_raw = int(
+            money_gain_raw * (1 + player_stats.get("money_multiplier_passive", 0.0))
+        )
+
         if raw_player_data.get("money_double") is True:
             money_gain = money_gain_raw * 2
             money_message = f"💰 +${money_gain} (duplicado!)"
         else:
             money_gain = money_gain_raw
             money_message = f"💰 +${money_gain}"
+
+        if player_stats.get(
+            "money_multiplier_passive", 0.0
+        ) > 0 and not raw_player_data.get("money_double"):
+            money_message += f" (Bônus Passivo: +{int(player_stats['money_multiplier_passive']*100)}%!)"
+        elif player_stats.get(
+            "money_multiplier_passive", 0.0
+        ) > 0 and raw_player_data.get("money_double"):
+            money_message = f"💰 +${money_gain} (duplicado + Bônus Passivo: +{int(player_stats['money_multiplier_passive']*100)}%!)"
 
         final_embed.add_field(
             name="Recompensas", value=f"{money_message}\n{xp_message}"

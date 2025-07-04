@@ -33,24 +33,45 @@ class TravelButton(ui.Button):
         self.destination_id = destination_id
 
     async def callback(self, i: Interaction):
+        # Sempre adie a interação primeiro. Use ephemeral=True se a resposta for apenas para o usuário que clicou.
+        await i.response.defer(ephemeral=True)  # <--- ALTERAÇÃO AQUI: Adiciona defer
+
         player_data = get_player_data(self.view.user_id)
         if not player_data:
-            await i.response.send_message(
+            # Use followup.send após deferir, para enviar uma nova mensagem.
+            await i.followup.send(  # <--- ALTERAÇÃO AQUI: Usa followup.send
                 "Erro ao encontrar sua ficha.", ephemeral=True
             )
             return
 
         # Double check if the destination is valid (should be caught by button creation, but good for safety)
         if self.destination_id not in WORLD_MAP:
-            await i.response.send_message(
+            # Use followup.send após deferir.
+            await i.followup.send(  # <--- ALTERAÇÃO AQUI: Usa followup.send
                 f"Destino '{self.label}' inválido ou não existe no mapa.",
                 ephemeral=True,
             )
             return
 
+        destination_info = WORLD_MAP.get(self.destination_id, {})
+        required_boss_id = destination_info.get("required_previous_boss")
+
+        if required_boss_id:
+            player_boss_data = player_data.get("boss_data", {})
+            defeated_bosses = player_boss_data.get("defeated_bosses", [])
+            if required_boss_id not in defeated_bosses:
+                # Use followup.send após deferir.
+                await i.followup.send(  # <--- ALTERAÇÃO AQUI: Usa followup.send
+                    f"Você não pode viajar para **{self.label}** ainda! Você precisa derrotar o **{required_boss_id}** primeiro.",
+                    ephemeral=True,
+                )
+                return
+
         player_data["location"] = self.destination_id
         save_data()
-        await i.response.edit_message(
+
+        # Use edit_original_response para editar a mensagem que continha o botão.
+        await i.edit_original_response(  # <--- ALTERAÇÃO AQUI: Usa edit_original_response
             embed=Embed(
                 title=f"✈️ Viagem Concluída",
                 description=f"Você viajou e chegou em **{self.label}**.",
