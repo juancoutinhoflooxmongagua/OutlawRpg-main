@@ -8,6 +8,7 @@ import time
 import data_manager
 import config  # Assuming config.py is directly importable
 from utils import display_money  # Assuming utils.py is directly importable
+from utils import display_money
 
 
 class ClanCommands(commands.Cog):

@@ -1,478 +1,902 @@
-# cogs/clan_commands.py
 import discord
-from discord.ext import commands
-import uuid
-import time
+import random
+import asyncio
+from datetime import datetime
+from discord import Interaction, Embed, Color
 
-# Changed imports from 'from outlaw import ...' to direct imports as per project structure
-import data_manager
-import config  # Assuming config.py is directly importable
-from utils import display_money  # Assuming utils.py is directly importable
+from config import (
+    ITEMS_DATA,
+    CLASS_TRANSFORMATIONS,
+    BOSSES_DATA,
+    XP_PER_LEVEL_BASE,
+    ATTRIBUTE_POINTS_PER_LEVEL,
+    CRITICAL_CHANCE,
+    CRITICAL_MULTIPLIER,
+    MAX_ENERGY,
+    STARTING_LOCATION,
+    LEVEL_ROLES,
+    TRANSFORM_COST,
+    CLAN_KILL_CONTRIBUTION_PERCENTAGE_XP,  # NEW
+    CLAN_KILL_CONTRIBUTION_PERCENTAGE_MONEY,  # NEW
+)
+
+from data_manager import (
+    save_data,
+    get_player_data,
+    current_boss_data,
+    clan_database,
+    save_clan_data,
+)  # NEW
 
 
-class ClanCommands(commands.Cog):
-    def __init__(self, bot):
-        self.bot = bot
+def calculate_effective_stats(raw_player_data: dict) -> dict:
+    """Calculates a player's effective stats based on their base stats, transformation, and inventory items.
+    Does NOT modify the original raw_player_data.
+    """
+    effective_data = raw_player_data.copy()
 
-    @commands.slash_command(name="criar_cla", description="Cria um novo clã.")
-    async def criar_cla(self, ctx, nome: str):
-        player_id = str(ctx.author.id)
-        player_data = data_manager.get_player_data(player_id)
+    # Default values for bonuses/multipliers
+    effective_data["attack_bonus_passive_percent"] = 0.0
+    effective_data["healing_multiplier"] = 1.0
+    effective_data["evasion_chance_bonus"] = 0.0
+    effective_data["cooldown_reduction_percent"] = 0.0
+    effective_data["xp_multiplier_passive"] = 0.0
+    effective_data["money_multiplier_passive"] = 0.0
 
-        if not player_data:
-            await ctx.respond(
-                "Você precisa criar um personagem primeiro! Use `/criar_personagem`."
+    # Apply passive bonuses from "Habilidade Inata" source of power (if active)
+    habilidade_inata_info = ITEMS_DATA.get("habilidade_inata", {})
+    if effective_data.get("style") == "Habilidade Inata":
+        effective_data["attack_bonus_passive_percent"] += habilidade_inata_info.get(
+            "attack_bonus_passive_percent", 0.0
+        )
+        effective_data["xp_multiplier_passive"] += habilidade_inata_info.get(
+            "xp_multiplier_passive", 0.0
+        )
+
+    # Initialize current attack/special_attack/max_hp with base values
+    effective_data["attack"] = raw_player_data["base_attack"]
+    effective_data["special_attack"] = raw_player_data["base_special_attack"]
+    effective_data["max_hp"] = raw_player_data["max_hp"]
+
+    # Apply class transformations
+    if effective_data.get("current_transformation"):
+        transform_name = effective_data["current_transformation"]
+        class_name = effective_data["class"]
+        transform_info = CLASS_TRANSFORMATIONS.get(class_name, {}).get(transform_name)
+        if transform_info:
+            effective_data["attack"] = int(
+                effective_data["attack"] * transform_info.get("attack_multiplier", 1.0)
             )
-            return
-
-        if player_data.get("clan_id"):
-            await ctx.respond(
-                "Você já faz parte de um clã. Saia do clã atual antes de criar um novo."
+            effective_data["special_attack"] = int(
+                effective_data["special_attack"]
+                * transform_info.get("special_attack_multiplier", 1.0)
             )
-            return
-
-        if len(nome) < 3 or len(nome) > 20:
-            await ctx.respond("O nome do clã deve ter entre 3 e 20 caracteres.")
-            return
-
-        # Check if clan name already exists (case-insensitive)
-        for clan_id, clan_info in data_manager.clan_database.items():
-            if clan_info["name"].lower() == nome.lower():
-                await ctx.respond(
-                    f"Já existe um clã com o nome '{nome}'. Por favor, escolha outro nome."
-                )
-                return
-
-        if (
-            player_data["money"] < config.CLAN_CREATION_COST
-        ):  # Access via config.CLAN_CREATION_COST
-            await ctx.respond(
-                f"Você precisa de {display_money(config.CLAN_CREATION_COST)} para criar um clã. Você tem {display_money(player_data['money'])}."
+            effective_data["max_hp"] = int(
+                effective_data["max_hp"] * transform_info.get("hp_multiplier", 1.0)
             )
-            return
+            effective_data["healing_multiplier"] *= transform_info.get(
+                "healing_multiplier", 1.0
+            )
+            effective_data["evasion_chance_bonus"] += transform_info.get(
+                "evasion_chance_bonus", 0.0
+            )
+            effective_data["cooldown_reduction_percent"] += transform_info.get(
+                "cooldown_reduction_percent", 0.0
+            )
 
-        clan_id = str(uuid.uuid4())
-        timestamp = int(time.time())
+    # Apply Aura-specific blessing (King Henry's Blessing) if active
+    king_henry_blessing_info = ITEMS_DATA.get("bencao_rei_henrique", {})
+    if effective_data.get("aura_blessing_active"):
+        effective_data["attack"] = int(
+            effective_data["attack"]
+            * king_henry_blessing_info.get("attack_multiplier", 1.0)
+        )
+        effective_data["special_attack"] = int(
+            effective_data["special_attack"]
+            * king_henry_blessing_info.get("special_attack_multiplier", 1.0)
+        )
+        effective_data["max_hp"] = int(
+            effective_data["max_hp"]
+            * king_henry_blessing_info.get("max_hp_multiplier", 1.0)
+        )
+        effective_data["healing_multiplier"] *= king_henry_blessing_info.get(
+            "healing_multiplier", 1.0
+        )
+        effective_data["cooldown_reduction_percent"] += king_henry_blessing_info.get(
+            "cooldown_reduction_percent", 0.0
+        )
 
-        new_clan_data = {
-            "id": clan_id,  # Store clan_id inside clan_data as well
-            "name": nome,
-            "leader_id": player_id,
-            "members": [player_id],
-            "xp": config.DEFAULT_CLAN_XP,  # Access via config.DEFAULT_CLAN_XP
-            "money": config.INITIAL_CLAN_DATA[
-                "money"
-            ],  # Access via config.INITIAL_CLAN_DATA
-            "creation_timestamp": timestamp,
-            "last_ranking_timestamp": timestamp,  # Initialize with current time
-        }
+    if effective_data["class"] == "Domador":
+        effective_data["attack"] = int(
+            effective_data["attack"] * 1.20
+        )  # Ajustado de 1.35
+        effective_data["special_attack"] = int(
+            effective_data["special_attack"] * 1.20
+        )  # Ajustado de 1.35
+        effective_data["max_hp"] = int(
+            effective_data["max_hp"] * 1.15
+        )  # Ajustado de 1.25
+        effective_data["hp"] = min(raw_player_data["hp"], effective_data["max_hp"])
+    elif effective_data["class"] == "Corpo Seco":
+        effective_data["max_hp"] = int(effective_data["max_hp"] * 1.50)
+        effective_data["hp"] = min(raw_player_data["hp"], effective_data["max_hp"])
+        effective_data["attack"] = int(effective_data["attack"] * 1.05)
+        effective_data["special_attack"] = int(effective_data["special_attack"] * 1.05)
+        effective_data["evasion_chance_bonus"] += 0.10
 
-        data_manager.clan_database[clan_id] = new_clan_data
-        player_data["clan_id"] = clan_id
-        player_data["clan_role"] = "Líder"
-        player_data[
-            "money"
-        ] -= config.CLAN_CREATION_COST  # Access via config.CLAN_CREATION_COST
+    # Apply item bonuses based on inventory (after transformations for proper stacking)
+    inventory = effective_data.get("inventory", {})
 
-        data_manager.save_data()  # save_player_data
-        data_manager.save_clan_data()
 
-        embed = discord.Embed(
-            title=f"{config.CUSTOM_EMOJIS.get('clan_icon', '🛡️')} Clã Criado!",  # Access via config.CUSTOM_EMOJIS
-            description=f"O clã **{nome}** foi criado com sucesso por {ctx.author.mention}!",
-            color=discord.Color.green(),
+def display_money(amount: int) -> str:
+    """Formata um valor inteiro como uma string de moeda."""
+    return f"${amount:,}"
+    # Manopla do Lutador: Increases attack and HP
+    manopla_lutador_info = ITEMS_DATA.get("manopla_lutador", {})
+    if inventory.get("manopla_lutador", 0) > 0 and effective_data["class"] == "Lutador":
+        effective_data["attack"] = int(
+            effective_data["attack"]
+            * (1 + manopla_lutador_info.get("attack_bonus_percent", 0.0))
+        )
+        effective_data["max_hp"] = int(
+            effective_data["max_hp"] + manopla_lutador_info.get("hp_bonus_flat", 0)
+        )
+
+    # Espada Fantasma: Attack bonus and HP penalty
+    espada_fantasma_info = ITEMS_DATA.get("espada_fantasma", {})
+    if (
+        inventory.get("espada_fantasma", 0) > 0
+        and effective_data["class"] == "Espadachim"
+    ):
+        effective_data["attack"] = int(
+            effective_data["attack"]
+            * (1 + espada_fantasma_info.get("attack_bonus_percent", 0.0))
+        )
+        effective_data["max_hp"] = int(
+            effective_data["max_hp"]
+            * (1 - espada_fantasma_info.get("hp_penalty_percent", 0.0))
+        )
+        effective_data["hp"] = min(effective_data["hp"], effective_data["max_hp"])
+
+    # Cajado do Curandeiro: Increases healing effectiveness
+    cajado_curandeiro_info = ITEMS_DATA.get("cajado_curandeiro", {})
+    if (
+        inventory.get("cajado_curandeiro", 0) > 0
+        and effective_data["class"] == "Curandeiro"
+    ):
+        effective_data["healing_multiplier"] *= cajado_curandeiro_info.get(
+            "effect_multiplier", 1.0
+        )
+
+    # Mira Semi-Automática: Adds to total cooldown reduction for special attacks
+    mira_semi_automatica_info = ITEMS_DATA.get("mira_semi_automatica", {})
+    if (
+        inventory.get("mira_semi_automatica", 0) > 0
+        and effective_data["class"] == "Atirador"
+    ):
+        effective_data["cooldown_reduction_percent"] += mira_semi_automatica_info.get(
+            "cooldown_reduction_percent", 0.0
+        )
+
+    # NOVO: Coleira do Lobo Alfa (Domador item)
+    coleira_lobo_info = ITEMS_DATA.get("coleira_do_lobo", {})
+    if inventory.get("coleira_do_lobo", 0) > 0 and effective_data["class"] == "Domador":
+        effective_data["attack"] = int(
+            effective_data["attack"]
+            * (1 + coleira_lobo_info.get("attack_bonus_percent", 0.0))
+        )
+        effective_data["max_hp"] = int(
+            effective_data["max_hp"] + coleira_lobo_info.get("hp_bonus_flat", 0)
+        )
+
+    # NOVO: Armadura de Osso Antigo (Corpo Seco item)
+    armadura_osso_info = ITEMS_DATA.get("armadura_de_osso", {})
+    if (
+        inventory.get("armadura_de_osso", 0) > 0
+        and effective_data["class"] == "Corpo Seco"
+    ):
+        effective_data["max_hp"] = int(
+            effective_data["max_hp"] + armadura_osso_info.get("hp_bonus_flat", 0)
+        )
+        effective_data["cooldown_reduction_percent"] += armadura_osso_info.get(
+            "cooldown_reduction_percent", 0.0
+        )
+
+    # NOVO: Coração do Universo (End-Game Item)
+    coracao_universo_info = ITEMS_DATA.get("coracao_do_universo", {})
+    if inventory.get("coracao_do_universo", 0) > 0:
+        effective_data["attack"] = int(
+            effective_data["attack"]
+            * coracao_universo_info.get("attack_multiplier", 1.0)
+        )
+        effective_data["max_hp"] = int(
+            effective_data["max_hp"]
+            * coracao_universo_info.get("max_hp_multiplier", 1.0)
+        )
+        effective_data["xp_multiplier_passive"] += coracao_universo_info.get(
+            "xp_multiplier_passive", 0.0
+        )
+        effective_data["money_multiplier_passive"] += coracao_universo_info.get(
+            "money_multiplier_passive", 0.0
+        )
+        effective_data["cooldown_reduction_percent"] += coracao_universo_info.get(
+            "cooldown_reduction_percent", 0.0
+        )
+
+    effective_data["attack"] = int(
+        effective_data["attack"]
+        * (1 + effective_data.get("attack_bonus_passive_percent", 0.0))
+    )
+
+    effective_data["hp"] = min(raw_player_data["hp"], effective_data["max_hp"])
+
+    return effective_data
+
+
+async def check_and_process_levelup_internal(
+    bot_instance,
+    member: discord.Member,
+    player_data: dict,
+    send_target: Interaction | discord.TextChannel,
+):
+    level = player_data.get("level", 1)
+    xp_needed = int(XP_PER_LEVEL_BASE * (level**1.2))
+
+    while player_data["xp"] >= xp_needed:
+        player_data["level"] += 1
+        player_data["xp"] -= xp_needed
+        player_data["attribute_points"] = (
+            player_data.get("attribute_points", 0) + ATTRIBUTE_POINTS_PER_LEVEL
+        )
+        player_data["max_hp"] += 10
+        player_data["hp"] = player_data["max_hp"]
+
+        embed = Embed(
+            title="🌟 LEVEL UP! 🌟",
+            description=f"Parabéns, {member.mention}! Você alcançou o **Nível {player_data['level']}**!",
+            color=Color.gold(),
+        )
+        embed.set_thumbnail(
+            url="https://media.tenor.com/drx1lO9cfEAAAAi/dark-souls-bonfire.gif"
         )
         embed.add_field(
-            name="Custo", value=display_money(config.CLAN_CREATION_COST), inline=True
-        )  # Access via config.CLAN_CREATION_COST
-        embed.add_field(name="Líder", value=ctx.author.display_name, inline=True)
-        embed.add_field(
-            name="Membros", value=f"1/{config.MAX_CLAN_MEMBERS}", inline=True
-        )  # Access via config.MAX_CLAN_MEMBERS
-        embed.set_footer(text="Aventure-se com seu novo clã!")
-
-        await ctx.respond(embed=embed)
-
-    @commands.slash_command(name="entrar_cla", description="Entra em um clã existente.")
-    async def entrar_cla(self, ctx, nome_do_cla: str):
-        player_id = str(ctx.author.id)
-        player_data = data_manager.get_player_data(player_id)
-
-        if not player_data:
-            await ctx.respond(
-                "Você precisa criar um personagem primeiro! Use `/criar_personagem`."
-            )
-            return
-
-        if player_data.get("clan_id"):
-            await ctx.respond(
-                "Você já faz parte de um clã. Saia do clã atual antes de entrar em outro."
-            )
-            return
-
-        target_clan_id = None
-        for clan_id, clan_info in data_manager.clan_database.items():
-            if clan_info["name"].lower() == nome_do_cla.lower():
-                target_clan_id = clan_id
-                break
-
-        if not target_clan_id:
-            await ctx.respond(
-                f"Clã '{nome_do_cla}' não encontrado. Verifique o nome e tente novamente."
-            )
-            return
-
-        clan_data = data_manager.clan_database[target_clan_id]
-
-        if (
-            len(clan_data["members"]) >= config.MAX_CLAN_MEMBERS
-        ):  # Access via config.MAX_CLAN_MEMBERS
-            await ctx.respond(
-                f"O clã **{clan_data['name']}** já atingiu o número máximo de membros ({config.MAX_CLAN_MEMBERS})."
-            )  # Access via config.MAX_CLAN_MEMBERS
-            return
-
-        clan_data["members"].append(player_id)
-        player_data["clan_id"] = target_clan_id
-        player_data["clan_role"] = "Membro"
-
-        data_manager.save_data()  # save_player_data
-        data_manager.save_clan_data()
-
-        embed = discord.Embed(
-            title=f"{config.CUSTOM_EMOJIS.get('clan_icon', '🛡️')} Entrou no Clã!",  # Access via config.CUSTOM_EMOJIS
-            description=f"{ctx.author.mention} entrou no clã **{clan_data['name']}**!",
-            color=discord.Color.blue(),
+            name="Recompensas",
+            value=f"🔹 **{ATTRIBUTE_POINTS_PER_LEVEL}** Pontos de Atributo\n🔹 Vida totalmente restaurada!",
+            inline=False,
         )
-        embed.add_field(
-            name="Membros Atuais",
-            value=f"{len(clan_data['members'])}/{config.MAX_CLAN_MEMBERS}",
-            inline=True,
-        )  # Access via config.MAX_CLAN_MEMBERS
-        embed.set_footer(text="Bem-vindo(a) ao seu novo lar!")
+        embed.set_footer(text="Use /distribuir_pontos para ficar mais forte!")
 
-        await ctx.respond(embed=embed)
+        if isinstance(LEVEL_ROLES, dict):
+            sorted_level_roles_keys = sorted(LEVEL_ROLES.keys(), reverse=True)
 
-    @commands.slash_command(name="sair_cla", description="Sai do seu clã atual.")
-    async def sair_cla(self, ctx):
-        player_id = str(ctx.author.id)
-        player_data = data_manager.get_player_data(player_id)
-
-        if not player_data or not player_data.get("clan_id"):
-            await ctx.respond("Você não faz parte de nenhum clã.")
-            return
-
-        clan_id = player_data["clan_id"]
-        clan_data = data_manager.clan_database.get(clan_id)
-
-        if not clan_data:
-            # Should not happen if clan_id exists in player_data, but for safety
-            player_data["clan_id"] = None
-            player_data["clan_role"] = None
-            data_manager.save_data()  # save_player_data
-            await ctx.respond(
-                "Erro: Seu clã não foi encontrado no banco de dados. Seus dados foram corrigidos."
-            )
-            return
-
-        clan_name = clan_data["name"]
-
-        # Remove player from clan members list
-        if player_id in clan_data["members"]:
-            clan_data["members"].remove(player_id)
-
-        # Handle leader leaving
-        if clan_data["leader_id"] == player_id:
-            if clan_data["members"]:
-                new_leader_id = clan_data["members"][
-                    0
-                ]  # Assign first member as new leader
-                clan_data["leader_id"] = new_leader_id
-
-                # Update new leader's role
-                new_leader_data = data_manager.get_player_data(new_leader_id)
-                if new_leader_data:
-                    new_leader_data["clan_role"] = "Líder"
-                    data_manager.save_data()  # Save immediately for new leader
-
-                embed = discord.Embed(
-                    title=f"{config.CUSTOM_EMOJIS.get('leader_icon', '👑')} Liderança Transferida!",  # Access via config.CUSTOM_EMOJIS
-                    description=f"{ctx.author.mention} saiu do clã **{clan_name}**. A liderança foi transferida para <@{new_leader_id}>.",
-                    color=discord.Color.orange(),
-                )
-                await ctx.respond(embed=embed)
-            else:
-                # No more members, dissolve the clan
-                del data_manager.clan_database[clan_id]
-                embed = discord.Embed(
-                    title=f"{config.CUSTOM_EMOJIS.get('clan_icon', '🛡️')} Clã Dissolvido!",  # Access via config.CUSTOM_EMOJIS
-                    description=f"{ctx.author.mention} saiu do clã **{clan_name}**, e como não havia mais membros, o clã foi dissolvido.",
-                    color=discord.Color.red(),
-                )
-                await ctx.respond(embed=embed)
-        else:
-            embed = discord.Embed(
-                title=f"{config.CUSTOM_EMOJIS.get('clan_icon', '🛡️')} Saiu do Clã!",  # Access via config.CUSTOM_EMOJIS
-                description=f"{ctx.author.mention} saiu do clã **{clan_name}**.",
-                color=discord.Color.red(),
-            )
-            await ctx.respond(embed=embed)
-
-        player_data["clan_id"] = None
-        player_data["clan_role"] = None
-
-        data_manager.save_data()  # save_player_data
-        data_manager.save_clan_data()
-
-    @commands.slash_command(
-        name="expulsar_membro", description="[Líder do Clã] Expulsa um membro do clã."
-    )
-    async def expulsar_membro(self, ctx, membro: discord.Member):
-        player_id = str(ctx.author.id)
-        player_data = data_manager.get_player_data(player_id)
-
-        if not player_data or player_data.get("clan_role") != "Líder":
-            await ctx.respond(
-                "Apenas o líder do clã pode usar este comando.", ephemeral=True
-            )
-            return
-
-        clan_id = player_data["clan_id"]
-        clan_data = data_manager.clan_database.get(clan_id)
-
-        if not clan_data:
-            await ctx.respond("Você não está em um clã válido.", ephemeral=True)
-            return
-
-        target_member_id = str(membro.id)
-        if target_member_id == player_id:
-            await ctx.respond(
-                "Você não pode expulsar a si mesmo. Use `/sair_cla` para sair do clã.",
-                ephemeral=True,
-            )
-            return
-
-        if target_member_id not in clan_data["members"]:
-            await ctx.respond(
-                f"{membro.display_name} não é um membro do seu clã.", ephemeral=True
-            )
-            return
-
-        clan_data["members"].remove(target_member_id)
-
-        target_member_data = data_manager.get_player_data(target_member_id)
-        if target_member_data:
-            target_member_data["clan_id"] = None
-            target_member_data["clan_role"] = None
-            data_manager.save_data()  # save_player_data
-
-        data_manager.save_clan_data()
-
-        embed = discord.Embed(
-            title=f"{config.CUSTOM_EMOJIS.get('clan_icon', '🛡️')} Membro Expulso!",  # Access via config.CUSTOM_EMOJIS
-            description=f"{membro.display_name} foi expulso(a) do clã **{clan_data['name']}** por {ctx.author.mention}.",
-            color=discord.Color.orange(),
-        )
-        await ctx.respond(embed=embed)
-
-    @commands.slash_command(
-        name="transferir_lideranca",
-        description="[Líder do Clã] Transfere a liderança do clã.",
-    )
-    async def transferir_lideranca(self, ctx, novo_lider: discord.Member):
-        player_id = str(ctx.author.id)
-        player_data = data_manager.get_player_data(player_id)
-
-        if not player_data or player_data.get("clan_role") != "Líder":
-            await ctx.respond(
-                "Apenas o líder do clã pode transferir a liderança.", ephemeral=True
-            )
-            return
-
-        clan_id = player_data["clan_id"]
-        clan_data = data_manager.clan_database.get(clan_id)
-
-        if not clan_data:
-            await ctx.respond("Você não está em um clã válido.", ephemeral=True)
-            return
-
-        new_leader_id = str(novo_lider.id)
-        if new_leader_id not in clan_data["members"]:
-            await ctx.respond(
-                f"{novo_lider.display_name} não é um membro do seu clã.", ephemeral=True
-            )
-            return
-
-        if new_leader_id == player_id:
-            await ctx.respond("Você já é o líder do clã.", ephemeral=True)
-            return
-
-        # Update old leader's role
-        player_data["clan_role"] = "Membro"
-
-        # Update clan leader
-        clan_data["leader_id"] = new_leader_id
-
-        # Update new leader's role
-        new_leader_data = data_manager.get_player_data(new_leader_id)
-        if new_leader_data:
-            new_leader_data["clan_role"] = "Líder"
-
-        data_manager.save_data()  # save_player_data
-        data_manager.save_clan_data()
-
-        embed = discord.Embed(
-            title=f"{config.CUSTOM_EMOJIS.get('leader_icon', '👑')} Liderança Transferida!",  # Access via config.CUSTOM_EMOJIS
-            description=f"{ctx.author.mention} transferiu a liderança do clã **{clan_data['name']}** para {novo_lider.mention}.",
-            color=discord.Color.gold(),
-        )
-        await ctx.respond(embed=embed)
-
-    @commands.slash_command(
-        name="info_cla", description="Exibe informações sobre um clã."
-    )
-    async def info_cla(self, ctx, nome_do_cla_ou_id: str = None):
-        clan_data = None
-        if nome_do_cla_ou_id:
-            # Try to find by name first (case-insensitive)
-            for cid, cdata in data_manager.clan_database.items():
-                if cdata["name"].lower() == nome_do_cla_ou_id.lower():
-                    clan_data = cdata
+            current_role_to_assign = None
+            for required_level in sorted_level_roles_keys:
+                if player_data["level"] >= required_level:
+                    current_role_to_assign = LEVEL_ROLES[required_level]
                     break
-            # If not found by name, try by ID
-            if not clan_data and nome_do_cla_ou_id in data_manager.clan_database:
-                clan_data = data_manager.clan_database[nome_do_cla_ou_id]
-        else:
-            player_data = data_manager.get_player_data(str(ctx.author.id))
-            if player_data and player_data.get("clan_id"):
-                clan_data = data_manager.clan_database.get(player_data["clan_id"])
-            else:
-                await ctx.respond(
-                    "Você não está em um clã. Use `/info_cla [nome_do_cla]` para ver informações de outro clã.",
-                    ephemeral=True,
-                )
-                return
 
-        if not clan_data:
-            await ctx.respond(
-                f"Clã '{nome_do_cla_ou_id}' não encontrado.", ephemeral=True
+            guild_id_from_context = (
+                send_target.guild_id
+                if isinstance(send_target, Interaction)
+                else send_target.guild.id
             )
-            return
+            guild = bot_instance.get_guild(guild_id_from_context)
 
-        leader_member = await self.bot.fetch_user(int(clan_data["leader_id"]))
-        leader_name = leader_member.display_name if leader_member else "Desconhecido"
+            if guild:
+                member_obj = guild.get_member(member.id)
+                if member_obj:
+                    roles_to_remove = []
+                    for level_key, role_id in LEVEL_ROLES.items():
+                        role_to_remove = guild.get_role(role_id)
+                        if role_to_remove and role_to_remove in member_obj.roles:
+                            roles_to_remove.append(role_to_remove)
 
-        member_names = []
-        # Fetch members in chunks to avoid rate limits if many members
-        # For simplicity, fetching one by one here, but for large clans, a more efficient method might be needed
-        for member_id in clan_data["members"]:
-            try:
-                member = await self.bot.fetch_user(int(member_id))
-                if member:
-                    member_names.append(member.display_name)
+                    if roles_to_remove:
+                        try:
+                            await member_obj.remove_roles(
+                                *roles_to_remove,
+                                reason="Level up - updating level roles",
+                            )
+                        except discord.Forbidden:
+                            print(
+                                f"Erro: Bot sem permissão para remover cargos de nível para {member.display_name}."
+                            )
+                        except discord.HTTPException as e:
+                            print(
+                                f"Erro ao remover cargos de nível para {member.display_name}: {e}"
+                            )
+
+                    if current_role_to_assign:
+                        role = guild.get_role(current_role_to_assign)
+                        if role and role not in member_obj.roles:
+                            try:
+                                await member_obj.add_roles(
+                                    role,
+                                    reason=f"Reached Level {player_data['level']}",
+                                )
+                                embed.add_field(
+                                    name="🎉 Novo Cargo Desbloqueado!",
+                                    value=f"Você recebeu o cargo `{role.name}`!",
+                                    inline=False,
+                                )
+                            except discord.Forbidden:
+                                print(
+                                    f"Erro: Bot não tem permissão para adicionar o cargo {role.name} ao usuário {member.display_name}. Verifique as permissões do bot e a hierarquia de cargos."
+                                )
+                            except discord.HTTPException as e:
+                                print(
+                                    f"Erro ao adicionar cargo para {member.display_name}: {e}"
+                                )
+                        elif not role:
+                            print(
+                                f"Aviso: Cargo com ID {current_role_to_assign} não encontrado na guilda {guild.name}."
+                            )
                 else:
-                    member_names.append(f"ID: {member_id} (Usuário não encontrado)")
-            except discord.NotFound:
-                member_names.append(f"ID: {member_id} (Usuário não encontrado)")
-            except Exception as e:
-                member_names.append(f"ID: {member_id} (Erro: {e})")
-
-        members_list = (
-            "\n".join(member_names) if member_names else "Nenhum membro (clã vazio)"
-        )
-        if len(members_list) > 1024:  # Discord embed field value limit
-            members_list = members_list[:1000] + "..."
-
-        embed = discord.Embed(
-            title=f"{config.CUSTOM_EMOJIS.get('clan_icon', '🛡️')} Informações do Clã: {clan_data['name']}",  # Access via config.CUSTOM_EMOJIS
-            color=discord.Color.purple(),
-        )
-        embed.add_field(
-            name="Líder",
-            value=f"{config.CUSTOM_EMOJIS.get('leader_icon', '👑')} {leader_name}",
-            inline=False,
-        )  # Access via config.CUSTOM_EMOJIS
-        embed.add_field(
-            name="Membros",
-            value=f"{config.CUSTOM_EMOJIS.get('member_icon', '👥')} {len(clan_data['members'])}/{config.MAX_CLAN_MEMBERS}\n{members_list}",
-            inline=False,
-        )  # Access via config.CUSTOM_EMOJIS, config.MAX_CLAN_MEMBERS
-        embed.add_field(
-            name="XP do Clã",
-            value=f"{config.CUSTOM_EMOJIS.get('xp_icon', '✨')} {clan_data['xp']:,}",
-            inline=True,
-        )  # Access via config.CUSTOM_EMOJIS
-        embed.add_field(
-            name="Dinheiro do Clã",
-            value=f"{config.CUSTOM_EMOJIS.get('money_icon', '💰')} ${clan_data['money']:,}",
-            inline=True,
-        )  # NEW: Display clan money
-        embed.add_field(
-            name="Criado em",
-            value=f"<t:{clan_data['creation_timestamp']}:D>",
-            inline=True,
-        )
-        embed.set_footer(
-            text=f"ID do Clã: {clan_data.get('id', 'N/A')}"
-        )  # Display ID for debugging/reference
-
-        await ctx.respond(embed=embed)
-
-    @commands.slash_command(
-        name="ranking_clans", description="Exibe o ranking dos clãs por XP."
-    )
-    async def ranking_clans(self, ctx):
-        if not data_manager.clan_database:
-            await ctx.respond(
-                "Ainda não há clãs registrados para exibir o ranking.", ephemeral=True
-            )
-            return
-
-        # Filter out clans with no members for ranking purposes
-        active_clans = [
-            clan for clan in data_manager.clan_database.values() if clan["members"]
-        ]
-
-        if not active_clans:
-            await ctx.respond(
-                "Ainda não há clãs ativos (com membros) para exibir o ranking.",
-                ephemeral=True,
-            )
-            return
-
-        sorted_clans = sorted(active_clans, key=lambda x: x["xp"], reverse=True)
-
-        embed = discord.Embed(
-            title=f"{config.CUSTOM_EMOJIS.get('trophy_icon', '🏆')} Ranking de Clãs",  # Access via config.CUSTOM_EMOJIS
-            description="Os clãs são ranqueados pela XP acumulada.",
-            color=discord.Color.gold(),
-        )
-
-        for i, clan in enumerate(sorted_clans[:10]):  # Show top 10 clans
-            leader_member = await self.bot.fetch_user(int(clan["leader_id"]))
-            leader_name = (
-                leader_member.display_name if leader_member else "Desconhecido"
-            )
-
-            rank_emoji = ""
-            if i == 0:
-                rank_emoji = "🥇"
-            elif i == 1:
-                rank_emoji = "🥈"
-            elif i == 2:
-                rank_emoji = "🥉"
+                    print(
+                        f"Aviso: Membro {member.display_name} não encontrado na guilda para atualizar cargos."
+                    )
             else:
-                rank_emoji = f"{i+1}."
+                print(
+                    f"Aviso: Guilda com ID {guild_id_from_context} não encontrada para conceder cargo de nível."
+                )
 
-            embed.add_field(
-                name=f"{rank_emoji} {clan['name']}",
-                value=f"Líder: {leader_name}\nXP: {clan['xp']:,}\nDinheiro: ${clan['money']:,}\nMembros: {len(clan['members'])}/{config.MAX_CLAN_MEMBERS}",  # Display clan money, access config.MAX_CLAN_MEMBERS
-                inline=False,
+        if isinstance(send_target, Interaction):
+            try:
+                if send_target.response.is_done():
+                    await send_target.followup.send(embed=embed)
+                else:
+                    await send_target.response.send_message(embed=embed)
+            except discord.InteractionResponded:
+                await send_target.channel.send(embed=embed)
+            except Exception as e:
+                print(f"Erro ao enviar embed de level up na interação: {e}")
+        else:
+            await send_target.send(embed=embed)
+
+        xp_needed = int(XP_PER_LEVEL_BASE * (player_data["level"] ** 1.2))
+
+
+# NEW: Function to calculate XP needed for the next level
+def calculate_xp_for_next_level(level: int) -> int:
+    return int(XP_PER_LEVEL_BASE * (level**1.2))
+
+
+# NEW: Function to get effective XP gain with passive multipliers
+def get_player_effective_xp_gain(player_data: dict, base_xp_gain: int) -> int:
+    player_stats = calculate_effective_stats(
+        player_data
+    )  # Ensure passive multipliers are applied
+    xp_multiplier_passive = player_stats.get("xp_multiplier_passive", 0.0)
+    effective_xp_gain = int(base_xp_gain * (1 + xp_multiplier_passive))
+
+    # Check for xptriple
+    if player_data.get("xptriple") is True:
+        effective_xp_gain *= 3
+    return effective_xp_gain
+
+
+async def run_turn_based_combat(
+    bot_instance,
+    interaction: Interaction,
+    raw_player_data: dict,
+    enemy: dict,
+    initial_attack_style: str = "basico",
+):
+    log = []
+    player_hp = raw_player_data["hp"]
+    enemy_hp = enemy["hp"]
+    amulet_activated_this_combat = False
+
+    player_stats = calculate_effective_stats(raw_player_data)
+
+    owner_display_hp = player_hp
+    wolf_display_hp = 0
+    owner_display_max_hp = player_stats["max_hp"]
+    wolf_display_max_hp = 0
+    player_hp_display_text = ""
+
+    if raw_player_data["class"] == "Domador":
+        owner_base_for_ratio = raw_player_data["max_hp"]
+        wolf_base_for_ratio = int(raw_player_data["max_hp"] * 0.50)
+
+        total_ratio_base = owner_base_for_ratio + wolf_base_for_ratio
+
+        if total_ratio_base > 0:
+            owner_ratio = owner_base_for_ratio / total_ratio_base
+
+            owner_display_hp = int(player_hp * owner_ratio)
+            wolf_display_hp = player_hp - owner_display_hp
+
+            owner_display_max_hp = int(player_stats["max_hp"] * owner_ratio)
+            wolf_display_max_hp = player_stats["max_hp"] - owner_display_max_hp
+        else:
+            owner_display_hp = player_hp
+            owner_display_max_hp = player_stats["max_hp"]
+            wolf_display_hp = 0
+            wolf_display_max_hp = 0
+
+        player_hp_display_text = (
+            f"❤️ Você: {max(0, owner_display_hp)}/{owner_display_max_hp}\n"
+            f"🐺 Lobo: {max(0, wolf_display_hp)}/{wolf_display_max_hp}"
+        )
+    else:
+        player_hp_display_text = f"❤️ {player_hp}/{player_stats['max_hp']}"
+
+    embed = Embed(title=f"⚔️ Batalha Iniciada! ⚔️", color=Color.orange())
+    embed.set_thumbnail(url=enemy.get("thumb"))
+    embed.add_field(
+        name=interaction.user.display_name,
+        value=player_hp_display_text,
+        inline=True,
+    )
+    embed.add_field(
+        name=enemy["name"], value=f"❤️ {enemy_hp}/{enemy['hp']}", inline=True
+    )
+
+    if not interaction.response.is_done():
+        await interaction.response.defer()
+
+    battle_message = await interaction.edit_original_response(embed=embed)
+
+    turn = 1
+    while player_hp > 0 and enemy_hp > 0:
+        await asyncio.sleep(2.5)
+
+        player_dmg = 0
+        attack_type_name = ""
+        crit_msg = ""
+        owner_dmg_display = 0
+        wolf_dmg_display = 0
+        is_domador_attack = False
+
+        cost_energy_special = TRANSFORM_COST
+        cost_energy_special = max(
+            1,
+            int(
+                cost_energy_special
+                * (1 - player_stats.get("cooldown_reduction_percent", 0.0))
+            ),
+        )
+
+        if raw_player_data["class"] == "Domador":
+            is_domador_attack = True
+            base_owner_attack = raw_player_data["base_attack"]
+            base_wolf_attack = int(raw_player_data["base_attack"] * 0.50)
+
+            base_owner_special_attack = raw_player_data["base_special_attack"]
+            base_wolf_special_attack = int(
+                raw_player_data["base_special_attack"] * 0.50
             )
 
-        embed.set_footer(text="O ranking é atualizado semanalmente com recompensas!")
-        await ctx.respond(embed=embed)
+        if turn == 1:
+            if initial_attack_style == "basico":
+                player_dmg = random.randint(
+                    player_stats["attack"] // 2, player_stats["attack"]
+                )
+                attack_type_name = "Ataque Básico"
 
+                if is_domador_attack:
+                    total_base_attack_for_display = base_owner_attack + base_wolf_attack
+                    if total_base_attack_for_display > 0:
+                        owner_dmg_display = int(
+                            player_dmg
+                            * (base_owner_attack / total_base_attack_for_display)
+                        )
+                        wolf_dmg_display = player_dmg - owner_dmg_display
+                    else:
+                        owner_dmg_display = player_dmg
+                        wolf_dmg_display = 0
 
-def setup(bot):
-    bot.add_cog(ClanCommands(bot))
+            elif initial_attack_style == "especial":
+                if raw_player_data["energy"] < cost_energy_special:
+                    player_dmg = random.randint(
+                        player_stats["attack"] // 2, player_stats["attack"]
+                    )
+                    attack_type_name = (
+                        "Ataque Básico (Energia Insuficiente para Especial)"
+                    )
+                    log.append(
+                        "⚠️ Energia insuficiente para Ataque Especial. Usando Ataque Básico."
+                    )
+
+                    if is_domador_attack:
+                        total_base_attack_for_display = (
+                            base_owner_attack + base_wolf_attack
+                        )
+                        if total_base_attack_for_display > 0:
+                            owner_dmg_display = int(
+                                player_dmg
+                                * (base_owner_attack / total_base_attack_for_display)
+                            )
+                            wolf_dmg_display = player_dmg - owner_dmg_display
+                        else:
+                            owner_dmg_display = player_dmg
+                            wolf_dmg_display = 0
+
+                else:
+                    player_dmg = random.randint(
+                        int(player_stats["special_attack"] * 0.8),
+                        int(player_stats["special_attack"] * 1.5),
+                    )
+                    attack_type_name = "Ataque Especial"
+                    raw_player_data["energy"] = max(
+                        0, raw_player_data["energy"] - cost_energy_special
+                    )
+
+                    if is_domador_attack:
+                        total_base_special_attack_for_display = (
+                            base_owner_special_attack + base_wolf_special_attack
+                        )
+                        if total_base_special_attack_for_display > 0:
+                            owner_dmg_display = int(
+                                player_dmg
+                                * (
+                                    base_owner_special_attack
+                                    / total_base_special_attack_for_display
+                                )
+                            )
+                            wolf_dmg_display = player_dmg - owner_dmg_display
+                        else:
+                            owner_dmg_display = player_dmg
+                            wolf_dmg_display = 0
+
+        else:
+            player_dmg = random.randint(
+                player_stats["attack"] // 2, player_stats["attack"]
+            )
+            attack_type_name = "Ataque Básico"
+
+            if is_domador_attack:
+                total_base_attack_for_display = base_owner_attack + base_wolf_attack
+                if total_base_attack_for_display > 0:
+                    owner_dmg_display = int(
+                        player_dmg * (base_owner_attack / total_base_attack_for_display)
+                    )
+                    wolf_dmg_display = player_dmg - owner_dmg_display
+                else:
+                    owner_dmg_display = player_dmg
+                    wolf_dmg_display = 0
+
+        if random.random() < CRITICAL_CHANCE:
+            player_dmg = int(player_dmg * CRITICAL_MULTIPLIER)
+            crit_msg = "💥 **CRÍTICO!** "
+            if is_domador_attack:
+                if initial_attack_style == "basico" or (
+                    turn == 1
+                    and initial_attack_style == "especial"
+                    and raw_player_data["energy"] < cost_energy_special
+                ):
+                    total_base_attack_for_display = base_owner_attack + base_wolf_attack
+                    if total_base_attack_for_display > 0:
+                        owner_dmg_display = int(
+                            player_dmg
+                            * (base_owner_attack / total_base_attack_for_display)
+                        )
+                        wolf_dmg_display = player_dmg - owner_dmg_display
+                elif initial_attack_style == "especial":
+                    total_base_special_attack_for_display = (
+                        base_owner_special_attack + base_wolf_special_attack
+                    )
+                    if total_base_special_attack_for_display > 0:
+                        owner_dmg_display = int(
+                            player_dmg
+                            * (
+                                base_owner_special_attack
+                                / total_base_special_attack_for_display
+                            )
+                        )
+                        wolf_dmg_display = player_dmg - owner_dmg_display
+
+        if raw_player_data["class"] == "Vampiro":
+            if attack_type_name == "Ataque Básico":
+                heal_from_vampire_basic = int(player_dmg * 0.5)
+                raw_player_data["hp"] = min(
+                    raw_player_data["max_hp"],
+                    raw_player_data["hp"] + heal_from_vampire_basic,
+                )
+                log.append(f"🩸 Você sugou `{heal_from_vampire_basic}` HP do inimigo!")
+            elif attack_type_name == "Ataque Especial":
+                heal_from_vampire_special = int(player_dmg * 0.75)
+                raw_player_data["hp"] = min(
+                    raw_player_data["max_hp"],
+                    raw_player_data["hp"] + heal_from_vampire_special,
+                )
+                log.append(
+                    f"🧛 Você sugou `{heal_from_vampire_special}` HP do inimigo com seu ataque especial!"
+                )
+
+        enemy_hp -= player_dmg
+
+        if is_domador_attack:
+            log.append(
+                f"➡️ **Turno {turn}**: {crit_msg}Você e seu lobo usaram **{attack_type_name}** e causaram `{player_dmg}` de dano (Você: `{owner_dmg_display}`, Lobo: `{wolf_dmg_display}`)."
+            )
+        else:
+            log.append(
+                f"➡️ **Turno {turn}**: {crit_msg}Você usou **{attack_type_name}** e causou `{player_dmg}` de dano."
+            )
+
+        if len(log) > 5:
+            log.pop(0)
+
+        player_hp = raw_player_data["hp"]
+
+        if raw_player_data["class"] == "Domador":
+            owner_base_for_ratio = raw_player_data["max_hp"]
+            wolf_base_for_ratio = int(raw_player_data["max_hp"] * 0.50)
+            total_ratio_base = owner_base_for_ratio + wolf_base_for_ratio
+
+            if total_ratio_base > 0:
+                owner_ratio = owner_base_for_ratio / total_ratio_base
+
+                owner_display_hp = int(player_hp * owner_ratio)
+                wolf_display_hp = player_hp - owner_display_hp
+            else:
+                owner_display_hp = player_hp
+                wolf_display_hp = 0
+            player_hp_display_text = (
+                f"❤️ Você: {max(0, owner_display_hp)}/{owner_display_max_hp}\n"
+                f"🐺 Lobo: {max(0, wolf_display_hp)}/{wolf_display_max_hp}"
+            )
+        else:
+            player_hp_display_text = f"❤️ {max(0, player_hp)}/{player_stats['max_hp']}"
+
+        embed.description = "\n".join(log)
+        embed.set_field_at(
+            0,
+            name=interaction.user.display_name,
+            value=player_hp_display_text,
+            inline=True,
+        )
+        embed.set_field_at(
+            1,
+            name=enemy["name"],
+            value=f"❤️ {max(0, enemy_hp)}/{enemy['hp']}",
+            inline=True,
+        )
+        await interaction.edit_original_response(embed=embed)
+
+        if enemy_hp <= 0:
+            break
+
+        await asyncio.sleep(2.5)
+
+        enemy_dmg = random.randint(enemy["attack"] // 2, enemy["attack"])
+
+        total_evasion_chance = player_stats.get("evasion_chance_bonus", 0.0)
+
+        if raw_player_data.get("bencao_dracula_active", False):
+            dracula_info = ITEMS_DATA.get("bencao_dracula", {})
+            total_evasion_chance += dracula_info.get("evasion_chance", 0.0)
+
+        if (
+            raw_player_data["class"] == "Vampiro"
+            and random.random() < total_evasion_chance
+        ):
+            hp_steal_percent_on_evade = ITEMS_DATA.get("bencao_dracula", {}).get(
+                "hp_steal_percent_on_evade", 0.0
+            )
+            hp_stolen_on_evade = int(enemy_dmg * hp_steal_percent_on_evade)
+            raw_player_data["hp"] = min(
+                raw_player_data["max_hp"], raw_player_data["hp"] + hp_stolen_on_evade
+            )
+
+            log.append(
+                f"👻 **DESVIADO!** {enemy['name']} errou o ataque! Você sugou `{hp_stolen_on_evade}` HP!)"
+            )
+            if len(log) > 5:
+                log.pop(0)
+            player_hp = raw_player_data["hp"]
+
+            if raw_player_data["class"] == "Domador":
+                owner_base_for_ratio = raw_player_data["max_hp"]
+                wolf_base_for_ratio = int(raw_player_data["max_hp"] * 0.50)
+                total_ratio_base = owner_base_for_ratio + wolf_base_for_ratio
+                if total_ratio_base > 0:
+                    owner_ratio = owner_base_for_ratio / total_ratio_base
+                    owner_display_hp = int(player_hp * owner_ratio)
+                    wolf_display_hp = player_hp - owner_display_hp
+                else:
+                    owner_display_hp = player_hp
+                    wolf_display_hp = 0
+                player_hp_display_text = (
+                    f"❤️ Você: {max(0, owner_display_hp)}/{owner_display_max_hp}\n"
+                    f"🐺 Lobo: {max(0, wolf_display_hp)}/{wolf_display_max_hp}"
+                )
+            else:
+                player_hp_display_text = (
+                    f"❤️ {max(0, player_hp)}/{player_stats['max_hp']}"
+                )
+
+            embed.description = "\n".join(log)
+            embed.set_field_at(
+                0,
+                name=interaction.user.display_name,
+                value=player_hp_display_text,
+                inline=True,
+            )
+            await interaction.edit_original_response(embed=embed)
+            await asyncio.sleep(1.5)
+            continue
+
+        player_hp -= enemy_dmg
+        raw_player_data["hp"] = player_hp
+
+        amulet_info = ITEMS_DATA.get("amuleto_de_pedra", {})
+        if (
+            player_hp <= 0
+            and raw_player_data["inventory"].get("amuleto_de_pedra", 0) > 0
+            and not amulet_activated_this_combat
+            and not raw_player_data.get("amulet_used_since_revive", False)
+        ):
+            player_hp = 1
+            raw_player_data["hp"] = 1
+            amulet_activated_this_combat = True
+            raw_player_data["amulet_used_since_revive"] = True
+            log.append("✨ **Amuleto de Pedra ativado!** Você sobreviveu por um triz!")
+            if len(log) > 5:
+                log.pop(0)
+
+            if raw_player_data["class"] == "Domador":
+                owner_base_for_ratio = raw_player_data["max_hp"]
+                wolf_base_for_ratio = int(raw_player_data["max_hp"] * 0.50)
+                total_ratio_base = owner_base_for_ratio + wolf_base_for_ratio
+                if total_ratio_base > 0:
+                    owner_ratio = owner_base_for_ratio / total_ratio_base
+                    owner_display_hp = int(player_hp * owner_ratio)
+                    wolf_display_hp = player_hp - owner_display_hp
+                else:
+                    owner_display_hp = player_hp
+                    wolf_display_hp = 0
+                player_hp_display_text = (
+                    f"❤️ Você: {max(0, owner_display_hp)}/{owner_display_max_hp}\n"
+                    f"🐺 Lobo: {max(0, wolf_display_hp)}/{wolf_display_max_hp}"
+                )
+            else:
+                player_hp_display_text = (
+                    f"❤️ {max(0, player_hp)}/{player_stats['max_hp']}"
+                )
+
+            embed.description = "\n".join(log)
+            embed.set_field_at(
+                0,
+                name=interaction.user.display_name,
+                value=player_hp_display_text,
+                inline=True,
+            )
+            await interaction.edit_original_response(embed=embed)
+            await asyncio.sleep(1.5)
+            continue
+
+        log.append(f"⬅️ {enemy['name']} ataca e causa `{enemy_dmg}` de dano.")
+        if len(log) > 5:
+            log.pop(0)
+
+        if raw_player_data["class"] == "Domador":
+            owner_base_for_ratio = raw_player_data["max_hp"]
+            wolf_base_for_ratio = int(raw_player_data["max_hp"] * 0.50)
+            total_ratio_base = owner_base_for_ratio + wolf_base_for_ratio
+            if total_ratio_base > 0:
+                owner_ratio = owner_base_for_ratio / total_ratio_base
+                # The problematic line 751 was here, now corrected:
+                owner_display_hp = int(player_hp * owner_ratio)
+                wolf_display_hp = player_hp - owner_display_hp
+            else:
+                owner_display_hp = player_hp
+                wolf_display_hp = 0
+            player_hp_display_text = (
+                f"❤️ Você: {max(0, owner_display_hp)}/{owner_display_max_hp}\n"
+                f"🐺 Lobo: {max(0, wolf_display_hp)}/{wolf_display_max_hp}"
+            )
+        else:
+            player_hp_display_text = f"❤️ {max(0, player_hp)}/{player_stats['max_hp']}"
+
+        embed.description = "\n".join(log)
+        embed.set_field_at(
+            0,
+            name=interaction.user.display_name,
+            value=player_hp_display_text,
+            inline=True,
+        )
+        embed.set_field_at(
+            1,
+            name=enemy["name"],
+            value=f"❤️ {max(0, enemy_hp)}/{enemy['hp']}",
+            inline=True,
+        )
+        await interaction.edit_original_response(embed=embed)
+
+        turn += 1
+
+    final_embed = Embed()
+    raw_player_data["hp"] = max(0, player_hp)
+
+    if player_hp <= 0:
+        final_embed.title = "☠️ Você Foi Derrotado!"
+        final_embed.color = Color.dark_red()
+        raw_player_data["status"] = "dead"
+        raw_player_data["deaths"] += 1
+        final_embed.description = f"O {enemy['name']} foi muito forte para você."
+    else:
+        final_embed.title = "🏆 Vitória! 🏆"
+        final_embed.color = Color.green()
+        final_embed.description = f"Você derrotou o {enemy['name']}!"
+
+        xp_gain_raw = enemy["xp"]
+
+        xp_gain_raw = int(
+            xp_gain_raw * (1 + player_stats.get("xp_multiplier_passive", 0.0))
+        )
+
+        if raw_player_data.get("xptriple") is True:
+            xp_gain = xp_gain_raw * 3
+            xp_message = f"✨ +{xp_gain} XP (triplicado!)"
+        else:
+            xp_gain = xp_gain_raw
+            xp_message = f"✨ +{xp_gain} XP"
+
+        if player_stats.get(
+            "xp_multiplier_passive", 0.0
+        ) > 0 and not raw_player_data.get("xptriple"):
+            xp_message += (
+                f" (Bônus Passivo: +{int(player_stats['xp_multiplier_passive']*100)}%!)"
+            )
+        elif player_stats.get("xp_multiplier_passive", 0.0) > 0 and raw_player_data.get(
+            "xptriple"
+        ):
+            xp_message = f"✨ +{xp_gain} XP (triplicado + Bônus Passivo: +{int(player_stats['xp_multiplier_passive']*100)}%!)"
+
+        money_gain_raw = enemy["money"]
+        money_gain_raw = int(
+            money_gain_raw * (1 + player_stats.get("money_multiplier_passive", 0.0))
+        )
+
+        if raw_player_data.get("money_double") is True:
+            money_gain = money_gain_raw * 2
+            money_message = f"💰 +${money_gain} (duplicado!)"
+        else:
+            money_gain = money_gain_raw
+            money_message = f"💰 +${money_gain}"
+
+        if player_stats.get(
+            "money_multiplier_passive", 0.0
+        ) > 0 and not raw_player_data.get("money_double"):
+            money_message += f" (Bônus Passivo: +{int(player_stats['money_multiplier_passive']*100)}%!)"
+        elif player_stats.get(
+            "money_multiplier_passive", 0.0
+        ) > 0 and raw_player_data.get("money_double"):
+            money_message = f"💰 +${money_gain} (duplicado + Bônus Passivo: +{int(player_stats['money_multiplier_passive']*100)}%!)"
+
+        final_embed.add_field(
+            name="Recompensas", value=f"{money_message}\n{xp_message}"
+        )
+
+        raw_player_data["money"] += money_gain
+        raw_player_data["xp"] += xp_gain
+
+        # NEW: Add XP and Money to clan if player is in one
+        if raw_player_data.get("clan_id"):
+            clan_id = raw_player_data["clan_id"]
+            clan_data = clan_database.get(clan_id)
+            if clan_data:
+                clan_xp_contribution = int(
+                    xp_gain * CLAN_KILL_CONTRIBUTION_PERCENTAGE_XP
+                )
+                clan_money_contribution = int(
+                    money_gain * CLAN_KILL_CONTRIBUTION_PERCENTAGE_MONEY
+                )
+                clan_data["xp"] += clan_xp_contribution
+                clan_data["money"] += clan_money_contribution
+                save_clan_data()  # Save clan data after update
+                final_embed.add_field(
+                    name="Contribuição para o Clã",
+                    value=f"✨ +{clan_xp_contribution} XP\n💰 +${clan_money_contribution}",
+                    inline=False,
+                )
+
+        await bot_instance.check_and_process_levelup(
+            interaction.user, raw_player_data, interaction
+        )
+
+    save_data()
+    await interaction.edit_original_response(embed=final_embed)
