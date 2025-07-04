@@ -77,13 +77,21 @@ class CharacterCommands(commands.Cog):
         if player_data["status"] != "dead":
             await i.response.send_message("Você já está vivo!", ephemeral=True)
             return
-        if player_data["money"] < REVIVE_COST:
+
+        # Modificação para permitir que 'Corpo Seco' reviva sem custo
+        if player_data["class"] == "Corpo Seco":
+            revive_message = "Você, como um Corpo Seco, se ergueu novamente sem custo!"
+            cost = 0
+        elif player_data["money"] < REVIVE_COST:
             await i.response.send_message(
                 f"Você precisa de ${REVIVE_COST} para reviver.", ephemeral=True
             )
             return
+        else:
+            cost = REVIVE_COST
+            player_data["money"] -= cost
+            revive_message = f"Você pagou ${REVIVE_COST} e trapaceou a morte."
 
-        player_data["money"] -= REVIVE_COST
         player_data["hp"] = player_data["max_hp"]
         player_data["status"] = "online"
         player_data["amulet_used_since_revive"] = False
@@ -91,7 +99,7 @@ class CharacterCommands(commands.Cog):
         await i.response.send_message(
             embed=Embed(
                 title="✨ De Volta à Vida",
-                description=f"Você pagou ${REVIVE_COST} e trapaceou a morte.",
+                description=revive_message,
                 color=Color.light_grey(),
             )
         )

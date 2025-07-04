@@ -1,5 +1,3 @@
-# utils.py
-
 import discord
 import random
 import asyncio
@@ -125,19 +123,24 @@ def calculate_effective_stats(raw_player_data: dict) -> dict:
             raw_player_data["hp"], effective_data["max_hp"]
         )  # Ajusta HP atual
     elif effective_data["class"] == "Corpo Seco":
-        # Alta defesa e vida
+        # --- ALTERAÇÕES PARA BALANCEAMENTO DO CORPO SECO ---
+        # Aumentar HP efetivo para ser mais tanque
         effective_data["max_hp"] = int(
-            effective_data["max_hp"] * 1.20
-        )  # +20% de HP efetivo
+            effective_data["max_hp"] * 1.50  # Aumentado de 1.35 para 1.50
+        )
         effective_data["hp"] = min(
             raw_player_data["hp"], effective_data["max_hp"]
         )  # Ajusta HP atual
+        # Reduzir penalidade de ataque para que cause mais dano
         effective_data["attack"] = int(
-            effective_data["attack"] * 0.85
-        )  # Reduz ataque em 15%
+            effective_data["attack"] * 0.95  # Aumentado de 0.90 para 0.95
+        )
         effective_data["special_attack"] = int(
-            effective_data["special_attack"] * 0.85
-        )  # Reduz ataque especial em 15%
+            effective_data["special_attack"] * 0.95  # Aumentado de 0.90 para 0.95
+        )
+        # Adicionar pequena chance de evasão para aumentar sobrevivência
+        effective_data["evasion_chance_bonus"] += 0.10  # Aumentado de 0.05 para 0.10
+        # ----------------------------------------------------
 
     # Apply item bonuses based on inventory (after transformations for proper stacking)
     inventory = effective_data.get("inventory", {})
