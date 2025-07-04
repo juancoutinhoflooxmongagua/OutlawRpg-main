@@ -3,31 +3,15 @@
         "name": "\u23e4\u035f\u035e\u035f\uaab6\u0362Red X\uaac2",
         "class": "Vampiro",
         "style": "Aura",
-        "xp": 12812,
-        "level": 54,
-        "money": 151224440551,
-        "hp": 13022752,
-        "max_hp": 13022752,
-        "base_attack": 1833333,
-        "base_special_attack": 3533333333333333,
-        "inventory": {
-            "super_pocao": 3,
-            "bencao_dracula": 1,
-            "amuleto_de_pedra": 1,
-            "pocao": 10,
-            "invocador": 7,
-            "cajado_curandeiro": 1,
-            "manopla_lutador": 1,
-            "mira_semi_automatica": 1,
-            "espada_fantasma": 1,
-            "bencao_rei_henrique": 1,
-            "habilidade_inata": 3
-        },
-        "cooldowns": {
-            "afk_cooldown": 1751580446.261124,
-            "work_cooldown": 1751580629.754436,
-            "boss_basico_cooldown": 1751581834.116973
-        },
+        "xp": 0,
+        "level": 1,
+        "money": 100,
+        "hp": 130,
+        "max_hp": 130,
+        "base_attack": 18,
+        "base_special_attack": 35,
+        "inventory": {},
+        "cooldowns": {},
         "status": "online",
         "bounty": 0,
         "kills": 0,
@@ -40,8 +24,8 @@
         "bencao_dracula_active": false,
         "bencao_dracula_end_time": 0,
         "amulet_used_since_revive": false,
-        "attribute_points": 106,
-        "location": "Abrigo dos Foras-da-Lei",
+        "attribute_points": 0,
+        "location": "Vale do Inferno",
         "xptriple": false,
         "money_double": false,
         "boss_data": {
@@ -49,7 +33,9 @@
             "current_boss_hp": 0,
             "last_spawn_channel_id": null,
             "boss_progression_level": "Colosso de Pedra",
-            "defeated_bosses": []
-        }
+            "defeated_bosses": [],
+            "last_spawn_timestamp": 0
+        },
+        "location_kill_tracker": {}
     }
 }

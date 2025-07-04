@@ -206,6 +206,20 @@ ITEMS_DATA = {
     },
 }
 
+# NEW: Defines the kill goals for each location to drop a boss invoker.
+# This assumes any location where a boss *could* spawn will grant its invoker upon reaching the kill goal.
+LOCATION_KILL_GOALS = {
+    "Floresta Sussurrante": {"kills_required": 60, "invoker_id": "invocador_colosso_de_pedra"},
+    "Ruínas do Templo": {"kills_required": 60, "invoker_id": "invocador_colosso_de_pedra"},
+    "Abismo Sombrio": {"kills_required": 60, "invoker_id": "invocador_devorador_abissal"},
+    "Vale do Inferno": {"kills_required": 60, "invoker_id": "invocador_inferno_guardiao"},
+    "Templo Esquecido": {"kills_required": 60, "invoker_id": "invocador_tita_esquecido"},
+    "Portão das Sombras": {"kills_required": 60, "invoker_id": "invocador_arauto_das_sombras"},
+    "Brecha das Terras": {"kills_required": 60, "invoker_id": "invocador_anomalia_dimensional"},
+    "Paraíso": {"kills_required": 60, "invoker_id": "invocador_sentinela_celestial"},
+}
+
+
 # New dictionary for class transformations
 CLASS_TRANSFORMATIONS = {
     "Espadachim": {
@@ -466,6 +480,7 @@ WORLD_MAP = {
         "emoji": "⛺",
         "conecta": ["Floresta Sussurrante"],
         "desc": "Um acampamento improvisado que serve de refúgio para os renegados.",
+        "required_previous_boss": None # No boss needed to enter
     },
     "Floresta Sussurrante": {
         "name": "Floresta Sussurrante",
@@ -473,6 +488,7 @@ WORLD_MAP = {
         "emoji": "🌳",
         "conecta": ["Abrigo dos Foras-da-Lei", "Ruínas do Templo"],
         "desc": "Uma mata densa e perigosa, onde criaturas espreitam nas sombras.",
+        "required_previous_boss": None
     },
     "Ruínas do Templo": {
         "name": "Ruínas do Templo",
@@ -480,6 +496,7 @@ WORLD_MAP = {
         "emoji": "🏛️",
         "conecta": ["Floresta Sussurrante", "Abismo Sombrio"],
         "desc": "Os restos de um antigo local de poder, agora habitado por guardiões de pedra.",
+        "required_previous_boss": None
     },
     "Abismo Sombrio": {
         "name": "Abismo Sombrio",
@@ -487,6 +504,7 @@ WORLD_MAP = {
         "emoji": "🕳️",
         "conecta": ["Ruínas do Templo", "Vale do Inferno"],
         "desc": "Um abismo sem fim, onde as sombras se tornam presas fáceis para predadores famintos.",
+        "required_previous_boss": "Colosso de Pedra" # Requires Colosso defeated to enter
     },
     "Vale do Inferno": {
         "name": "Vale do Inferno",
@@ -494,6 +512,7 @@ WORLD_MAP = {
         "emoji": "🔥",
         "conecta": ["Abismo Sombrio", "Templo Esquecido"],
         "desc": "Um vale escaldante cheio de fogo e criaturas que sobrevivem ao calor infernal.",
+        "required_previous_boss": "Devorador Abissal" # Requires Devorador defeated to enter
     },
     "Templo Esquecido": {
         "name": "Templo Esquecido",
@@ -501,6 +520,7 @@ WORLD_MAP = {
         "emoji": "🏯",
         "conecta": ["Vale do Inferno", "Portão das Sombras"],
         "desc": "Ruínas antigas de um templo perdido no tempo, protegido por entidades místicas.",
+        "required_previous_boss": "Inferno Guardião"
     },
     "Portão das Sombras": {
         "name": "Portão das Sombras",
@@ -508,6 +528,7 @@ WORLD_MAP = {
         "emoji": "🚪",
         "conecta": ["Templo Esquecido", "Brecha das Terras"],
         "desc": "Um portal sombrio que conecta os mundos, guardado por forças obscuras.",
+        "required_previous_boss": "Titã Esquecido"
     },
     "Brecha das Terras": {
         "name": "Brecha das Terras",
@@ -515,6 +536,7 @@ WORLD_MAP = {
         "emoji": "🌌",
         "conecta": ["Portão das Sombras", "Paraíso"],
         "desc": "O ponto onde múltiplas realidades se encontram e o destino do mundo será decidido.",
+        "required_previous_boss": "Arauto das Sombras"
     },
     "Paraíso": {
         "name": "Paraíso",
@@ -522,6 +544,7 @@ WORLD_MAP = {
         "emoji": "🌟",
         "conecta": ["Brecha das Terras"],
         "desc": "O santuário sagrado onde a paz e a luz reinam supremos, mas guardado por seres celestiais poderosos.",
+        "required_previous_boss": "Anomalia Dimensional"
     },
 }
 
@@ -693,21 +716,21 @@ PROFILE_IMAGES = {
     # Imagens das Classes Base
     "Espadachim": "https://i.imgur.com/RC3rJNc.png",
     "Lutador": "https://media.discordapp.net/attachments/1388860166648369184/1389495865567084605/Picsart_25-07-01_03-17-21-028.png?ex=6864d45d&is=686382dd&hm=73f2f3896118d1901ec30b0c8b7ef6739d400e6f06294d98891698e4f16622b6&=&format=webp&quality=lossless&width=608&height=608",
-    "Atirador": "https://media.tenor.com/hYzJPjRmvWAAAAAM/clown.gif",
+    "Atirador": "https://media.tenor.com/hYzJPjRmvWAAAAAM/clown.gif", # NOTE: This URL is very generic, consider replacing.
     "Curandeiro": "https://i.ibb.co/3Y1sqWcP/image.png",
     "Vampiro": "https://i.imgur.com/X0E6qQL.png",
     # Imagens das Transformações (precisam corresponder EXATAMENTE ao "name" em CLASS_TRANSFORMATIONS)
     "Lâmina Fantasma": "https://i.imgur.com/CnDR7eP.png",
     "Punho de Aço": "https://i.imgur.com/mDsfNyi.png",
-    "Olho de Águia": "https://media.tenor.com/hYzJPjRmvWAAAAAM/clown.gifI",
+    "Olho de Águia": "https://media.tenor.com/hYzJPjRmvWAAAAAM/clown.gifI", # NOTE: This URL is very generic/broken, consider replacing.
     "Bênção Vital": "https://i.ibb.co/5xScwp3Y/image.png",
     "Lorde Sanguinário": "https://i.imgur.com/eTaWLjx.png",
-    "Benção do Rei Henrique": "https://media.tenor.com/hYzJPjRmvWAAAAAM/clown.gifI",
-    "Lâmina Abençoada": "https://example.com/blade_blessed.png",
-    "Punho de Adamantium": "https://example.com/adamantium_fist.png",
-    "Visão Cósmica": "https://example.com/cosmic_sight.png",
+    "Benção do Rei Henrique": "https://media.tenor.com/hYzJPjRmvWAAAAAM/clown.gifI", # NOTE: This URL is very generic/broken, consider replacing.
+    "Lâmina Abençoada": "https://example.com/blade_blessed.png", # Placeholder, replace with actual image URL
+    "Punho de Adamantium": "https://example.com/adamantium_fist.png", # Placeholder, replace with actual image URL
+    "Visão Cósmica": "https://example.com/cosmic_sight.png", # Placeholder, replace with actual image URL
     "Toque Divino": "https://i.ibb.co/VcK0Mzyr/image.png",
-    "Rei da Noite": "https://example.com/night_king.png",
+    "Rei da Noite": "https://example.com/night_king.png", # Placeholder, replace with actual image URL
 }
 
 
@@ -722,12 +745,12 @@ LEVEL_ROLES = {
 
 NEW_CHARACTER_ROLE_ID = 1388628499182518352
 
-# This is the TEMPLATE for the initial global boss state.
-# It's a blueprint, NOT the live, changing state.
+# This is the TEMPLATE for the initial player boss data structure.
 DEFAULT_PLAYER_BOSS_DATA = {
     "current_boss_id": None,
     "current_boss_hp": 0,
     "last_spawn_channel_id": None,
-    "boss_progression_level": "Colosso de Pedra",  # Player starts with this as their next unlockable boss
+    "boss_progression_level": "Colosso de Pedra",
     "defeated_bosses": [],
+    "last_spawn_timestamp": 0, # Added for cooldown on boss spawn per player
 }

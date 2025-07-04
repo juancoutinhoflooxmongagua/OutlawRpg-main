@@ -19,7 +19,7 @@ from config import (
     WORLD_MAP,
     LEVEL_ROLES,
     NEW_CHARACTER_ROLE_ID,
-    DEFAULT_PLAYER_BOSS_DATA,  # Used for initializing player data
+    LOCATION_KILL_GOALS,
 )
 
 # Import data manager
@@ -28,7 +28,6 @@ from data_manager import (
     save_data,
     get_player_data,
     player_database,
-    current_boss_data,  # This global variable is now mostly inactive for individual boss control, but is still handled by save/load
 )
 
 # Import utilities
@@ -48,6 +47,7 @@ from cogs.combat_commands import CombatCommands
 from cogs.world_commands import WorldCommands
 from cogs.admin_commands import AdminCommands
 from cogs.utility_commands import UtilityCommands
+from cogs.blessing_commands import BlessingCommands
 
 
 # --- INITIAL CONFIGURATION AND CONSTANTS ---
@@ -71,11 +71,12 @@ class OutlawsBot(commands.Bot):
         await self.add_cog(WorldCommands(self))
         await self.add_cog(AdminCommands(self))
         await self.add_cog(UtilityCommands(self))
+        await self.add_cog(BlessingCommands(self))
 
         # Start background tasks
         self.auto_save.start()
         self.energy_regeneration.start()
-        self.boss_attack_loop.start()  # This loop will now iterate through players' individual bosses
+        self.boss_attack_loop.start()
         self.sync_roles_periodically.start()
 
         # Sync commands. This is the only place commands should be synced.
@@ -118,7 +119,7 @@ class OutlawsBot(commands.Bot):
             await interaction.response.send_message(
                 "🚫 Você não tem permissão para usar este comando.", ephemeral=True
             )
-        elif isinstance(error, app_commands.NoPrivateMessage):
+        elif isinstance(error, app_commands.NoPrivateMessage):  # Corrected check
             await interaction.response.send_message(
                 "Este comando não pode ser usado em mensagens privadas.", ephemeral=True
             )
@@ -146,35 +147,12 @@ class OutlawsBot(commands.Bot):
 
     async def on_ready(self):
         print(f"Bot {self.user} está online!")
-        # Ensure 'boss_data' structure for all loaded players
+        # Ensure 'boss_data' structure and 'location_kill_tracker' for all loaded players
+        # These are now handled by get_player_data and load_data with new initializations
+        # No need for explicit checks here as data_manager ensures structure on load/access
         for user_id_str, player_data in player_database.items():
-            if "boss_data" not in player_data:
-                player_data["boss_data"] = DEFAULT_PLAYER_BOSS_DATA.copy()
-
-            # Ensure 'boss_progression_level' is set within boss_data
-            if player_data["boss_data"].get("boss_progression_level") is None:
-                if BOSSES_DATA:
-                    player_data["boss_data"]["boss_progression_level"] = list(
-                        BOSSES_DATA.keys()
-                    )[0]
-                else:  # Fallback if no bosses are defined in config
-                    player_data["boss_data"][
-                        "boss_progression_level"
-                    ] = "No Bosses Defined"
-
-            # Ensure 'defeated_bosses' list exists
-            if "defeated_bosses" not in player_data["boss_data"]:
-                player_data["boss_data"]["defeated_bosses"] = []
-
-            # Optional: If a player's boss was active but bot crashed, reset current_boss_hp to 0
-            # if player_data["boss_data"].get("current_boss_id") is not None and player_data["boss_data"].get("current_boss_hp", 0) > 0:
-            #     player_data["boss_data"]["current_boss_hp"] = 0
-            #     player_data["boss_data"]["last_spawn_channel_id"] = None
-            #     print(f"Boss state for {user_id_str} reset due to previous active boss data.")
-
-        # Save all player data after on_ready initialization.
-        # This will save any updates made to existing players' data structures (like adding boss_data)
-        save_data()
+            pass  # Data manager handles initialization on load.
+        save_data()  # Save any updates made during initialization
         print(
             f"Dados de {len(player_database)} jogadores carregados e estruturas de dados verificadas."
         )
@@ -199,39 +177,34 @@ class OutlawsBot(commands.Bot):
 
     @tasks.loop(seconds=60)
     async def energy_regeneration(self):
+        now = datetime.now().timestamp()
         for user_id_str, player_data in player_database.items():
             user_id = int(user_id_str)
             if player_data.get("energy", 0) < MAX_ENERGY:
-                player_data["energy"] += 1
+                player_data["energy"] = min(
+                    MAX_ENERGY, player_data["energy"] + 1
+                )  # Ensure energy does not exceed MAX_ENERGY
 
-            now = datetime.now().timestamp()
+            # Iterate through all blessing types to check for expiration
+            for item_id, item_info in ITEMS_DATA.items():
+                if item_info.get("type") == "blessing_unlock":
+                    active_key = f"{item_id}_active"
+                    end_time_key = f"{item_id}_end_time"
+                    if player_data.get(active_key) and now > player_data.get(
+                        end_time_key, 0
+                    ):
+                        player_data[active_key] = False
+                        player_data[end_time_key] = 0
+                        user = self.get_user(user_id)
+                        if user:
+                            try:
+                                await user.send(
+                                    f"✨ A {item_info.get('name', 'Bênção')} em você expirou!"
+                                )
+                            except discord.Forbidden:
+                                pass  # Bot cannot send DMs
 
-            if player_data.get("aura_blessing_active"):
-                if now > player_data.get("aura_blessing_end_time", 0):
-                    player_data["aura_blessing_active"] = False
-                    player_data["aura_blessing_end_time"] = 0
-                    user = self.get_user(user_id)
-                    if user:
-                        try:
-                            await user.send(
-                                f"✨ A {ITEMS_DATA.get('bencao_rei_henrique', {}).get('name', 'Bênção da Aura')} em você expirou!"
-                            )
-                        except discord.Forbidden:
-                            pass
-
-            if player_data.get("bencao_dracula_active"):
-                if now > player_data.get("bencao_dracula_end_time", 0):
-                    player_data["bencao_dracula_active"] = False
-                    player_data["bencao_dracula_end_time"] = 0
-                    user = self.get_user(user_id)
-                    if user:
-                        try:
-                            await user.send(
-                                f"🦇 A {ITEMS_DATA.get('bencao_dracula', {}).get('name', 'Bênção de Drácula')} em você expirou!"
-                            )
-                        except discord.Forbidden:
-                            pass
-
+            # Check for transformation expiration
             if player_data.get("current_transformation"):
                 if now > player_data.get("transform_end_time", 0):
                     transform_name = player_data["current_transformation"]
@@ -241,7 +214,7 @@ class OutlawsBot(commands.Bot):
                     if user:
                         try:
                             await user.send(
-                                f"🔄 Sua transformação de {transform_name} expirou!"
+                                f"🔄 Sua transformação de **{transform_name}** expirou!"
                             )
                         except discord.Forbidden:
                             pass
@@ -249,39 +222,26 @@ class OutlawsBot(commands.Bot):
 
     @tasks.loop(seconds=15)  # Boss attacks every 15 seconds
     async def boss_attack_loop(self):
-        # This loop now iterates through ALL players' individual boss states
         for user_id_str, player_data in player_database.items():
-            # Skip if player is AFK or dead or has no boss_data initialized
-            if not player_data.get("boss_data") or player_data.get("status") in [
-                "afk",
-                "dead",
-            ]:
+            if player_data.get("status") in ["afk", "dead"]:
                 continue
 
-            player_boss_data = player_data[
-                "boss_data"
-            ]  # Get the player's specific boss data
-
-            # Only process if this player currently has an active boss spawned for them
-            if not player_boss_data.get("current_boss_id"):
+            player_boss_data = player_data.get("boss_data")
+            if not player_boss_data or not player_boss_data.get("current_boss_id"):
                 continue
 
-            # Get active boss info from BOSSES_DATA using player's current_boss_id
             active_boss_info = BOSSES_DATA.get(player_boss_data["current_boss_id"])
-            if not active_boss_info:  # Safety check if player's boss_id is invalid
-                # Deactivate for this player if boss definition is missing
+            if not active_boss_info:
+                # Boss info not found, clear player's current boss state
                 player_boss_data["current_boss_id"] = None
                 player_boss_data["current_boss_hp"] = 0
                 player_boss_data["last_spawn_channel_id"] = None
-                save_data()  # Save the reset state for this player
-                continue  # Go to next player
+                save_data()
+                continue
 
-            # Get the channel where this specific player's boss was spawned
             channel_id = player_boss_data.get("last_spawn_channel_id")
-            if (
-                not channel_id
-            ):  # Player's boss has no channel set (e.g. bot restarted or summon failed to set channel)
-                # Deactivate for this player if channel is missing
+            if not channel_id:
+                # No channel ID, clear player's current boss state
                 player_boss_data["current_boss_id"] = None
                 player_boss_data["current_boss_hp"] = 0
                 player_boss_data["last_spawn_channel_id"] = None
@@ -289,17 +249,17 @@ class OutlawsBot(commands.Bot):
                 continue
 
             channel = self.get_channel(channel_id)
-            if not channel:  # Channel is no longer accessible
-                # Deactivate for this player if channel is invalid
+            if not channel:
+                # Channel not found, clear player's current boss state
                 player_boss_data["current_boss_id"] = None
                 player_boss_data["current_boss_hp"] = 0
                 player_boss_data["last_spawn_channel_id"] = None
                 save_data()
                 continue
 
-            # Get the actual Discord member object
             target_member = self.get_guild(GUILD_ID).get_member(int(user_id_str))
-            if not target_member:  # If member left the guild, stop attacking them
+            if not target_member:
+                # Member not found in guild, clear player's current boss state
                 player_boss_data["current_boss_id"] = None
                 player_boss_data["current_boss_hp"] = 0
                 player_boss_data["last_spawn_channel_id"] = None
@@ -315,27 +275,40 @@ class OutlawsBot(commands.Bot):
                 "evasion_chance_bonus", 0.0
             )
 
-            if player_data.get("bencao_dracula_active", False):
-                dracula_info = ITEMS_DATA.get("bencao_dracula", {})
-                total_evasion_chance += dracula_info.get("evasion_chance", 0.0)
+            # Check for all active blessings that provide evasion
+            for item_id, item_info in ITEMS_DATA.items():
+                if (
+                    item_info.get("type") == "blessing_unlock"
+                    and item_info.get("evasion_chance", 0.0) > 0
+                ):
+                    if player_data.get(f"{item_id}_active", False):
+                        total_evasion_chance += item_info.get("evasion_chance", 0.0)
 
             log_message = f"👹 **Fúria do {active_boss_info['name']}** ataca **{target_member.display_name}**!"
 
-            if (
-                player_data["class"] == "Vampiro"
-                and random.random() < total_evasion_chance
-            ):
-                hp_steal_percent_on_evade = ITEMS_DATA.get("bencao_dracula", {}).get(
-                    "hp_steal_percent_on_evade", 0.0
-                )
-                hp_stolen_on_evade = int(damage_to_deal * hp_steal_percent_on_evade)
+            evaded = False
+            hp_stolen_on_evade = 0
+            # Apply evasion if player has enough total evasion chance and succeeds the roll
+            if random.random() < total_evasion_chance:
+                # Find the highest HP steal percentage from active blessings, if applicable
+                max_hp_steal_percent = 0.0
+                for item_id, item_info in ITEMS_DATA.items():
+                    if (
+                        item_info.get("type") == "blessing_unlock"
+                        and item_info.get("evasion_chance", 0.0) > 0
+                    ):
+                        if player_data.get(f"{item_id}_active", False):
+                            max_hp_steal_percent = max(
+                                max_hp_steal_percent,
+                                item_info.get("hp_steal_percent_on_evade", 0.0),
+                            )
+
+                hp_stolen_on_evade = int(damage_to_deal * max_hp_steal_percent)
                 player_data["hp"] = min(
-                    player_data["max_hp"],
-                    player_data["hp"] + hp_stolen_on_evade,
+                    player_data["max_hp"], player_data["hp"] + hp_stolen_on_evade
                 )
-                log_message += (
-                    f"\n👻 **DESVIADO!** Você sugou `{hp_stolen_on_evade}` HP!"
-                )
+                log_message += f"\n👻 **DESVIADO!** Você evitou o ataque e sugou `{hp_stolen_on_evade}` HP!"
+                evaded = True
             else:
                 player_data["hp"] -= damage_to_deal
                 log_message += f"\nVocê sofreu `{damage_to_deal}` de dano!"
@@ -362,6 +335,9 @@ class OutlawsBot(commands.Bot):
                 print(
                     f"Erro ao enviar mensagem de ataque de boss para {target_member.display_name} no canal {channel_id}: {e}"
                 )
+                # If message sending fails, consider the boss encounter invalid for this player
+                player_boss_data["current_boss_id"] = None
+                player_boss_data["current_boss_hp"] = 0
                 player_boss_data["last_spawn_channel_id"] = None
                 save_data()
 
