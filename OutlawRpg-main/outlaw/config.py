@@ -17,6 +17,24 @@ MAX_ENERGY = 10
 STARTING_LOCATION = "Abrigo dos Foras-da-Lei"
 
 
+# NEW: Clan System Configuration
+CLAN_RANK_REWARDS = {  # XP and Money rewards for top 3 clans
+    1: {"xp": 5000, "money": 2500},
+    2: {"xp": 3000, "money": 1500},
+    3: {"xp": 1000, "money": 500},
+}
+CLAN_CREATION_COST = 5000  # Cost to create a new clan
+DEFAULT_CLAN_XP = 0  # Initial XP for a new clan
+MAX_CLAN_MEMBERS = 10  # Maximum number of members allowed in a clan
+CLAN_RANKING_INTERVAL_DAYS = 7  # How often the clan ranking happens
+CLAN_KILL_CONTRIBUTION_PERCENTAGE_XP = (
+    0.10  # 10% of player's earned XP from kills goes to clan
+)
+CLAN_KILL_CONTRIBUTION_PERCENTAGE_MONEY = (
+    0.05  # 5% of player's earned Money from kills goes to clan
+)
+
+
 CUSTOM_EMOJIS = {
     "espada_rpg": "<:espada_rpg:123456789012345678>",  # Substitua pelo ID real
     "moeda_ouro": "<:moeda_ouro:987654321098765432>",  # Substitua pelo ID real
@@ -27,6 +45,24 @@ CUSTOM_EMOJIS = {
     "xp_estrela": "<:xp_estrela:789789789789789789>",
     "olho_secreto": "<:olho_secreto:123456789012345678>",
     "ferramentas_dev": "<:ferramentas_dev:987654321098765432>",
+    "clan_icon": "🛡️",
+    "leader_icon": "👑",
+    "member_icon": "👥",
+    "trophy_icon": "🏆",
+    "money_icon": "💰",
+    "xp_icon": "✨",
+}
+
+
+# NEW: Initial data structure for a new clan (added 'money' field)
+INITIAL_CLAN_DATA = {
+    "name": "",
+    "leader_id": None,
+    "members": [],  # List of member user IDs (strings)
+    "xp": DEFAULT_CLAN_XP,
+    "money": 0,  # NEW: Initial money for a new clan
+    "creation_timestamp": 0,
+    "last_ranking_timestamp": 0,  # To track when the last ranking rewards were given
 }
 
 
@@ -732,7 +768,7 @@ ENEMIES = {
             "attack": 40,
             "xp": 75,
             "money": 65,
-            "thumb": "https://c.tenor.com/ysXUvq-wT5MAAAAC/old-mage.gif",
+            "thumb": "https://c.tenor.com/ysXUvq-wT5MAAAAAC/old-mage.gif",
         },
     ],
     "Portão das Sombras": [

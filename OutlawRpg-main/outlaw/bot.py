@@ -20,6 +20,10 @@ from config import (
     LEVEL_ROLES,
     NEW_CHARACTER_ROLE_ID,
     LOCATION_KILL_GOALS,
+    CLAN_RANKING_INTERVAL_DAYS,  # NEW
+    CLAN_RANK_REWARDS,  # NEW
+    DEFAULT_CLAN_XP,  # NEW
+    CUSTOM_EMOJIS,  # NEW
 )
 
 # Import data manager
@@ -28,6 +32,9 @@ from data_manager import (
     save_data,
     get_player_data,
     player_database,
+    load_clan_data,  # NEW
+    save_clan_data,  # NEW
+    clan_database,  # NEW
 )
 
 # Import utilities
@@ -35,6 +42,8 @@ from utils import (
     calculate_effective_stats,
     run_turn_based_combat,
     check_and_process_levelup_internal,
+    get_player_effective_xp_gain,
+    calculate_xp_for_next_level,
 )
 
 # Import custom exceptions for error handling
@@ -48,6 +57,7 @@ from cogs.world_commands import WorldCommands
 from cogs.admin_commands import AdminCommands
 from cogs.utility_commands import UtilityCommands
 from cogs.blessing_commands import BlessingCommands
+from cogs.clan_commands import ClanCommands  # NEW: Import ClanCommands
 
 
 # --- INITIAL CONFIGURATION AND CONSTANTS ---
@@ -55,6 +65,9 @@ load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 GUILD_ID = int(os.getenv("GUILD_ID", 0))
+ANNOUNCEMENT_CHANNEL_ID = os.getenv(
+    "ANNOUNCEMENT_CHANNEL_ID"
+)  # NEW: For clan ranking announcements
 
 
 class OutlawsBot(commands.Bot):
@@ -63,6 +76,9 @@ class OutlawsBot(commands.Bot):
         intents.members = True
         intents.message_content = True
         super().__init__(command_prefix="!", intents=intents)
+        self.last_message_xp_time = (
+            {}
+        )  # Initialize last_message_xp_time here for the bot instance
 
     async def setup_hook(self):
         # Load Cogs. All actual slash commands should be defined INSIDE these Cogs.
@@ -72,12 +88,14 @@ class OutlawsBot(commands.Bot):
         await self.add_cog(AdminCommands(self))
         await self.add_cog(UtilityCommands(self))
         await self.add_cog(BlessingCommands(self))
+        await self.add_cog(ClanCommands(self))  # NEW: Add ClanCommands cog
 
         # Start background tasks
         self.auto_save.start()
         self.energy_regeneration.start()
         self.boss_attack_loop.start()
         self.sync_roles_periodically.start()
+        self.weekly_clan_ranking.start()  # NEW: Start the weekly clan ranking task
 
         # Sync commands. This is the only place commands should be synced.
         if GUILD_ID:
@@ -156,10 +174,66 @@ class OutlawsBot(commands.Bot):
         print(
             f"Dados de {len(player_database)} jogadores carregados e estruturas de dados verificadas."
         )
+        data_manager.load_clan_data()  # NEW: Load clan data on bot ready
+        print(f"Dados de {len(clan_database)} clãs carregados.")  # NEW
+
+    async def on_message(self, message):  # Modified on_message
+        if message.author.bot:
+            return
+
+        user_id = str(message.author.id)
+        player_data = data_manager.get_player_data(user_id)
+
+        if player_data:
+            current_time = datetime.now().timestamp()
+            # Check cooldown for message XP
+            if (
+                user_id not in self.last_message_xp_time
+                or (current_time - self.last_message_xp_time[user_id])
+                >= config.XP_PER_MESSAGE_COOLDOWN_SECONDS
+            ):
+                xp_gain = 1  # Base XP per message
+                effective_xp_gain = get_player_effective_xp_gain(player_data, xp_gain)
+                player_data["xp"] += effective_xp_gain
+                self.last_message_xp_time[user_id] = current_time
+
+                # clan XP gain from messages is REMOVED, now only from kills
+                # if player_data.get("clan_id"):
+                #     clan_id = player_data["clan_id"]
+                #     clan_data = clan_database.get(clan_id)
+                #     if clan_data:
+                #         clan_data["xp"] += effective_xp_gain # Clan gains XP from member activities
+                #         data_manager.save_clan_data() # Save clan data
+
+                # Level up check
+                while player_data["xp"] >= calculate_xp_for_next_level(
+                    player_data["level"]
+                ):
+                    player_data["level"] += 1
+                    player_data["attribute_points"] += ATTRIBUTE_POINTS_PER_LEVEL
+                    await message.channel.send(
+                        f"🎉 {message.author.mention} subiu para o nível {player_data['level']}!"
+                    )
+                    # Assign new role if applicable
+                    if player_data["level"] in LEVEL_ROLES:
+                        role_id = LEVEL_ROLES[player_data["level"]]
+                        guild = message.guild  # Get guild from message context
+                        if guild:
+                            role = guild.get_role(role_id)
+                            if role:
+                                await message.author.add_roles(role)
+                                await message.channel.send(
+                                    f"Parabéns, {message.author.mention}! Você recebeu o cargo **{role.name}**!"
+                                )
+
+                save_data()  # Save player data
+
+        await self.process_commands(message)  # Process other commands
 
     async def close(self):
         print("Desligando e salvando dados...")
         save_data()
+        save_clan_data()  # NEW: Save clan data on close
         await super().close()
 
     async def check_and_process_levelup(
@@ -173,6 +247,7 @@ class OutlawsBot(commands.Bot):
     @tasks.loop(seconds=60)
     async def auto_save(self):
         save_data()
+        save_clan_data()  # NEW: Save clan data on auto_save
         # print("Dados salvos automaticamente.")
 
     @tasks.loop(seconds=60)
@@ -475,9 +550,157 @@ class OutlawsBot(commands.Bot):
     async def before_sync_roles_periodically(self):
         await self.wait_until_ready()
 
+    @tasks.loop(
+        hours=24 * CLAN_RANKING_INTERVAL_DAYS
+    )  # Run every CLAN_RANKING_INTERVAL_DAYS
+    async def weekly_clan_ranking(self):
+        await self.wait_until_ready()
+        print("Iniciando cálculo de ranking semanal de clãs...")
+
+        if not clan_database:
+            print("Nenhum clã para ranquear.")
+            return
+
+        # Filter out empty clans or those with no XP to avoid division by zero or unnecessary processing
+        active_clans = [
+            clan
+            for clan in clan_database.values()
+            if clan["members"] and clan["xp"] > 0
+        ]
+        if not active_clans:
+            print("Nenhum clã ativo para ranquear.")
+            return
+
+        # Sort clans by XP in descending order
+        sorted_clans = sorted(active_clans, key=lambda x: x["xp"], reverse=True)
+
+        # Determine the announcement channel (e.g., a specific channel ID from config or the first guild's system channel)
+        announcement_channel = None
+        if ANNOUNCEMENT_CHANNEL_ID:
+            announcement_channel = self.get_channel(int(ANNOUNCEMENT_CHANNEL_ID))
+
+        if not announcement_channel:
+            # Fallback to system channel of the first guild the bot is in
+            for guild in self.guilds:
+                if guild.system_channel:
+                    announcement_channel = guild.system_channel
+                    break
+
+        if not announcement_channel:
+            print("Nenhum canal de anúncios encontrado para o ranking de clãs.")
+            return
+
+        embed = discord.Embed(
+            title=f"{CUSTOM_EMOJIS.get('trophy_icon', '🏆')} Ranking Semanal de Clãs!",
+            description="Parabéns aos clãs que se destacaram nesta semana!",
+            color=discord.Color.gold(),
+        )
+
+        reward_messages = []
+
+        for i, clan in enumerate(sorted_clans):
+            if i >= 3:  # Only reward top 3
+                break
+
+            rank = i + 1
+            rewards = CLAN_RANK_REWARDS.get(
+                rank, {"xp": 0, "money": 0}
+            )  # Get both XP and Money rewards
+            xp_reward = rewards["xp"]
+            money_reward = rewards["money"]
+
+            if xp_reward > 0 or money_reward > 0:
+                embed.add_field(
+                    name=f"#{rank} - {clan['name']}",
+                    value=f"XP do Clã: {clan['xp']:,}\nRecompensa para cada membro: {xp_reward:,} XP e ${money_reward:,}",
+                    inline=False,
+                )
+                reward_messages.append(
+                    f"O clã **{clan['name']}** ficou em #{rank} e seus membros receberão {xp_reward:,} XP e ${money_reward:,}!"
+                )
+
+                for member_id in clan["members"]:
+                    player_data = get_player_data(member_id)
+                    if player_data:
+                        player_data["xp"] += xp_reward
+                        player_data[
+                            "money"
+                        ] += money_reward  # NEW: Add money reward to player
+                        # Level up check for rewarded players
+                        while player_data["xp"] >= calculate_xp_for_next_level(
+                            player_data["level"]
+                        ):
+                            player_data["level"] += 1
+                            player_data[
+                                "attribute_points"
+                            ] += ATTRIBUTE_POINTS_PER_LEVEL
+                            try:
+                                member_obj = await self.fetch_user(int(member_id))
+                                if member_obj:
+                                    await member_obj.send(
+                                        f"🎉 Parabéns! Você subiu para o nível {player_data['level']} devido às recompensas do clã!"
+                                    )
+                                    # Assign new role if applicable (requires guild context, might need to fetch guild)
+                                    for guild in self.guilds:
+                                        guild_member = guild.get_member(int(member_id))
+                                        if (
+                                            guild_member
+                                            and player_data["level"] in LEVEL_ROLES
+                                        ):
+                                            role_id = LEVEL_ROLES[player_data["level"]]
+                                            role = guild.get_role(role_id)
+                                            if role:
+                                                await guild_member.add_roles(role)
+                                                await member_obj.send(
+                                                    f"Você recebeu o cargo **{role.name}**!"
+                                                )
+                                                break  # Assuming one guild is enough for role assignment
+                            except discord.NotFound:
+                                print(
+                                    f"Usuário {member_id} não encontrado para enviar mensagem de nível."
+                                )
+                            except Exception as e:
+                                print(
+                                    f"Erro ao atualizar nível ou enviar mensagem para {member_id}: {e}"
+                                )
+                        save_data()  # Save player data after XP update and level check
+                    else:
+                        print(
+                            f"Dados do jogador {member_id} não encontrados para recompensar."
+                        )
+
+            # Reset clan XP and Money after rewards
+            clan["xp"] = DEFAULT_CLAN_XP
+            clan["money"] = 0  # NEW: Reset clan money
+            clan["last_ranking_timestamp"] = int(
+                datetime.now().timestamp()
+            )  # Update timestamp
+
+        save_clan_data()  # Save all clan data after reset
+
+        if reward_messages:
+            embed.set_footer(
+                text="A XP e o dinheiro de todos os clãs foram resetados para o próximo ciclo de ranking."
+            )
+            await announcement_channel.send(embed=embed)
+            for msg in reward_messages:
+                await announcement_channel.send(msg)
+        else:
+            await announcement_channel.send(
+                "Nenhum clã se qualificou para recompensas esta semana."
+            )
+
+        print("Cálculo de ranking semanal de clãs concluído.")
+
+    @weekly_clan_ranking.before_loop  # NEW: ensure bot is ready before starting the loop
+    async def before_weekly_clan_ranking(self):
+        await self.wait_until_ready()
+
 
 if __name__ == "__main__":
     bot = OutlawsBot()
+    # Initialize last_message_xp_time outside on_message so it persists across calls
+    bot.last_message_xp_time = {}  # Initialize last_message_xp_time
     if TOKEN:
         try:
             bot.run(TOKEN)
