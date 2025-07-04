@@ -7,7 +7,7 @@ from discord import app_commands, Embed, Color, Interaction
 import random
 from datetime import datetime
 
-from data_manager import get_player_data, save_data, player_database, current_boss_data
+from data_manager import get_player_data, save_data, player_database
 from config import (
     ENEMIES,
     WORLD_MAP,

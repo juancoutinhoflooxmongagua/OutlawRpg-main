@@ -36,6 +36,8 @@
             "defeated_bosses": [],
             "last_spawn_timestamp": 0
         },
-        "location_kill_tracker": {}
+        "location_kill_tracker": {},
+        "clan_id": null,
+        "clan_role": null
     }
 }

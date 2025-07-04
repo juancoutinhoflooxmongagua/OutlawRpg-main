@@ -1,176 +1,147 @@
 # data_manager.py
-
 import json
 import os
 
-# Correctly import the template for player boss data
+# Importa as configurações necessárias
 from config import (
     STARTING_LOCATION,
     BOSSES_DATA,
     DEFAULT_PLAYER_BOSS_DATA,
     INITIAL_CLAN_DATA,
-)  # Updated import
+)
 
-# --- CONFIGURATION FOR DATA MANAGER ---
+# --- Configuração dos Caminhos ---
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PLAYER_DATA_FILE = os.path.join(SCRIPT_DIR, "outlaws_data.json")
-CLAN_DATA_FILE = os.path.join(SCRIPT_DIR, "clans_data.json")  # NEW: Clan data file
+CLAN_DATA_FILE = os.path.join(SCRIPT_DIR, "clans_data.json")
 
-# This global variable will no longer represent an active global boss.
-# It can be repurposed for global stats (e.g., global_defeated_bosses_count) if needed).
-# For now, it will be initialized empty and effectively unused for active boss tracking.
-# The boss_state.json file will no longer be used for live boss data.
-current_boss_data = {}
-
-
-# Global variables for player and clan data
+# --- Bancos de Dados em Memória ---
 player_database = {}
-clan_database = {}  # NEW: Global clan database
+clan_database = {}
+
+# --- Funções Auxiliares Privadas ---
+
+
+def _initialize_player_defaults(player_data: dict):
+    """Garante que um dicionário de dados de jogador contenha todos os campos padrão."""
+    if "location" not in player_data:
+        player_data["location"] = STARTING_LOCATION
+
+    if "clan_id" not in player_data:
+        player_data["clan_id"] = None
+    if "clan_role" not in player_data:
+        player_data["clan_role"] = None
+
+    if "location_kill_tracker" not in player_data:
+        player_data["location_kill_tracker"] = {}
+
+    # Garante a inicialização completa de 'boss_data'
+    if "boss_data" not in player_data:
+        player_data["boss_data"] = DEFAULT_PLAYER_BOSS_DATA.copy()
+
+    if "defeated_bosses" not in player_data["boss_data"]:
+        player_data["boss_data"]["defeated_bosses"] = []
+
+    if player_data["boss_data"].get("boss_progression_level") is None:
+        if BOSSES_DATA:
+            player_data["boss_data"]["boss_progression_level"] = list(
+                BOSSES_DATA.keys()
+            )[0]
+        else:
+            player_data["boss_data"]["boss_progression_level"] = "Nenhum Boss Definido"
+
+
+def _initialize_clan_defaults(clan_data: dict, clan_id: str):
+    """Garante que um dicionário de dados de clã contenha todos os campos padrão."""
+    if "id" not in clan_data:
+        clan_data["id"] = clan_id
+    if "money" not in clan_data:
+        clan_data["money"] = INITIAL_CLAN_DATA.get("money", 0)
+
+
+# --- Funções de Carregamento ---
 
 
 def load_data():
-    """Loads player data from the JSON file and initializes new fields."""
-    global player_database, current_boss_data
-
-    # Load player data
-    if not os.path.exists(PLAYER_DATA_FILE):
-        player_database = {}
+    """Carrega os dados dos jogadores do arquivo JSON e inicializa os padrões."""
+    global player_database
     try:
         with open(PLAYER_DATA_FILE, "r", encoding="utf-8") as f:
             player_database = json.load(f)
-            # Ensure 'location', 'boss_data', 'location_kill_tracker', 'clan_id', 'clan_role' are set for existing players
-            for user_id_str, data in player_database.items():
-                if "location" not in data:
-                    data["location"] = STARTING_LOCATION
-                if "boss_data" not in data:
-                    data["boss_data"] = DEFAULT_PLAYER_BOSS_DATA.copy()
-                    if data["boss_data"].get("boss_progression_level") is None:
-                        if BOSSES_DATA:
-                            data["boss_data"]["boss_progression_level"] = list(
-                                BOSSES_DATA.keys()
-                            )[0]
-                        else:
-                            data["boss_data"][
-                                "boss_progression_level"
-                            ] = "No Bosses Defined"
-                if "defeated_bosses" not in data["boss_data"]:
-                    data["boss_data"]["defeated_bosses"] = []
-                # NEW: Initialize location_kill_tracker
-                if "location_kill_tracker" not in data:
-                    data["location_kill_tracker"] = {}
-                # NEW: Initialize clan data fields for players
-                if "clan_id" not in data:
-                    data["clan_id"] = None
-                if "clan_role" not in data:
-                    data["clan_role"] = None
-
-        # Reset current_boss_data (global) on load, as it's no longer used for active individual boss tracking.
-        # This global variable might be used for other purposes later (e.g., global stats)
-        # For now, ensure it's not holding stale active boss data.
-        current_boss_data.clear()
-        current_boss_data["global_stats_example"] = (
-            "This is a placeholder for global stats if needed."
+        # Garante que todos os jogadores carregados tenham os campos padrão
+        for player_data in player_database.values():
+            _initialize_player_defaults(player_data)
+    except FileNotFoundError:
+        print(
+            "Arquivo de dados do jogador não encontrado. Um novo será criado ao salvar."
         )
-
-    except (json.JSONDecodeError, IOError) as e:
-        print(f"ERRO: Não foi possível carregar dados do jogador: {e}")
+        player_database = {}
+    except json.JSONDecodeError as e:
+        print(
+            f"ERRO: Não foi possível decodificar o JSON de dados do jogador: {e}. Um novo arquivo será usado."
+        )
         player_database = {}
 
-    return player_database
+
+def load_clan_data():
+    """Carrega os dados dos clãs do arquivo JSON e inicializa os padrões."""
+    global clan_database
+    try:
+        with open(CLAN_DATA_FILE, "r", encoding="utf-8") as f:
+            clan_database = json.load(f)
+        # Garante que todos os clãs carregados tenham os campos padrão
+        for clan_id, clan_data in clan_database.items():
+            _initialize_clan_defaults(clan_data, clan_id)
+    except FileNotFoundError:
+        print("Arquivo de dados do clã não encontrado. Um novo será criado ao salvar.")
+        clan_database = {}
+    except json.JSONDecodeError as e:
+        print(
+            f"ERRO: Não foi possível decodificar o JSON de dados do clã: {e}. Um novo arquivo será usado."
+        )
+        clan_database = {}
+
+
+# --- Funções de Salvamento ---
 
 
 def save_data():
-    """Saves player data to the JSON file."""
+    """Salva os dados dos jogadores no arquivo JSON."""
     try:
         with open(PLAYER_DATA_FILE, "w", encoding="utf-8") as f:
             json.dump(player_database, f, indent=4)
     except IOError as e:
-        print(f"CRITICAL ERROR: Não foi possível salvar dados do jogador: {e}")
-
-    # The global boss_state.json is no longer actively managed for live boss state.
-    # If `current_boss_data` is used for other global stats, it can still be saved.
-    # For now, we'll remove saving it for active boss data.
-    # If needed for other purposes, uncomment and adjust:
-    # try:
-    #     with open(BOSS_STATE_FILE, "w", encoding="utf-8") as f:
-    #         json.dump(current_boss_data, f, indent=4)
-    # except IOError as e:
-    #     print(f"ERRO CRÍTICO: Não foi possível salvar dados do boss global (se ainda usado): {e}")
+        print(f"ERRO CRÍTICO: Não foi possível salvar os dados do jogador: {e}")
 
 
-def load_clan_data():  # NEW FUNCTION
-    """Loads clan data from the JSON file."""
-    global clan_database
-    if not os.path.exists(CLAN_DATA_FILE):
-        clan_database = {}
-    try:
-        with open(CLAN_DATA_FILE, "r", encoding="utf-8") as f:
-            clan_database = json.load(f)
-            # Ensure 'money' field is set for existing clans if not present
-            for clan_id_str, data in clan_database.items():
-                if "money" not in data:
-                    data["money"] = INITIAL_CLAN_DATA[
-                        "money"
-                    ]  # Initialize using config's default
-                if (
-                    "id" not in data
-                ):  # Ensure 'id' is stored within the clan data itself
-                    data["id"] = clan_id_str
-    except (json.JSONDecodeError, IOError) as e:
-        print(f"ERRO: Não foi possível carregar dados do clã: {e}")
-        clan_database = {}
-    return clan_database
-
-
-def save_clan_data():  # NEW FUNCTION
-    """Saves clan data to the JSON file."""
+def save_clan_data():
+    """Salva os dados dos clãs no arquivo JSON."""
     try:
         with open(CLAN_DATA_FILE, "w", encoding="utf-8") as f:
             json.dump(clan_database, f, indent=4)
     except IOError as e:
-        print(f"CRITICAL ERROR: Não foi possível salvar dados do clã: {e}")
+        print(f"ERRO CRÍTICO: Não foi possível salvar os dados do clã: {e}")
+
+
+# --- Funções de Acesso a Dados ---
 
 
 def get_player_data(user_id: int | str) -> dict | None:
     """
-    Retrieves player data from the database.
-    Ensures 'boss_data', 'location_kill_tracker', 'clan_id', and 'clan_role' are initialized if not present.
+    Recupera os dados de um jogador do banco de dados, garantindo que
+    todos os campos padrão estejam inicializados.
     """
     user_id_str = str(user_id)
-    if user_id_str not in player_database:
-        return None
+    player_data = player_database.get(user_id_str)
 
-    # Ensure boss_data is initialized
-    if "boss_data" not in player_database[user_id_str]:
-        player_database[user_id_str]["boss_data"] = DEFAULT_PLAYER_BOSS_DATA.copy()
-        if (
-            player_database[user_id_str]["boss_data"].get("boss_progression_level")
-            is None
-        ):
-            if BOSSES_DATA:
-                player_database[user_id_str]["boss_data"]["boss_progression_level"] = (
-                    list(BOSSES_DATA.keys())[0]
-                )
-            else:
-                player_database[user_id_str]["boss_data"][
-                    "boss_progression_level"
-                ] = "No Bosses Defined"
-        if "defeated_bosses" not in player_database[user_id_str]["boss_data"]:
-            player_database[user_id_str]["boss_data"]["defeated_bosses"] = []
+    if player_data:
+        # Garante a consistência dos dados sempre que um jogador é acessado
+        _initialize_player_defaults(player_data)
 
-    # NEW: Ensure location_kill_tracker is initialized
-    if "location_kill_tracker" not in player_database[user_id_str]:
-        player_database[user_id_str]["location_kill_tracker"] = {}
-
-    # NEW: Ensure clan data fields are initialized for players
-    if "clan_id" not in player_database[user_id_str]:
-        player_database[user_id_str]["clan_id"] = None
-    if "clan_role" not in player_database[user_id_str]:
-        player_database[user_id_str]["clan_role"] = None
-
-    return player_database.get(user_id_str)
+    return player_data
 
 
-# Load data when this module is imported
-player_database = load_data()
-clan_database = load_clan_data()  # NEW: Load clan data on import
+# --- Carregamento Inicial ---
+# Carrega os dados dos arquivos para a memória quando o módulo é importado pela primeira vez.
+load_data()
+load_clan_data()

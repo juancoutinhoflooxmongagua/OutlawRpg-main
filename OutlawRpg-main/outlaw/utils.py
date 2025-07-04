@@ -23,7 +23,6 @@ from config import (
 from data_manager import (
     save_data,
     get_player_data,
-    current_boss_data,
     clan_database,
     save_clan_data,
 )  # NEW
