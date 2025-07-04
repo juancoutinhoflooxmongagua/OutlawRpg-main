@@ -1,4 +1,4 @@
-# File: outlawrpg-main/OutlawRpg-main-1b3411704e409a7835735978fb4f9adc7aae2578/OutlawRpg-main/outlaw/bot.py
+# File: outlawrpg-main/OutlawRpg-main-08db082cd4e4768d031dc16c0dd762b16b1328e6/OutlawRpg-main/outlaw/bot.py
 import discord
 from discord.ext import commands, tasks
 from discord import app_commands, Embed, Color, Interaction
@@ -21,10 +21,10 @@ from config import (
     LEVEL_ROLES,
     NEW_CHARACTER_ROLE_ID,
     LOCATION_KILL_GOALS,
-    CLAN_RANKING_INTERVAL_DAYS,  # NEW
-    CLAN_RANK_REWARDS,  # NEW
-    DEFAULT_CLAN_XP,  # NEW
-    CUSTOM_EMOJIS,  # NEW
+    CLAN_RANKING_INTERVAL_DAYS,
+    CLAN_RANK_REWARDS,
+    DEFAULT_CLAN_XP,
+    CUSTOM_EMOJIS,
 )
 
 # Import data manager
@@ -33,10 +33,10 @@ from data_manager import (
     save_data,
     get_player_data,
     player_database,
-    load_clan_data,  # NEW
-    save_clan_data,  # NEW
-    clan_database,  # NEW
-    current_boss_data,  # This was added in the previous turn's data_manager.py fix
+    load_clan_data,
+    save_clan_data,
+    clan_database,
+    current_boss_data,
 )
 
 # Import utilities
@@ -59,7 +59,7 @@ from cogs.world_commands import WorldCommands
 from cogs.admin_commands import AdminCommands
 from cogs.utility_commands import UtilityCommands
 from cogs.blessing_commands import BlessingCommands
-from cogs.clan_commands import ClanCommands  # NEW: Import ClanCommands
+from cogs.clan_commands import ClanCommands
 
 
 # --- INITIAL CONFIGURATION AND CONSTANTS ---
@@ -67,9 +67,7 @@ load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 GUILD_ID = int(os.getenv("GUILD_ID", 0))
-ANNOUNCEMENT_CHANNEL_ID = os.getenv(
-    "ANNOUNCEMENT_CHANNEL_ID"
-)  # NEW: For clan ranking announcements
+ANNOUNCEMENT_CHANNEL_ID = os.getenv("ANNOUNCEMENT_CHANNEL_ID")
 
 
 class OutlawsBot(commands.Bot):
@@ -78,9 +76,7 @@ class OutlawsBot(commands.Bot):
         intents.members = True
         intents.message_content = True
         super().__init__(command_prefix="!", intents=intents)
-        self.last_message_xp_time = (
-            {}
-        )  # Initialize last_message_xp_time here for the bot instance
+        self.last_message_xp_time = {}
 
     async def setup_hook(self):
         # Load Cogs. All actual slash commands should be defined INSIDE these Cogs.
@@ -90,14 +86,14 @@ class OutlawsBot(commands.Bot):
         await self.add_cog(AdminCommands(self))
         await self.add_cog(UtilityCommands(self))
         await self.add_cog(BlessingCommands(self))
-        await self.add_cog(ClanCommands(self))  # NEW: Add ClanCommands cog
+        await self.add_cog(ClanCommands(self))
 
         # Start background tasks
         self.auto_save.start()
         self.energy_regeneration.start()
         self.boss_attack_loop.start()
         self.sync_roles_periodically.start()
-        self.weekly_clan_ranking.start()  # NEW: Start the weekly clan ranking task
+        self.weekly_clan_ranking.start()
 
         # Sync commands. This is the only place commands should be synced.
         if GUILD_ID:
@@ -139,13 +135,11 @@ class OutlawsBot(commands.Bot):
             await interaction.response.send_message(
                 "🚫 Você não tem permissão para usar este comando.", ephemeral=True
             )
-        elif isinstance(error, app_commands.NoPrivateMessage):  # Corrected check
+        elif isinstance(error, app_commands.NoPrivateMessage):
             await interaction.response.send_message(
                 "Este comando não pode ser usado em mensagens privadas.", ephemeral=True
             )
-        elif isinstance(
-            error, app_commands.CheckFailure
-        ):  # Generic check failure for custom checks
+        elif isinstance(error, app_commands.CheckFailure):
             await interaction.response.send_message(
                 f"🚫 Falha na verificação: {error}", ephemeral=True
             )
@@ -167,61 +161,45 @@ class OutlawsBot(commands.Bot):
 
     async def on_ready(self):
         print(f"Bot {self.user} está online!")
-        # Ensure 'boss_data' structure and 'location_kill_tracker' for all loaded players
-        # These are now handled by get_player_data and load_data with new initializations
-        # No need for explicit checks here as data_manager ensures structure on load/access
         for user_id_str, player_data in player_database.items():
-            pass  # Data manager handles initialization on load.
-        save_data()  # Save any updates made during initialization
-        print(
-            f"Dados de {len(player_database)} jogadores carregados e estruturas de dados verificadas."
-        )
-        load_clan_data()  # NEW: Load clan data on bot ready - CORRIGIDO
-        print(f"Dados de {len(clan_database)} clãs carregados.")  # NEW
+            pass
+        save_data()
+        load_clan_data()
+        print(f"Dados de {len(clan_database)} clãs carregados.")
 
-    async def on_message(self, message):  # Modified on_message
+    async def on_message(self, message):
         if message.author.bot:
             return
 
         user_id = str(message.author.id)
-        player_data = get_player_data(
-            user_id
-        )  # Corrigido: get_player_data é chamado diretamente
+        player_data = get_player_data(user_id)
 
         if player_data:
             current_time = datetime.now().timestamp()
-            # Check cooldown for message XP
             if (
                 user_id not in self.last_message_xp_time
                 or (current_time - self.last_message_xp_time[user_id])
-                >= config.XP_PER_MESSAGE_COOLDOWN_SECONDS
+                >= XP_PER_MESSAGE_COOLDOWN_SECONDS
             ):
-                xp_gain = 1  # Base XP per message
+                xp_gain = 1
                 effective_xp_gain = get_player_effective_xp_gain(player_data, xp_gain)
-                player_data["xp"] += effective_xp_gain
+                player_data["xp"] = player_data.get("xp", 0) + effective_xp_gain
                 self.last_message_xp_time[user_id] = current_time
 
-                # clan XP gain from messages is REMOVED, now only from kills
-                # if player_data.get("clan_id"):
-                #     clan_id = player_data["clan_id"]
-                #     clan_data = clan_database.get(clan_id)
-                #     if clan_data:
-                #         clan_data["xp"] += effective_xp_gain # Clan gains XP from member activities
-                #         save_clan_data() # Save clan data - Corrigido: save_clan_data é chamado diretamente
-
-                # Level up check
-                while player_data["xp"] >= calculate_xp_for_next_level(
-                    player_data["level"]
+                while player_data.get("xp", 0) >= calculate_xp_for_next_level(
+                    player_data.get("level", 1)
                 ):
-                    player_data["level"] += 1
-                    player_data["attribute_points"] += ATTRIBUTE_POINTS_PER_LEVEL
+                    player_data["level"] = player_data.get("level", 1) + 1
+                    player_data["attribute_points"] = (
+                        player_data.get("attribute_points", 0)
+                        + ATTRIBUTE_POINTS_PER_LEVEL
+                    )
                     await message.channel.send(
                         f"🎉 {message.author.mention} subiu para o nível {player_data['level']}!"
                     )
-                    # Assign new role if applicable
-                    if player_data["level"] in LEVEL_ROLES:
-                        role_id = LEVEL_ROLES[player_data["level"]]
-                        guild = message.guild  # Get guild from message context
+                    if player_data.get("level", 1) in LEVEL_ROLES:
+                        role_id = LEVEL_ROLES[player_data.get("level", 1)]
+                        guild = message.guild
                         if guild:
                             role = guild.get_role(role_id)
                             if role:
@@ -230,14 +208,14 @@ class OutlawsBot(commands.Bot):
                                     f"Parabéns, {message.author.mention}! Você recebeu o cargo **{role.name}**!"
                                 )
 
-                save_data()  # Save player data
+                save_data()
 
-        await self.process_commands(message)  # Process other commands
+        await self.process_commands(message)
 
     async def close(self):
         print("Desligando e salvando dados...")
         save_data()
-        save_clan_data()  # NEW: Save clan data on close
+        save_clan_data()
         await super().close()
 
     async def check_and_process_levelup(
@@ -251,8 +229,7 @@ class OutlawsBot(commands.Bot):
     @tasks.loop(seconds=60)
     async def auto_save(self):
         save_data()
-        save_clan_data()  # NEW: Save clan data on auto_save
-        # print("Dados salvos automaticamente.")
+        save_clan_data()
 
     @tasks.loop(seconds=60)
     async def energy_regeneration(self):
@@ -261,10 +238,9 @@ class OutlawsBot(commands.Bot):
             user_id = int(user_id_str)
             if player_data.get("energy", 0) < MAX_ENERGY:
                 player_data["energy"] = min(
-                    MAX_ENERGY, player_data["energy"] + 1
-                )  # Ensure energy does not exceed MAX_ENERGY
+                    MAX_ENERGY, player_data.get("energy", 0) + 1
+                )
 
-            # Iterate through all blessing types to check for expiration
             for item_id, item_info in ITEMS_DATA.items():
                 if item_info.get("type") == "blessing_unlock":
                     active_key = f"{item_id}_active"
@@ -281,9 +257,8 @@ class OutlawsBot(commands.Bot):
                                     f"✨ A {item_info.get('name', 'Bênção')} em você expirou!"
                                 )
                             except discord.Forbidden:
-                                pass  # Bot cannot send DMs
+                                pass
 
-            # Check for transformation expiration
             if player_data.get("current_transformation"):
                 if now > player_data.get("transform_end_time", 0):
                     transform_name = player_data["current_transformation"]
@@ -299,12 +274,10 @@ class OutlawsBot(commands.Bot):
                             pass
         save_data()
 
-    @tasks.loop(seconds=15)  # Boss attacks every 15 seconds
+    @tasks.loop(seconds=15)
     async def boss_attack_loop(self):
-        # Corrigido: current_boss_data agora é uma variável global em data_manager
-        # e é importado diretamente.
         if not current_boss_data or not current_boss_data.get("active_boss_id"):
-            return  # No active boss, nothing to do
+            return
 
         active_boss_id = current_boss_data["active_boss_id"]
         active_boss_info = BOSSES_DATA.get(active_boss_id)
@@ -313,21 +286,21 @@ class OutlawsBot(commands.Bot):
             print(
                 f"AVISO: Boss ativo com ID '{active_boss_id}' não encontrado em BOSSES_DATA."
             )
-            current_boss_data.clear()  # Clear invalid boss state
+            current_boss_data.clear()
             save_data()
             return
 
         channel_id = current_boss_data.get("channel_id")
-        if not channel_id:
+        if not channel_id:  # Check if channel_id is None
             print(f"AVISO: Boss '{active_boss_id}' não tem um channel_id configurado.")
-            return  # No channel to send messages
+            return
 
         channel = self.get_channel(channel_id)
         if not channel:
             print(
                 f"AVISO: Canal '{channel_id}' para o boss '{active_boss_id}' não encontrado."
             )
-            current_boss_data.clear()  # Clear invalid boss state
+            current_boss_data.clear()
             save_data()
             return
 
@@ -336,17 +309,13 @@ class OutlawsBot(commands.Bot):
             print(f"Boss {active_boss_id} não tem participantes ativos.")
             return
 
-        # Choose a random participant to attack
         target_user_id_str = random.choice(participants)
-        target_player_data = get_player_data(
-            target_user_id_str
-        )  # Corrigido: get_player_data é chamado diretamente
+        target_player_data = get_player_data(target_user_id_str)
 
         if not target_player_data or target_player_data.get("status") in [
             "afk",
             "dead",
         ]:
-            # If target is AFK or dead, remove them from participants and try again next loop
             current_boss_data["participants"].remove(target_user_id_str)
             save_data()
             return
@@ -361,13 +330,12 @@ class OutlawsBot(commands.Bot):
             return
 
         damage_to_deal = random.randint(
-            active_boss_info["attack"] // 2, active_boss_info["attack"]
+            active_boss_info.get("attack", 0) // 2, active_boss_info.get("attack", 0)
         )
 
         player_effective_stats = calculate_effective_stats(target_player_data)
         total_evasion_chance = player_effective_stats.get("evasion_chance_bonus", 0.0)
 
-        # Check for all active blessings that provide evasion
         for item_id, item_info in ITEMS_DATA.items():
             if (
                 item_info.get("type") == "blessing_unlock"
@@ -380,9 +348,7 @@ class OutlawsBot(commands.Bot):
 
         evaded = False
         hp_stolen_on_evade = 0
-        # Apply evasion if player has enough total evasion chance and succeeds the roll
         if random.random() < total_evasion_chance:
-            # Find the highest HP steal percentage from active blessings, if applicable
             max_hp_steal_percent = 0.0
             for item_id, item_info in ITEMS_DATA.items():
                 if (
@@ -397,25 +363,24 @@ class OutlawsBot(commands.Bot):
 
             hp_stolen_on_evade = int(damage_to_deal * max_hp_steal_percent)
             target_player_data["hp"] = min(
-                target_player_data["max_hp"],
-                target_player_data["hp"] + hp_stolen_on_evade,
+                target_player_data.get("max_hp", 1),
+                target_player_data.get("hp", 0) + hp_stolen_on_evade,
             )
             log_message += f"\n👻 **DESVIADO!** Você evitou o ataque e sugou `{hp_stolen_on_evade}` HP!"
             evaded = True
         else:
-            target_player_data["hp"] -= damage_to_deal
+            target_player_data["hp"] = target_player_data.get("hp", 0) - damage_to_deal
             log_message += f"\nVocê sofreu `{damage_to_deal}` de dano!"
 
-        if target_player_data["hp"] <= 0:
+        if target_player_data.get("hp", 0) <= 0:
             target_player_data["hp"] = 0
             target_player_data["status"] = "dead"
-            target_player_data["deaths"] += 1
+            target_player_data["deaths"] = target_player_data.get("deaths", 0) + 1
             log_message += "\n☠️ Você foi derrotado pelo Boss!"
-            # Remove from participants if dead
             if target_user_id_str in current_boss_data["participants"]:
                 current_boss_data["participants"].remove(target_user_id_str)
 
-        save_data()  # Save player data and global boss data
+        save_data()
 
         attack_embed = Embed(
             title="Ataque de Boss!",
@@ -423,7 +388,7 @@ class OutlawsBot(commands.Bot):
             color=Color.dark_orange(),
         )
         attack_embed.set_footer(
-            text=f"Sua vida: {max(0, target_player_data['hp'])}/{target_player_data['max_hp']}"
+            text=f"Sua vida: {max(0, target_player_data.get('hp',0))}/{target_player_data.get('max_hp',1)}"
         )
         try:
             await channel.send(target_member.mention, embed=attack_embed)
@@ -431,7 +396,6 @@ class OutlawsBot(commands.Bot):
             print(
                 f"Erro ao enviar mensagem de ataque de boss para {target_member.display_name} no canal {channel_id}: {e}"
             )
-            # If message sending fails, consider the boss encounter invalid for this player
             if target_user_id_str in current_boss_data["participants"]:
                 current_boss_data["participants"].remove(target_user_id_str)
             save_data()
@@ -477,7 +441,6 @@ class OutlawsBot(commands.Bot):
             if player_data.get("status") == "afk":
                 continue
 
-            # 1. Handle NEW_CHARACTER_ROLE_ID
             if isinstance(NEW_CHARACTER_ROLE_ID, int) and NEW_CHARACTER_ROLE_ID > 0:
                 new_char_role = guild.get_role(NEW_CHARACTER_ROLE_ID)
                 if new_char_role:
@@ -504,7 +467,6 @@ class OutlawsBot(commands.Bot):
                     "NEW_CHARACTER_ROLE_ID não é um ID de cargo válido (deve ser um número inteiro positivo)."
                 )
 
-            # 2. Handle LEVEL_ROLES
             if isinstance(LEVEL_ROLES, dict):
                 current_level = player_data.get("level", 1)
                 highest_applicable_role_id = None
@@ -570,9 +532,7 @@ class OutlawsBot(commands.Bot):
     async def before_sync_roles_periodically(self):
         await self.wait_until_ready()
 
-    @tasks.loop(
-        hours=24 * CLAN_RANKING_INTERVAL_DAYS
-    )  # Run every CLAN_RANKING_INTERVAL_DAYS
+    @tasks.loop(hours=24 * CLAN_RANKING_INTERVAL_DAYS)
     async def weekly_clan_ranking(self):
         await self.wait_until_ready()
         print("Iniciando cálculo de ranking semanal de clãs...")
@@ -581,26 +541,22 @@ class OutlawsBot(commands.Bot):
             print("Nenhum clã para ranquear.")
             return
 
-        # Filter out empty clans or those with no XP to avoid division by zero or unnecessary processing
         active_clans = [
             clan
             for clan in clan_database.values()
-            if clan["members"] and clan["xp"] > 0
+            if clan["members"] and clan.get("xp", 0) > 0
         ]
         if not active_clans:
             print("Nenhum clã ativo para ranquear.")
             return
 
-        # Sort clans by XP in descending order
-        sorted_clans = sorted(active_clans, key=lambda x: x["xp"], reverse=True)
+        sorted_clans = sorted(active_clans, key=lambda x: x.get("xp", 0), reverse=True)
 
-        # Determine the announcement channel (e.g., a specific channel ID from config or the first guild's system channel)
         announcement_channel = None
         if ANNOUNCEMENT_CHANNEL_ID:
             announcement_channel = self.get_channel(int(ANNOUNCEMENT_CHANNEL_ID))
 
         if not announcement_channel:
-            # Fallback to system channel of the first guild the bot is in
             for guild in self.guilds:
                 if guild.system_channel:
                     announcement_channel = guild.system_channel
@@ -619,64 +575,62 @@ class OutlawsBot(commands.Bot):
         reward_messages = []
 
         for i, clan in enumerate(sorted_clans):
-            if i >= 3:  # Only reward top 3
+            if i >= 3:
                 break
 
             rank = i + 1
-            rewards = CLAN_RANK_REWARDS.get(
-                rank, {"xp": 0, "money": 0}
-            )  # Get both XP and Money rewards
+            rewards = CLAN_RANK_REWARDS.get(rank, {"xp": 0, "money": 0})
             xp_reward = rewards["xp"]
             money_reward = rewards["money"]
 
             if xp_reward > 0 or money_reward > 0:
                 embed.add_field(
-                    name=f"#{rank} - {clan['name']}",
-                    value=f"XP do Clã: {clan['xp']:,}\nRecompensa para cada membro: {xp_reward:,} XP e ${money_reward:,}",
+                    name=f"#{rank} - {clan.get('name')}",
+                    value=f"XP do Clã: {clan.get('xp',0):,}\nRecompensa para cada membro: {xp_reward:,} XP e ${money_reward:,}",
                     inline=False,
                 )
                 reward_messages.append(
-                    f"O clã **{clan['name']}** ficou em #{rank} e seus membros receberão {xp_reward:,} XP e ${money_reward:,}!"
+                    f"O clã **{clan.get('name')}** ficou em #{rank} e seus membros receberão {xp_reward:,} XP e ${money_reward:,}!"
                 )
 
                 for member_id in clan["members"]:
-                    player_data = get_player_data(
-                        member_id
-                    )  # Corrigido: get_player_data é chamado diretamente
+                    player_data = get_player_data(member_id)
                     if player_data:
-                        player_data["xp"] += xp_reward
-                        player_data[
-                            "money"
-                        ] += money_reward  # NEW: Add money reward to player
-                        # Level up check for rewarded players
-                        while player_data["xp"] >= calculate_xp_for_next_level(
-                            player_data["level"]
+                        player_data["xp"] = player_data.get("xp", 0) + xp_reward
+                        player_data["money"] = (
+                            player_data.get("money", 0) + money_reward
+                        )
+                        while player_data.get("xp", 0) >= calculate_xp_for_next_level(
+                            player_data.get("level", 1)
                         ):
-                            player_data["level"] += 1
-                            player_data[
-                                "attribute_points"
-                            ] += ATTRIBUTE_POINTS_PER_LEVEL
+                            player_data["level"] = player_data.get("level", 1) + 1
+                            player_data["attribute_points"] = (
+                                player_data.get("attribute_points", 0)
+                                + ATTRIBUTE_POINTS_PER_LEVEL
+                            )
                             try:
                                 member_obj = await self.fetch_user(int(member_id))
                                 if member_obj:
                                     await member_obj.send(
                                         f"🎉 Parabéns! Você subiu para o nível {player_data['level']} devido às recompensas do clã!"
                                     )
-                                    # Assign new role if applicable (requires guild context, might need to fetch guild)
                                     for guild in self.guilds:
                                         guild_member = guild.get_member(int(member_id))
                                         if (
                                             guild_member
-                                            and player_data["level"] in LEVEL_ROLES
+                                            and player_data.get("level", 1)
+                                            in LEVEL_ROLES
                                         ):
-                                            role_id = LEVEL_ROLES[player_data["level"]]
+                                            role_id = LEVEL_ROLES[
+                                                player_data.get("level", 1)
+                                            ]
                                             role = guild.get_role(role_id)
                                             if role:
                                                 await guild_member.add_roles(role)
                                                 await member_obj.send(
                                                     f"Você recebeu o cargo **{role.name}**!"
                                                 )
-                                                break  # Assuming one guild is enough for role assignment
+                                                break
                             except discord.NotFound:
                                 print(
                                     f"Usuário {member_id} não encontrado para enviar mensagem de nível."
@@ -685,20 +639,17 @@ class OutlawsBot(commands.Bot):
                                 print(
                                     f"Erro ao atualizar nível ou enviar mensagem para {member_id}: {e}"
                                 )
-                        save_data()  # Save player data after XP update and level check
+                        save_data()
                     else:
                         print(
                             f"Dados do jogador {member_id} não encontrados para recompensar."
                         )
 
-            # Reset clan XP and Money after rewards
             clan["xp"] = DEFAULT_CLAN_XP
-            clan["money"] = 0  # NEW: Reset clan money
-            clan["last_ranking_timestamp"] = int(
-                datetime.now().timestamp()
-            )  # Update timestamp
+            clan["money"] = 0
+            clan["last_ranking_timestamp"] = int(datetime.now().timestamp())
 
-        save_clan_data()  # Save all clan data after reset
+        save_clan_data()
 
         if reward_messages:
             embed.set_footer(
@@ -714,15 +665,14 @@ class OutlawsBot(commands.Bot):
 
         print("Cálculo de ranking semanal de clãs concluído.")
 
-    @weekly_clan_ranking.before_loop  # NEW: ensure bot is ready before starting the loop
+    @weekly_clan_ranking.before_loop
     async def before_weekly_clan_ranking(self):
         await self.wait_until_ready()
 
 
 if __name__ == "__main__":
     bot = OutlawsBot()
-    # Initialize last_message_xp_time outside on_message so it persists across calls
-    bot.last_message_xp_time = {}  # Initialize last_message_xp_time
+    bot.last_message_xp_time = {}
     if TOKEN:
         try:
             bot.run(TOKEN)

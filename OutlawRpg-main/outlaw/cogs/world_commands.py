@@ -1,3 +1,4 @@
+# File: outlawrpg-main/OutlawRpg-main-08db082cd4e4768d031dc16c0dd762b16b1328e6/OutlawRpg-main/outlaw/cogs/world_commands.py
 import discord
 from discord.ext import commands
 from discord import app_commands, Embed, Color, Interaction
@@ -64,7 +65,7 @@ class WorldCommands(commands.Cog):
         now, cooldown_key, last_work = (
             datetime.now().timestamp(),
             "work_cooldown",
-            player_data["cooldowns"].get("work_cooldown", 0),
+            player_data.get("cooldowns", {}).get("work_cooldown", 0),
         )
         if now - last_work < 30:
             await i.response.send_message(
@@ -122,9 +123,9 @@ class WorldCommands(commands.Cog):
         ):
             xp_message = f"e **{xp_gain}** XP (triplicado + Habilidade Inata: +{int(xp_multiplier_passive*100)}%!)"
 
-        player_data["money"] += money_gain
-        player_data["xp"] += xp_gain
-        player_data["cooldowns"][cooldown_key] = now
+        player_data["money"] = player_data.get("money", 0) + money_gain
+        player_data["xp"] = player_data.get("xp", 0) + xp_gain
+        player_data.setdefault("cooldowns", {})[cooldown_key] = now
 
         embed = Embed(
             title="💰 Bico Concluído!",
@@ -186,16 +187,16 @@ class WorldCommands(commands.Cog):
                             f"HP -{int(item_info['hp_penalty_percent'] * 100)}% (penalidade)"
                         )
 
-                    description = f"[{item_info['class_restriction']}] Bônus: {', '.join(class_bonus_details) or 'Nenhum'}"
+                    description = f"[{item_info.get('class_restriction')}] Bônus: {', '.join(class_bonus_details) or 'Nenhum'}"
                 elif item_info.get("type") == "blessing_unlock":
                     description = f"Desbloqueia uma bênção poderosa para sua classe/estilo. Dura: {item_info.get('duration_seconds', 0) // 60}m, Custo Energia Ativ.: {item_info.get('cost_energy', 0)}."
                     if "class_restriction" in item_info:
                         description = (
-                            f"[{item_info['class_restriction']}] {description}"
+                            f"[{item_info.get('class_restriction')}] {description}"
                         )
                     elif "style_restriction" in item_info:
                         description = (
-                            f"[{item_info['style_restriction']}] {description}"
+                            f"[{item_info.get('style_restriction')}] {description}"
                         )
 
                 embed.add_field(
@@ -224,7 +225,7 @@ class WorldCommands(commands.Cog):
         player_data = get_player_data(i.user.id)
         attr_key = f"base_{atributo.value}"
 
-        base_stat_current = player_data[attr_key]
+        base_stat_current = player_data.get(attr_key, 0)
 
         cost_per_point = 20
         initial_base_value = (
@@ -233,22 +234,22 @@ class WorldCommands(commands.Cog):
 
         cost = 100 + (base_stat_current - initial_base_value) * cost_per_point
 
-        if player_data["money"] < cost:
+        if player_data.get("money", 0) < cost:
             await i.response.send_message(
                 f"Você precisa de ${cost} para aprimorar.", ephemeral=True
             )
             return
 
-        player_data["money"] -= cost
-        player_data[attr_key] += 2
+        player_data["money"] = player_data.get("money", 0) - cost
+        player_data[attr_key] = player_data.get(attr_key, 0) + 2
         save_data()
 
         next_cost = 100 + (
-            (player_data[attr_key] - initial_base_value) * cost_per_point
+            (player_data.get(attr_key, 0) - initial_base_value) * cost_per_point
         )
 
         await i.response.send_message(
-            f"✨ Aprimoramento concluído! Seu {atributo.name} base aumentou para `{player_data[attr_key]}`. Próximo aprimoramento custará **${next_cost}**."
+            f"✨ Aprimoramento concluído! Seu {atributo.name} base aumentou para `{player_data.get(attr_key,0)}`. Próximo aprimoramento custará **${next_cost}**."
         )
 
     @app_commands.command(name="usar", description="Usa um item do seu inventário.")
@@ -258,8 +259,8 @@ class WorldCommands(commands.Cog):
         raw_player_data = get_player_data(i.user.id)
 
         if (
-            item_id not in raw_player_data["inventory"]
-            or raw_player_data["inventory"].get(item_id, 0) < 1
+            item_id not in raw_player_data.get("inventory", {})
+            or raw_player_data.get("inventory", {}).get(item_id, 0) < 1
         ):
             await i.response.send_message("Você não possui este item!", ephemeral=True)
             return
@@ -277,50 +278,51 @@ class WorldCommands(commands.Cog):
             or item_info.get("type") == "passive_style_bonus"
         ):
             await i.response.send_message(
-                f"Você tem o(a) **{item_info['name']}** no seu inventário! Seus efeitos são aplicados automaticamente, ou ative-o com `/transformar` ou `/ativar_bencao_aura`.",
+                f"Você tem o(a) **{item_info.get('name')}** no seu inventário! Seus efeitos são aplicados automaticamente, ou ative-o com `/transformar` ou `/ativar_bencao_aura`.",
                 ephemeral=True,
             )
             return
 
         if item_info.get("type") == "healing":
             raw_player_data["hp"] = min(
-                raw_player_data["max_hp"], raw_player_data["hp"] + item_info["heal"]
+                raw_player_data.get("max_hp", 1),
+                raw_player_data.get("hp", 0) + item_info.get("heal", 0),
             )
-            raw_player_data["inventory"][item_id] -= 1
+            raw_player_data.setdefault("inventory", {})[item_id] = (
+                raw_player_data.get("inventory", {}).get(item_id, 0) - 1
+            )
             await i.response.send_message(
-                f"{item_info['emoji']} Você usou uma {item_info['name']} e recuperou {item_info['heal']} HP! Vida atual: `{raw_player_data['hp']}/{raw_player_data['max_hp']}`."
+                f"{item_info.get('emoji')} Você usou uma {item_info.get('name')} e recuperou {item_info.get('heal',0)} HP! Vida atual: `{raw_player_data.get('hp',0)}/{raw_player_data.get('max_hp',1)}`."
             )
         elif item_info.get("type") == "summon":
             if current_boss_data.get("active_boss_id"):
                 await i.response.send_message(
-                    f"O {BOSSES_DATA[current_boss_data['active_boss_id']]['name']} já está ativo!",
+                    f"O {BOSSES_DATA.get(current_boss_data['active_boss_id'], {}).get('name')} já está ativo!",
                     ephemeral=True,
                 )
                 return
 
-            boss_to_summon_name = list(BOSSES_DATA.keys())[0]  # Default to first boss
-            # Logic to determine which boss to summon (e.g., if you have progression)
-            # You might want more sophisticated logic here, e.g., if you want the summoner to always summon
-            # the *next* boss in the progression if the previous one was defeated.
-            # For now, it will always summon the first boss.
+            boss_to_summon_name = list(BOSSES_DATA.keys())[0]
 
-            summoned_boss_info = BOSSES_DATA[boss_to_summon_name]
+            summoned_boss_info = BOSSES_DATA.get(boss_to_summon_name)
 
-            current_boss_data["active_boss_id"] = summoned_boss_info["name"]
-            current_boss_data["hp"] = summoned_boss_info["max_hp"]
+            current_boss_data["active_boss_id"] = summoned_boss_info.get("name")
+            current_boss_data["hp"] = summoned_boss_info.get("max_hp", 1)
             current_boss_data["participants"] = [str(i.user.id)]
             current_boss_data["channel_id"] = i.channel.id
 
-            raw_player_data["inventory"][item_id] -= 1
+            raw_player_data.setdefault("inventory", {})[item_id] = (
+                raw_player_data.get("inventory", {}).get(item_id, 0) - 1
+            )
 
             embed = Embed(
-                title=f"{item_info['emoji']} O {summoned_boss_info['name']} APARECEU! {item_info['emoji']}",
+                title=f"{item_info.get('emoji')} O {summoned_boss_info.get('name')} APARECEU! {item_info.get('emoji')}",
                 description=f"Invocado por **{i.user.display_name}**! Usem `/atacar_boss`!",
                 color=Color.dark_red(),
             )
             embed.add_field(
                 name="Vida do Boss",
-                value=f"`{current_boss_data['hp']}/{summoned_boss_info['max_hp']}`",
+                value=f"`{current_boss_data.get('hp',0)}/{summoned_boss_info.get('max_hp',1)}`",
             ).set_thumbnail(
                 url=summoned_boss_info.get(
                     "thumbnail", "https://i.imgur.com/example_boss_default.png"
@@ -335,8 +337,8 @@ class WorldCommands(commands.Cog):
             return
 
         if item_info.get("consumable", False):
-            if raw_player_data["inventory"].get(item_id) <= 0:
-                del raw_player_data["inventory"][item_id]
+            if raw_player_data.get("inventory", {}).get(item_id) <= 0:
+                del raw_player_data.setdefault("inventory", {})[item_id]
         save_data()
 
     @app_commands.command(
@@ -348,7 +350,7 @@ class WorldCommands(commands.Cog):
         raw_player_data = get_player_data(i.user.id)
         player_stats = calculate_effective_stats(raw_player_data)
 
-        if raw_player_data["class"] != "Curandeiro":
+        if raw_player_data.get("class") != "Curandeiro":
             await i.response.send_message(
                 "Apenas Curandeiros podem usar este comando.", ephemeral=True
             )
@@ -366,7 +368,7 @@ class WorldCommands(commands.Cog):
         now, cooldown_key, last_heal = (
             datetime.now().timestamp(),
             "heal_cooldown",
-            raw_player_data["cooldowns"].get("heal_cooldown", 0),
+            raw_player_data.get("cooldowns", {}).get("heal_cooldown", 0),
         )
 
         cooldown_healing = 45
@@ -383,20 +385,20 @@ class WorldCommands(commands.Cog):
             return
 
         heal_amount = random.randint(
-            int(player_stats["special_attack"] * 1.5),
-            int(player_stats["special_attack"] * 2.5),
+            int(player_stats.get("special_attack", 0) * 1.5),
+            int(player_stats.get("special_attack", 0) * 2.5),
         )
 
         if player_stats.get("healing_multiplier", 1.0) > 1.0:
             heal_amount = int(heal_amount * player_stats["healing_multiplier"])
 
-        original_hp = raw_target_data["hp"]
+        original_hp = raw_target_data.get("hp", 0)
         raw_target_data["hp"] = min(
-            raw_target_data["max_hp"], raw_target_data["hp"] + heal_amount
+            raw_target_data.get("max_hp", 1), raw_target_data.get("hp", 0) + heal_amount
         )
-        healed_for = raw_target_data["hp"] - original_hp
+        healed_for = raw_target_data.get("hp", 0) - original_hp
 
-        raw_player_data["cooldowns"][cooldown_key] = now
+        raw_player_data.setdefault("cooldowns", {})[cooldown_key] = now
 
         embed = Embed(title="✨ Bênção Vital ✨", color=Color.from_rgb(139, 212, 181))
         if i.user.id == alvo.id:
@@ -406,7 +408,7 @@ class WorldCommands(commands.Cog):
         else:
             embed.description = f"Você usou seus poderes para curar {alvo.mention} em **{healed_for}** HP."
         embed.set_footer(
-            text=f"Vida de {alvo.display_name}: {raw_target_data['hp']}/{target_stats['max_hp']}"
+            text=f"Vida de {alvo.display_name}: {raw_target_data.get('hp',0)}/{target_stats.get('max_hp',1)}"
         )
         save_data()
         await i.response.send_message(embed=embed)
@@ -428,10 +430,10 @@ class WorldCommands(commands.Cog):
             ),
             app_commands.Choice(
                 name="Fúria Imortal (Corpo Seco)", value="Fúria Imortal"
-            ),  # ADICIONADO
+            ),
             app_commands.Choice(
                 name="Lobo Descontrolado (Domador)", value="Lobo Descontrolado"
-            ),  # ADICIONADO
+            ),
             app_commands.Choice(
                 name="Lâmina Abençoada (Espadachim - Aura)", value="Lâmina Abençoada"
             ),
@@ -455,48 +457,50 @@ class WorldCommands(commands.Cog):
     @app_commands.check(check_player_exists)
     async def transformar(self, i: Interaction, forma: app_commands.Choice[str]):
         raw_player_data = get_player_data(i.user.id)
-        player_class = raw_player_data["class"]
-        player_style = raw_player_data["style"]
+        player_class = raw_player_data.get("class")
+        player_style = raw_player_data.get("style")
 
-        if forma.value == ITEMS_DATA["bencao_dracula"]["name"]:
+        if forma.value == ITEMS_DATA.get("bencao_dracula", {}).get("name"):
             blessing_item_id = "bencao_dracula"
-            blessing_info = ITEMS_DATA.get(blessing_item_id)
+            blessing_info = ITEMS_DATA.get(blessing_item_id, {})
 
-            if player_class != blessing_info["class_restriction"]:
+            if player_class != blessing_info.get("class_restriction"):
                 await i.response.send_message(
-                    f"Somente {blessing_info['class_restriction']}s podem ativar a {blessing_info['name']}.",
+                    f"Somente {blessing_info.get('class_restriction')}s podem ativar a {blessing_info.get('name')}.",
                     ephemeral=True,
                 )
                 return
-            if raw_player_data["inventory"].get(blessing_item_id, 0) == 0:
+            if raw_player_data.get("inventory", {}).get(blessing_item_id, 0) == 0:
                 await i.response.send_message(
-                    f"Você não desbloqueou a {blessing_info['name']}! Compre-a na loja primeiro.",
+                    f"Você não desbloqueou a {blessing_info.get('name')}! Compre-a na loja primeiro.",
                     ephemeral=True,
                 )
                 return
             if raw_player_data.get("bencao_dracula_active"):
                 await i.response.send_message(
-                    f"A {blessing_info['name']} já está ativa!", ephemeral=True
+                    f"A {blessing_info.get('name')} já está ativa!", ephemeral=True
                 )
                 return
 
-            if raw_player_data["energy"] < blessing_info["cost_energy"]:
+            if raw_player_data.get("energy", 0) < blessing_info.get("cost_energy", 0):
                 await i.response.send_message(
-                    f"Energia insuficiente para a {blessing_info['name']} ({blessing_info['cost_energy']} energia)!",
+                    f"Energia insuficiente para a {blessing_info.get('name')} ({blessing_info.get('cost_energy', 0)} energia)!",
                     ephemeral=True,
                 )
                 return
 
             raw_player_data["bencao_dracula_active"] = True
-            raw_player_data["energy"] -= blessing_info["cost_energy"]
+            raw_player_data["energy"] = raw_player_data.get(
+                "energy", 0
+            ) - blessing_info.get("cost_energy", 0)
             raw_player_data["bencao_dracula_end_time"] = (
-                datetime.now().timestamp() + blessing_info["duration_seconds"]
+                datetime.now().timestamp() + blessing_info.get("duration_seconds", 0)
             )
 
             embed = Embed(
-                title=f"{blessing_info['emoji']} {blessing_info['name']}! {blessing_info['emoji']}",
+                title=f"{blessing_info.get('emoji')} {blessing_info.get('name')}! {blessing_info.get('emoji')}",
                 description=f"{i.user.display_name} invocou a bênção sombria de Drácula!\n"
-                f"Você agora tem uma chance de desviar e sugar vida por {blessing_info['duration_seconds'] // 60} minutos!",
+                f"Você agora tem uma chance de desviar e sugar vida por {blessing_info.get('duration_seconds',0) // 60} minutos!",
                 color=Color.dark_purple(),
             )
             embed.set_thumbnail(url="https://c.tenor.com/A6j4yvK8J-oAAAAC/tenor.gif")
@@ -530,22 +534,28 @@ class WorldCommands(commands.Cog):
                     )
                     return
 
-            if raw_player_data["energy"] < transform_info_found["cost_energy"]:
+            if raw_player_data.get("energy", 0) < transform_info_found.get(
+                "cost_energy", 0
+            ):
                 await i.response.send_message(
-                    f"Energia insuficiente para se transformar em {forma.value} ({transform_info_found['cost_energy']} energia)!",
+                    f"Energia insuficiente para se transformar em {forma.value} ({transform_info_found.get('cost_energy',0)} energia)!",
                     ephemeral=True,
                 )
                 return
 
             raw_player_data["current_transformation"] = forma.value
-            raw_player_data["transform_end_time"] = (
-                datetime.now().timestamp() + transform_info_found["duration_seconds"]
+            raw_player_data[
+                "transform_end_time"
+            ] = datetime.now().timestamp() + transform_info_found.get(
+                "duration_seconds", 0
             )
-            raw_player_data["energy"] -= transform_info_found["cost_energy"]
+            raw_player_data["energy"] = raw_player_data.get(
+                "energy", 0
+            ) - transform_info_found.get("cost_energy", 0)
 
             embed = Embed(
-                title=f"{transform_info_found['emoji']} TRANSFORMAÇÃO: {forma.value} {transform_info_found['emoji']}",
-                description=f"{i.user.display_name} liberou seu poder oculto e se tornou um(a) {forma.value} por {transform_info_found['duration_seconds'] // 60} minutos!",
+                title=f"{transform_info_found.get('emoji')} TRANSFORMAÇÃO: {forma.value} {transform_info_found.get('emoji')}",
+                description=f"{i.user.display_name} liberou seu poder oculto e se tornou um(a) {forma.value} por {transform_info_found.get('duration_seconds',0) // 60} minutos!",
                 color=Color.dark_red() if player_class == "Vampiro" else Color.gold(),
             )
             await i.response.send_message(embed=embed)
@@ -574,10 +584,10 @@ class WorldCommands(commands.Cog):
             ),
             app_commands.Choice(
                 name="Fúria Imortal (Corpo Seco)", value="Fúria Imortal"
-            ),  # ADICIONADO
+            ),
             app_commands.Choice(
                 name="Lobo Descontrolado (Domador)", value="Lobo Descontrolado"
-            ),  # ADICIONADO
+            ),
             app_commands.Choice(
                 name="Lâmina Abençoada (Espadachim - Aura)", value="Lâmina Abençoada"
             ),
@@ -615,7 +625,7 @@ class WorldCommands(commands.Cog):
                 raw_player_data["transform_end_time"] = 0
                 deactivated_any = True
                 messages.append(
-                    f"Você retornou da forma **{transform_name}** para sua forma normal de {raw_player_data['class']}."
+                    f"Você retornou da forma **{transform_name}** para sua forma normal de {raw_player_data.get('class')}."
                 )
             if raw_player_data.get("aura_blessing_active"):
                 raw_player_data["aura_blessing_active"] = False
@@ -634,7 +644,7 @@ class WorldCommands(commands.Cog):
 
             if deactivated_any:
                 raw_player_data["energy"] = min(
-                    MAX_ENERGY, raw_player_data["energy"] + 1
+                    MAX_ENERGY, raw_player_data.get("energy", 0) + 1
                 )
                 save_data()
                 messages.append("Você recuperou 1 de energia.")
@@ -647,7 +657,7 @@ class WorldCommands(commands.Cog):
             return
 
         class_transforms_for_player = CLASS_TRANSFORMATIONS.get(
-            raw_player_data["class"], {}
+            raw_player_data.get("class"), {}
         )
         if (
             raw_player_data.get("current_transformation") == forma.value
@@ -657,7 +667,7 @@ class WorldCommands(commands.Cog):
             raw_player_data["transform_end_time"] = 0
             deactivated_any = True
             messages.append(
-                f"Você retornou à sua forma normal ({raw_player_data['class']}) de **{forma.value}**."
+                f"Você retornou à sua forma normal ({raw_player_data.get('class')}) de **{forma.value}**."
             )
         elif forma.value == "bencao_rei_henrique":
             if not raw_player_data.get("aura_blessing_active"):
@@ -691,7 +701,9 @@ class WorldCommands(commands.Cog):
             return
 
         if deactivated_any:
-            raw_player_data["energy"] = min(MAX_ENERGY, raw_player_data["energy"] + 1)
+            raw_player_data["energy"] = min(
+                MAX_ENERGY, raw_player_data.get("energy", 0) + 1
+            )
             save_data()
             messages.append("Você recuperou 1 de energia.")
             await i.response.send_message("\n".join(messages))
@@ -707,24 +719,24 @@ class WorldCommands(commands.Cog):
     @app_commands.check(check_player_exists)
     async def ativar_bencao_aura(self, i: Interaction):
         raw_player_data = get_player_data(i.user.id)
-        blessing_info = ITEMS_DATA.get("bencao_rei_henrique")
+        blessing_info = ITEMS_DATA.get("bencao_rei_henrique", {})
 
-        if raw_player_data["style"] != blessing_info.get("style_restriction"):
+        if raw_player_data.get("style") != blessing_info.get("style_restriction"):
             await i.response.send_message(
-                f"Somente usuários de {blessing_info.get('style_restriction')} podem invocar a {blessing_info['name']}.",
+                f"Somente usuários de {blessing_info.get('style_restriction')} podem invocar a {blessing_info.get('name')}.",
                 ephemeral=True,
             )
             return
-        if raw_player_data["inventory"].get("bencao_rei_henrique", 0) == 0:
+        if raw_player_data.get("inventory", {}).get("bencao_rei_henrique", 0) == 0:
             await i.response.send_message(
-                f"Você não desbloqueou a {blessing_info['name']}! Compre-a na loja primeiro.",
+                f"Você não desbloqueou a {blessing_info.get('name')}! Compre-a na loja primeiro.",
                 ephemeral=True,
             )
             return
 
         if raw_player_data.get("aura_blessing_active"):
             await i.response.send_message(
-                f"A {blessing_info['name']} já está ativa!", ephemeral=True
+                f"A {blessing_info.get('name')} já está ativa!", ephemeral=True
             )
             return
 
@@ -734,23 +746,25 @@ class WorldCommands(commands.Cog):
             )
             return
 
-        if raw_player_data["energy"] < blessing_info["cost_energy"]:
+        if raw_player_data.get("energy", 0) < blessing_info.get("cost_energy", 0):
             await i.response.send_message(
-                f"Você precisa de {blessing_info['cost_energy']} de energia para invocar a {blessing_info['name']}!",
+                f"Você precisa de {blessing_info.get('cost_energy',0)} de energia para invocar a {blessing_info.get('name')}!",
                 ephemeral=True,
             )
             return
 
-        raw_player_data["energy"] -= blessing_info["cost_energy"]
+        raw_player_data["energy"] = raw_player_data.get(
+            "energy", 0
+        ) - blessing_info.get("cost_energy", 0)
         raw_player_data["aura_blessing_active"] = True
         raw_player_data["aura_blessing_end_time"] = (
-            datetime.now().timestamp() + blessing_info["duration_seconds"]
+            datetime.now().timestamp() + blessing_info.get("duration_seconds", 0)
         )
 
         embed = Embed(
-            title=f"{blessing_info['emoji']} {blessing_info['name']}! {blessing_info['emoji']}",
+            title=f"{blessing_info.get('emoji')} {blessing_info.get('name')}! {blessing_info.get('emoji')}",
             description=f"O Rei Henrique da Luz concedeu sua benção a {i.user.display_name}!\n"
-            f"Seus atributos e cooldowns foram aprimorados por {blessing_info['duration_seconds'] // 60} minutos!",
+            f"Seus atributos e cooldowns foram aprimorados por {blessing_info.get('duration_seconds',0) // 60} minutos!",
             color=Color.gold(),
         )
         embed.set_thumbnail(url="https://c.tenor.com/2U54k92V-i4AAAAC/tenor.gif")

@@ -1,3 +1,4 @@
+# File: outlawrpg-main/OutlawRpg-main-08db082cd4e4768d031dc16c0dd762b16b1328e6/OutlawRpg-main/outlaw/views/profile_view.py
 import discord
 from discord import ui, ButtonStyle, Interaction, Embed, Color
 from datetime import datetime
@@ -55,12 +56,12 @@ class ProfileView(ui.View):
     def _get_base_profile_embed(self, player_data) -> Embed:
         """Helper para criar a estrutura base do embed, com foco em um design limpo."""
         embed_color = self.user.color
-        profile_image_url = PROFILE_IMAGES.get(player_data["class"])
+        profile_image_url = PROFILE_IMAGES.get(player_data.get("class", "Unknown"))
 
         if player_data.get("current_transformation"):
             transform_name = player_data["current_transformation"]
             transform_info_from_class = CLASS_TRANSFORMATIONS.get(
-                player_data["class"], {}
+                player_data.get("class", "Unknown"), {}
             ).get(transform_name, {})
             profile_image_url = PROFILE_IMAGES.get(transform_name, profile_image_url)
             embed_color = Color.orange()
@@ -100,8 +101,8 @@ class ProfileView(ui.View):
         embed = self._get_base_profile_embed(player_data)
 
         # --- Descrição Principal (Resumo Essencial) ---
-        xp_needed = int(XP_PER_LEVEL_BASE * (player_data["level"] ** 1.2))
-        xp_bar = self.create_xp_bar(player_data["xp"], xp_needed)
+        xp_needed = int(XP_PER_LEVEL_BASE * (player_data.get("level", 1) ** 1.2))
+        xp_bar = self.create_xp_bar(player_data.get("xp", 0), xp_needed)
         location_info = WORLD_MAP.get(
             player_data.get("location", STARTING_LOCATION), {}
         )
@@ -109,29 +110,27 @@ class ProfileView(ui.View):
 
         # Descrição concisa com as informações mais relevantes no topo
         embed.description = (
-            f"{CUSTOM_EMOJIS.get('class_icon', '🎭')} **Classe:** **{player_data['class']}**\n"
-            f"{CUSTOM_EMOJIS.get('level_icon', '⬆️')} **Nível:** **{player_data['level']}** "
-            f"({xp_bar})\n"  # XP ao lado do nível para concisão
+            f"{CUSTOM_EMOJIS.get('class_icon', '🎭')} **Classe:** **{player_data.get('class', 'Desconhecida')}**\n"
+            f"{CUSTOM_EMOJIS.get('level_icon', '⬆️')} **Nível:** **{player_data.get('level', 1)}** "
+            f"({xp_bar})\n"
             f"{CUSTOM_EMOJIS.get('location_icon', '📍')} **Localização:** `{location_info.get('name', 'Desconhecida')}`\n"
-            f"{CUSTOM_EMOJIS.get('status_icon', '📊')} **Status:** **{status_map.get(player_data['status'], 'Indefinido')}**\n"
+            f"{CUSTOM_EMOJIS.get('status_icon', '📊')} **Status:** **{status_map.get(player_data.get('status', 'Indefinido'), 'Indefinido')}**\n"
         )
 
         # --- Campo de Combate (Separado) ---
         combat_value = (
-            f"{CUSTOM_EMOJIS.get('hp_icon', '❤️')} **Vida:** {self.create_progress_bar(player_data['hp'], player_stats['max_hp'])}\n"
-            f"{CUSTOM_EMOJIS.get('attack_icon', '🗡️')} **Ataque:** **{player_stats['attack']}**\n"
-            f"{CUSTOM_EMOJIS.get('special_attack_icon', '✨')} **Atq. Especial:** **{player_stats['special_attack']}**\n"
+            f"{CUSTOM_EMOJIS.get('hp_icon', '❤️')} **Vida:** {self.create_progress_bar(player_data.get('hp', 0), player_stats.get('max_hp', 1))}\n"
+            f"{CUSTOM_EMOJIS.get('attack_icon', '🗡️')} **Ataque:** **{player_stats.get('attack', 0)}**\n"
+            f"{CUSTOM_EMOJIS.get('special_attack_icon', '✨')} **Atq. Especial:** **{player_stats.get('special_attack', 0)}**\n"
         )
-        embed.add_field(
-            name="⚔️ Combate", value=combat_value, inline=False
-        )  # Um field para combtae
+        embed.add_field(name="⚔️ Combate", value=combat_value, inline=False)
 
         # --- Campo de Efeitos Ativos (Se houver) ---
         active_effects = []
         if player_data.get("current_transformation"):
             transform_name = player_data["current_transformation"]
             transform_info_from_class = CLASS_TRANSFORMATIONS.get(
-                player_data["class"], {}
+                player_data.get("class", "Unknown"), {}
             ).get(transform_name, {})
             active_effects.append(
                 f"{transform_info_from_class.get('emoji', '🔥')} **{transform_name}**"
@@ -166,18 +165,16 @@ class ProfileView(ui.View):
             )
 
         embed = self._get_base_profile_embed(player_data)
-        embed.title = f"Recursos de {self.user.display_name}"  # Título direto
+        embed.title = f"Recursos de {self.user.display_name}"
 
-        energy_bar = self.create_progress_bar(player_data["energy"], MAX_ENERGY)
+        energy_bar = self.create_progress_bar(player_data.get("energy", 0), MAX_ENERGY)
 
         resources_value = (
             f"{CUSTOM_EMOJIS.get('energy_icon', '⚡')} **Energia:** {energy_bar}\n"
-            f"{CUSTOM_EMOJIS.get('money_icon', '💰')} **Dinheiro:** **${player_data['money']:,}**\n"
+            f"{CUSTOM_EMOJIS.get('money_icon', '💰')} **Dinheiro:** **${player_data.get('money', 0):,}**\n"
             f"{CUSTOM_EMOJIS.get('attribute_points_icon', '💎')} **Pontos de Atributo:** **{player_data.get('attribute_points', 0)}**\n"
         )
-        embed.add_field(
-            name="⚙️ Seus Recursos", value=resources_value, inline=False
-        )  # Título de campo direto
+        embed.add_field(name="⚙️ Seus Recursos", value=resources_value, inline=False)
         return embed
 
     def create_record_boosts_embed(self) -> discord.Embed:
@@ -193,19 +190,17 @@ class ProfileView(ui.View):
             )
 
         embed = self._get_base_profile_embed(player_data)
-        embed.title = f"Registro e Boosts de {self.user.display_name}"  # Título direto
+        embed.title = f"Registro e Boosts de {self.user.display_name}"
 
         record_boosts_value = (
-            f"{CUSTOM_EMOJIS.get('kills_icon', '⚔️')} **Abates:** **{player_data['kills']}**\n"
-            f"{CUSTOM_EMOJIS.get('deaths_icon', '☠️')} **Mortes:** **{player_data['deaths']}**\n"
+            f"{CUSTOM_EMOJIS.get('kills_icon', '⚔️')} **Abates:** **{player_data.get('kills', 0)}**\n"
+            f"{CUSTOM_EMOJIS.get('deaths_icon', '☠️')} **Mortes:** **{player_data.get('deaths', 0)}**\n"
             f"{CUSTOM_EMOJIS.get('bounty_icon', '🏴‍☠️')} **Recompensa:** **${player_data.get('bounty', 0):,}**\n"
-            f"\n**__Aprimoramentos Ativos__**\n"  # Separador para boosts
+            f"\n**__Aprimoramentos Ativos__**\n"
             f"{CUSTOM_EMOJIS.get('xp_boost_icon', '🚀')} **XP Triplo:** `{'✅ Ativo' if player_data.get('xptriple') else '❌ Inativo'}`\n"
             f"{CUSTOM_EMOJIS.get('money_boost_icon', '💸')} **Dinheiro Duplo:** `{'✅ Ativo' if player_data.get('money_double') else '❌ Inativo'}`"
         )
-        embed.add_field(
-            name="🏆 Sua Jornada", value=record_boosts_value, inline=False
-        )  # Título de campo direto
+        embed.add_field(name="🏆 Sua Jornada", value=record_boosts_value, inline=False)
         return embed
 
     def create_inventory_embed(self) -> discord.Embed:
@@ -221,7 +216,7 @@ class ProfileView(ui.View):
             )
 
         embed = self._get_base_profile_embed(player_data)
-        embed.title = f"Inventário de {self.user.display_name}"  # Título direto
+        embed.title = f"Inventário de {self.user.display_name}"
 
         inventory_items = player_data.get("inventory", {})
         if not inventory_items:
@@ -244,10 +239,7 @@ class ProfileView(ui.View):
                     f"Aventure-se e encontre novos tesouros!*"
                 )
             else:
-                # Usamos um separador com uma linha em branco para espaçamento vertical
-                embed.description = "\n\n".join(
-                    item_list
-                )  # Removi o "Seus Pertences Atuais:" para ser mais conciso
+                embed.description = "\n\n".join(item_list)
 
         return embed
 
