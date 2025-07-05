@@ -9,7 +9,7 @@ import time
 from datetime import timedelta
 
 # Importar de seus módulos de gerenciamento de dados e lógica
-from ..data_manager import (
+from data_manager import (  # Corrigido: Importação direta
     get_player_data,
     save_data,
     add_relic_to_inventory,
@@ -18,8 +18,8 @@ from ..data_manager import (
     check_and_add_keys,
     get_time_until_next_key_claim,
 )
-from ..game_logic.relic_mechanics import get_random_relic
-from ..game_data.relics_data import (
+from game_logic.relic_mechanics import get_random_relic  # Corrigido: Importação direta
+from relics import (  # Corrigido: Importação direta
     relics,
 )  # Importa a lista de relíquias para o /inventory
 
@@ -243,7 +243,9 @@ class RelicCommands(commands.Cog):
 
             # Prepara a lista de itens para exibição, incluindo o tier
             display_items = []
-            for relic_name, count in relic_counts.items():
+            for item in relic_counts.items():
+                relic_name = item[0]
+                count = item[1]
                 relic_info = relics_map.get(relic_name)
                 if relic_info:
                     display_items.append(

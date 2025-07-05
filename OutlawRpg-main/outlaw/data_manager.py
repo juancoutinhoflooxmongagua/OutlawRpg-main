@@ -6,7 +6,7 @@ import os
 import time
 
 # Importa as configurações necessárias
-from outlaw.config import (  # Prefixo 'outlaw.' adicionado para imports relativos
+from config import (  # Corrigido: Importação direta
     STARTING_LOCATION,
     BOSSES_DATA,
     DEFAULT_PLAYER_BOSS_DATA,
@@ -84,12 +84,12 @@ def _initialize_player_defaults(player_data: dict):
 
     if player_data.get("hp") is not None and player_data.get("max_hp") is not None:
         # Import moved to inside function to avoid circular dependency if utils imports data_manager
-        from outlaw.utils import calculate_effective_stats
+        from utils import calculate_effective_stats  # Corrigido: Importação direta
 
         effective_max_hp = calculate_effective_stats(player_data)["max_hp"]
         player_data["hp"] = min(player_data["hp"], effective_max_hp)
     elif player_data.get("hp") is None:
-        from outlaw.utils import calculate_effective_stats
+        from utils import calculate_effective_stats  # Corrigido: Importação direta
 
         effective_max_hp = calculate_effective_stats(player_data)["max_hp"]
         player_data["hp"] = effective_max_hp
