@@ -1,4 +1,3 @@
-# File: outlawrpg-main/OutlawRpg-main-08db082cd4e4768d031dc16c0dd762b16b1328e6/OutlawRpg-main/outlaw/views/profile_view.py
 import discord
 from discord import ui, ButtonStyle, Interaction, Embed, Color
 from datetime import datetime
@@ -12,8 +11,7 @@ from config import (
     STARTING_LOCATION,
     ITEMS_DATA,
     CLASS_TRANSFORMATIONS,
-    # PROFILE_IMAGES (Removido, pois não será mais usado para definir a imagem principal do perfil)
-    CUSTOM_EMOJIS,
+    CUSTOM_EMOJIS,  # Garantindo que CUSTOM_EMOJIS está importado
 )
 
 
@@ -63,29 +61,21 @@ class ProfileView(ui.View):
             )
 
         embed_color = self.user.color
-        # profile_image_url = PROFILE_IMAGES.get(player_data.get("class", "Unknown")) # REMOVIDO: Não usará imagens de classe/transformação
 
         if player_data.get("current_transformation"):
             transform_name = player_data["current_transformation"]
             transform_info_from_class = CLASS_TRANSFORMATIONS.get(
                 player_data.get("class", "Unknown"), {}
             ).get(transform_name, {})
-            # profile_image_url = PROFILE_IMAGES.get(transform_name, profile_image_url) # REMOVIDO
             embed_color = Color.orange()
         elif player_data.get("aura_blessing_active"):
             blessing_info = ITEMS_DATA.get("bencao_rei_henrique", {})
             blessing_name = blessing_info.get("name")
-            # profile_image_url = PROFILE_IMAGES.get(blessing_name, profile_image_url) # REMOVIDO
             embed_color = Color.gold()
 
         # Título mais direto e claro
         embed = Embed(title=f"Perfil de {self.user.display_name}", color=embed_color)
-        embed.set_thumbnail(
-            url=self.user.display_avatar.url
-        )  # Mantém o avatar do usuário
-        # if profile_image_url: # REMOVIDO: Não usará imagem principal de perfil
-        #     embed.set_image(url=profile_image_url) # REMOVIDO
-
+        embed.set_thumbnail(url=self.user.display_avatar.url)
         embed.set_footer(
             text=f"Outlaws RPG • {self.user.name}",
             icon_url=self.bot_user.display_avatar.url,
@@ -118,7 +108,13 @@ class ProfileView(ui.View):
         location_info = WORLD_MAP.get(
             player_data.get("location", STARTING_LOCATION), {}
         )
-        status_map = {"online": "🟢 Online", "dead": "💀 Morto", "afk": "🌙 AFK"}
+
+        # Usando CUSTOM_EMOJIS para os estados de status também
+        status_map = {
+            "online": f"{CUSTOM_EMOJIS.get('status_online_icon', '🟢')} Online",
+            "dead": f"{CUSTOM_EMOJIS.get('status_dead_icon', '💀')} Morto",
+            "afk": f"{CUSTOM_EMOJIS.get('status_afk_icon', '🌙')} AFK",
+        }
 
         # Descrição concisa com as informações mais relevantes no topo
         embed.description = (
@@ -135,7 +131,9 @@ class ProfileView(ui.View):
             f"{CUSTOM_EMOJIS.get('attack_icon', '🗡️')} **Ataque:** **{player_stats.get('attack', 0)}**\n"
             f"{CUSTOM_EMOJIS.get('special_attack_icon', '✨')} **Atq. Especial:** **{player_stats.get('special_attack', 0)}**\n"
         )
-        embed.add_field(name="⚔️ Combate", value=combat_value, inline=False)
+        embed.add_field(
+            name="⚔️ Combate", value=combat_value, inline=False
+        )  # Mantendo o ⚔️ fixo ou adicionando "combat_icon"
 
         # --- Campo de Efeitos Ativos (Se houver) ---
         active_effects = []
@@ -160,7 +158,9 @@ class ProfileView(ui.View):
 
         if active_effects:
             embed.add_field(
-                name="✨ Efeitos Ativos", value="\n".join(active_effects), inline=False
+                name=f"{CUSTOM_EMOJIS.get('active_effects_header_icon', '✨')} Efeitos Ativos",
+                value="\n".join(active_effects),
+                inline=False,
             )
         return embed
 
@@ -188,7 +188,11 @@ class ProfileView(ui.View):
             f"{CUSTOM_EMOJIS.get('money_icon', '💰')} **Dinheiro:** **${player_data.get('money', 0):,}**\n"
             f"{CUSTOM_EMOJIS.get('attribute_points_icon', '💎')} **Pontos de Atributo:** **{player_data.get('attribute_points', 0)}**\n"
         )
-        embed.add_field(name="⚙️ Seus Recursos", value=resources_value, inline=False)
+        embed.add_field(
+            name=f"{CUSTOM_EMOJIS.get('resources_header_icon', '⚙️')} Seus Recursos",
+            value=resources_value,
+            inline=False,
+        )
         return embed
 
     def create_record_boosts_embed(self) -> discord.Embed:
@@ -216,7 +220,11 @@ class ProfileView(ui.View):
             f"{CUSTOM_EMOJIS.get('xp_boost_icon', '🚀')} **XP Triplo:** `{'✅ Ativo' if player_data.get('xptriple') else '❌ Inativo'}`\n"
             f"{CUSTOM_EMOJIS.get('money_boost_icon', '💸')} **Dinheiro Duplo:** `{'✅ Ativo' if player_data.get('money_double') else '❌ Inativo'}`"
         )
-        embed.add_field(name="🏆 Sua Jornada", value=record_boosts_value, inline=False)
+        embed.add_field(
+            name=f"{CUSTOM_EMOJIS.get('journey_header_icon', '🏆')} Sua Jornada",
+            value=record_boosts_value,
+            inline=False,
+        )
         return embed
 
     def create_inventory_embed(self) -> discord.Embed:
@@ -263,7 +271,12 @@ class ProfileView(ui.View):
 
     # --- Botões ---
 
-    @ui.button(label="Perfil", style=ButtonStyle.primary, emoji="👤", disabled=True)
+    @ui.button(
+        label="Perfil",
+        style=ButtonStyle.primary,
+        emoji=CUSTOM_EMOJIS.get("button_profile_icon", "👤"),
+        disabled=True,
+    )
     async def profile_button(self, interaction: Interaction, button: ui.Button):
         self._disable_all_buttons_except(button)
         await self.original_interaction.edit_original_response(
@@ -271,7 +284,11 @@ class ProfileView(ui.View):
         )
         await interaction.response.defer()
 
-    @ui.button(label="Inventário", style=ButtonStyle.secondary, emoji="🎒")
+    @ui.button(
+        label="Inventário",
+        style=ButtonStyle.secondary,
+        emoji=CUSTOM_EMOJIS.get("button_inventory_icon", "🎒"),
+    )
     async def inventory_button(self, interaction: Interaction, button: ui.Button):
         self._disable_all_buttons_except(button)
         await self.original_interaction.edit_original_response(
@@ -279,7 +296,11 @@ class ProfileView(ui.View):
         )
         await interaction.response.defer()
 
-    @ui.button(label="Recursos", style=ButtonStyle.secondary, emoji="⚡")
+    @ui.button(
+        label="Recursos",
+        style=ButtonStyle.secondary,
+        emoji=CUSTOM_EMOJIS.get("button_resources_icon", "⚡"),
+    )
     async def resources_button(self, interaction: Interaction, button: ui.Button):
         self._disable_all_buttons_except(button)
         await self.original_interaction.edit_original_response(
@@ -287,7 +308,11 @@ class ProfileView(ui.View):
         )
         await interaction.response.defer()
 
-    @ui.button(label="Registro & Boosts", style=ButtonStyle.secondary, emoji="🏆")
+    @ui.button(
+        label="Registro & Boosts",
+        style=ButtonStyle.secondary,
+        emoji=CUSTOM_EMOJIS.get("button_record_boosts_icon", "🏆"),
+    )
     async def record_boosts_button(self, interaction: Interaction, button: ui.Button):
         self._disable_all_buttons_except(button)
         await self.original_interaction.edit_original_response(

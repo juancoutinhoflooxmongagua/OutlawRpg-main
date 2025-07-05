@@ -34,15 +34,14 @@ CLAN_KILL_CONTRIBUTION_PERCENTAGE_MONEY = (
     0.05  # 5% of player's earned Money from kills goes to clan
 )
 
-
 CUSTOM_EMOJIS = {
     "espada_rpg": "<:espada_rpg:123456789012345678>",  # Substitua pelo ID real
     "moeda_ouro": "<:moeda_ouro:987654321098765432>",  # Substitua pelo ID real
-    "vida_hp": "<:vida_hp:112233445566778899>",  # Substitua pelo ID real
+    "hp_icon": "<a:heartbeat_anim:1391079654638489660>",  # Substitua pelo ID real
     "transform": "<a:aura:1389688598139371631>",  # Exemplo de gif/emoji animado
     "machado_guerreiro": "<:machado_guerreiro:123123123123123123>",
     "escudo_defesa": "<:escudo_defesa:456456456456456456>",
-    "xp_estrela": "<:xp_estrela:789789789789789789>",
+    "xp_estrela": "<a:Special:1391079516788756600>",
     "olho_secreto": "<:olho_secreto:123456789012345678>",
     "ferramentas_dev": "<:ferramentas_dev:987654321098765432>",
     "clan_icon": "🛡️",
@@ -51,6 +50,34 @@ CUSTOM_EMOJIS = {
     "trophy_icon": "🏆",
     "money_icon": "💰",
     "xp_icon": "✨",
+    # Emojis faltantes usados em profile_view.py
+    "class_icon": "🎭",  # Placeholder
+    "level_icon": "<:Stats:1391079676650328097>",  # Placeholder
+    "location_icon": "📍",  # Placeholder
+    "status_icon": "📊",  # Placeholder
+    "attack_icon": "🗡️",  # Placeholder
+    "special_attack_icon": "✨",  # Placeholder
+    "energy_icon": "⚡",  # Placeholder
+    "attribute_points_icon": "💎",  # Placeholder
+    "kills_icon": "⚔️",  # Placeholder
+    "deaths_icon": "☠️",  # Placeholder
+    "bounty_icon": "🏴‍☠️",  # Placeholder
+    "xp_boost_icon": "🚀",  # Placeholder
+    "money_boost_icon": "💸",  # Placeholder
+    "empty_bag_icon": "🎒",  #
+    "status_online_icon": "<a:online:1391079468155670588>",  # Pode ser um emoji customizado
+    "status_dead_icon": "💀",  # Pode ser um emoji customizado
+    "status_afk_icon": "🌙",  # Pode ser um emoji customizado
+    # NOVOS: Emojis para os botões de navegação
+    "button_profile_icon": "👤",  # Para o botão "Perfil"
+    "button_inventory_icon": "🎒",  # Para o botão "Inventário"
+    "button_resources_icon": "⚡",  # Para o botão "Recursos"
+    "button_record_boosts_icon": "🏆",  # Para o botão "Registro & Boosts"
+    # NOVOS: Emojis para os cabeçalhos de campo nos embeds (opcional)
+    "combat_header_icon": "⚔️",  # Para o título "Combate"
+    "active_effects_header_icon": "✨",  # Para o título "Efeitos Ativos"
+    "resources_header_icon": "⚙️",  # Para o título "Seus Recursos"
+    "journey_header_icon": "🏆",  # Para o título "Sua Jornada"
 }
 
 
@@ -694,135 +721,135 @@ ENEMIES = {
     "Ruínas do Templo": [
         {
             "name": "Guardião de Pedra",
-            "hp": 400,
-            "attack": 38,
-            "xp": 260,
-            "money": 200,
+            "hp": 800,  # 400 * 2
+            "attack": 76,  # 38 * 2
+            "xp": 520,  # 260 * 2
+            "money": 400,  # 200 * 2
             "thumb": "https://c.tenor.com/NLQ2AoVfEQUAAAAd/tenor.gif",
         },
         {
             "name": "Espectro Antigo",
-            "hp": 90,
-            "attack": 102,
-            "xp": 80,
-            "money": 160,
+            "hp": 180,  # 90 * 2
+            "attack": 204,  # 102 * 2
+            "xp": 160,  # 80 * 2
+            "money": 320,  # 160 * 2
             "thumb": "https://c.tenor.com/tTXMqhKPCFwAAAAd/tenor.gif",
         },
         {
             "name": "Gárgula Vingativa",
-            "hp": 220,
-            "attack": 50,
-            "xp": 65,
-            "money": 165,
+            "hp": 440,  # 220 * 2
+            "attack": 100,  # 50 * 2
+            "xp": 130,  # 65 * 2
+            "money": 330,  # 165 * 2
             "thumb": "https://c.tenor.com/Ub7Nd2q36RYAAAAd/tenor.gif",
         },
     ],
     "Abismo Sombrio": [
         {
             "name": "Aranha das Sombras",
-            "hp": 180,
-            "attack": 18,
-            "xp": 35,
-            "money": 252,
+            "hp": 720,  # 180 * 4
+            "attack": 72,  # 18 * 4
+            "xp": 140,  # 35 * 4
+            "money": 1008,  # 252 * 4
             "thumb": "https://c.tenor.com/Q1UgRkPJzMAAAAAC/spider-shadow.gif",
         },
         {
             "name": "Serpente Abissal",
-            "hp": 190,
-            "attack": 22,
-            "xp": 40,
-            "money": 304,
+            "hp": 760,  # 190 * 4
+            "attack": 88,  # 22 * 4
+            "xp": 160,  # 40 * 4
+            "money": 1216,  # 304 * 4
             "thumb": "https://c.tenor.com/n9Zyr_d-5O0AAAAC/sea-serpent.gif",
         },
     ],
     "Vale do Inferno": [
         {
             "name": "Demônio Flamejante",
-            "hp": 100,
-            "attack": 28,
-            "xp": 50,
-            "money": 40,
+            "hp": 800,  # 100 * 8
+            "attack": 224,  # 28 * 8
+            "xp": 400,  # 50 * 8
+            "money": 320,  # 40 * 8
             "thumb": "https://c.tenor.com/vA1zDKkpFfIAAAAC/fire-demon.gif",
         },
         {
             "name": "Cão Infernal",
-            "hp": 120,
-            "attack": 30,
-            "xp": 55,
-            "money": 45,
+            "hp": 960,  # 120 * 8
+            "attack": 240,  # 30 * 8
+            "xp": 440,  # 55 * 8
+            "money": 360,  # 45 * 8
             "thumb": "https://c.tenor.com/z8mELvPmsN8AAAAC/hellhound.gif",
         },
     ],
     "Templo Esquecido": [
         {
             "name": "Guardião Espectral",
-            "hp": 150,
-            "attack": 35,
-            "xp": 70,
-            "money": 60,
+            "hp": 2400,  # 150 * 16
+            "attack": 560,  # 35 * 16
+            "xp": 1120,  # 70 * 16
+            "money": 960,  # 60 * 16
             "thumb": "https://c.tenor.com/Dq52zpNYdJ4AAAAC/ghost-guardian.gif",
         },
         {
             "name": "Mago Ancião",
-            "hp": 130,
-            "attack": 40,
-            "xp": 75,
-            "money": 65,
+            "hp": 2080,  # 130 * 16
+            "attack": 640,  # 40 * 16
+            "xp": 1200,  # 75 * 16
+            "money": 1040,  # 65 * 16
             "thumb": "https://c.tenor.com/ysXUvq-wT5MAAAAAC/old-mage.gif",
         },
     ],
     "Portão das Sombras": [
         {
             "name": "Sombra Errante",
-            "hp": 160,
-            "attack": 45,
-            "xp": 80,
-            "money": 70,
+            "hp": 5120,  # 160 * 32
+            "attack": 1440,  # 45 * 32
+            "xp": 2560,  # 80 * 32
+            "money": 2240,  # 70 * 32
             "thumb": "https://c.tenor.com/53EpyO-t1aIAAAAC/shadow-figure.gif",
         },
         {
             "name": "Guardião das Trevas",
-            "hp": 180,
-            "attack": 50,
-            "xp": 90,
-            "money": 75,
+            "hp": 5760,  # 180 * 32
+            "attack": 1600,  # 50 * 32
+            "xp": 2880,  # 90 * 32
+            "money": 2400,  # 75 * 32
             "thumb": "https://c.tenor.com/EOhB81CS_2wAAAAC/dark-guardian.gif",
         },
     ],
     "Brecha das Terras": [
         {
             "name": "Caótico Dimensional",
-            "hp": 300,
-            "attack": 80,
-            "xp": 150,
-            "money": 120,
+            "hp": 19200,  # 300 * 64
+            "attack": 5120,  # 80 * 64
+            "xp": 9600,  # 150 * 64
+            "money": 7680,  # 120 * 64
             "thumb": "https://c.tenor.com/GV31bRfFNy8AAAAC/dimensional-chaos.gif",
         },
         {
             "name": "Guardião da Brecha",
-            "hp": 350,
-            "attack": 90,
-            "xp": 180,
-            "money": 150,
+            "hp": 22400,  # 350 * 64
+            "attack": 5760,  # 90 * 64
+            "xp": 11520,  # 180 * 64
+            "money": 9600,  # 150 * 64
             "thumb": "https://c.tenor.com/VuE-xM7RjTwAAAAC/gatekeeper.gif",
         },
     ],
     "Paraíso": [
         {
             "name": "Arcanjo Guardião",
-            "hp": 500,
-            "attack": 120,
-            "xp": 300,
-            "money": 250,
+            "hp": 64000,  # 500 * 128
+            "attack": 15360,  # 120 * 128
+            "xp": 38400,  # 300 * 128
+            "money": 32000,  # 250 * 128
             "thumb": "https://c.tenor.com/89zGuwH3Ys8AAAAC/angelic.gif",
         },
         {
             "name": "Serafim de Luz",
-            "hp": 550,
-            "attack": 130,
-            "xp": 350,
-            "money": 300,
-            "thumb": "https://c.tenor.com/I7CKPqu5XJMAAAAC/seraphim.gif",
+            "hp": 70400,  # 550 * 128
+            "attack": 16640,  # 130 * 128
+            "xp": 44800,  # 350 * 128
+            "money": 38400,  # 300 * 128
+            "thumb": "https://c.tenor.com/I7CKPqu5XJMAAAAAC/seraphim.gif",
         },
     ],
 }
