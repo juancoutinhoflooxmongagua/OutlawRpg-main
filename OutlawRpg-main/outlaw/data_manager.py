@@ -6,7 +6,7 @@ import os
 import time
 
 # Importa as configurações necessárias
-from config import (  # Corrigido: Importação direta
+from config import (
     STARTING_LOCATION,
     BOSSES_DATA,
     DEFAULT_PLAYER_BOSS_DATA,
@@ -81,6 +81,14 @@ def _initialize_player_defaults(player_data: dict):
         player_data["max_hp"] = INITIAL_HP
     if "hp" not in player_data:
         player_data["hp"] = player_data["max_hp"]
+
+    # --- INÍCIO DA CORREÇÃO ---
+    # Adiciona 'class' e 'style' com valores padrão se não existirem
+    if "class" not in player_data:
+        player_data["class"] = "Novato"  # Defina uma classe padrão
+    if "style" not in player_data:
+        player_data["style"] = "Nenhum"  # Defina um estilo padrão
+    # --- FIM DA CORREÇÃO ---
 
     if player_data.get("hp") is not None and player_data.get("max_hp") is not None:
         # Import moved to inside function to avoid circular dependency if utils imports data_manager

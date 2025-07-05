@@ -4,9 +4,9 @@
             "name": "\u23e4\u035f\u035e\u035f\uaab6\u0362Red X\uaac2",
             "class": "Vampiro",
             "style": "Aura",
-            "xp": 4611,
+            "xp": 7659,
             "level": 40,
-            "money": 27524,
+            "money": 29194,
             "hp": 645,
             "max_hp": 645,
             "base_attack": 198,
@@ -30,7 +30,7 @@
             "bounty": 300,
             "kills": 3,
             "deaths": 10,
-            "energy": 10,
+            "energy": 12,
             "current_transformation": null,
             "transform_end_time": 0,
             "aura_blessing_active": false,
@@ -55,19 +55,30 @@
                 ],
                 "last_spawn_timestamp": 0
             },
-            "keys": 5,
-            "last_key_claim_time": 1751754706.8010013,
-            "relics_inventory": []
+            "keys": 0,
+            "last_key_claim_time": 1751758325.5429356,
+            "relics_inventory": [
+                "Po\u00e7a de Lama Seca",
+                "Folha Seca",
+                "Cinto Simples",
+                "Caco de Telha",
+                "Peda\u00e7o de Pano",
+                "Peda\u00e7o de Carv\u00e3o",
+                "Peda\u00e7o de Galho",
+                "P\u00f3 de Poeira",
+                "Caco de Telha",
+                "Peda\u00e7o de Galho"
+            ]
         },
         "345023618968715264": {
             "name": "Pierri.",
             "class": "Corpo Seco",
             "style": "Aura",
-            "xp": 12815,
-            "level": 42,
-            "money": 33767,
-            "hp": 295,
-            "max_hp": 690,
+            "xp": 4511,
+            "level": 43,
+            "money": 36347,
+            "hp": 1100,
+            "max_hp": 700,
             "base_attack": 249,
             "base_special_attack": 49,
             "inventory": {
@@ -94,7 +105,7 @@
             "bencao_dracula_active": false,
             "bencao_dracula_end_time": 0,
             "amulet_used_since_revive": true,
-            "attribute_points": 4,
+            "attribute_points": 6,
             "location": "Abismo Sombrio",
             "xptriple": true,
             "money_double": true,
@@ -111,19 +122,28 @@
                 ],
                 "last_spawn_timestamp": 0
             },
-            "keys": 4,
-            "last_key_claim_time": 1751754707.3230913,
+            "keys": 0,
+            "last_key_claim_time": 1751758326.0536804,
             "relics_inventory": [
-                "Concha Vazia"
+                "Concha Vazia",
+                "Folha Seca",
+                "Peda\u00e7o de Galho",
+                "Pedra Pequena",
+                "Prego Enferrujado",
+                "Peda\u00e7o de Galho",
+                "Peda\u00e7o de Pano",
+                "Peda\u00e7o de Galho",
+                "Peda\u00e7o de Pano",
+                "Lixo Qualquer"
             ]
         },
         "854382404809261076": {
             "name": "! \u09e1\u09e3\u035c\u0361Astollfo\u2661\u0f73\u2027\u207a",
             "class": "Corpo Seco",
             "style": "Aura",
-            "xp": 13697,
+            "xp": 16697,
             "level": 55,
-            "money": 228353,
+            "money": 229853,
             "hp": 206,
             "max_hp": 770,
             "base_attack": 357,
@@ -170,19 +190,19 @@
                 ],
                 "last_spawn_timestamp": 0
             },
-            "keys": 5,
-            "last_key_claim_time": 1751754707.915503,
+            "keys": 10,
+            "last_key_claim_time": 1751758326.5795822,
             "relics_inventory": []
         },
         "945867324085374976": {
             "name": "! Adrian_Fds",
             "class": "Domador",
             "style": "Habilidade Inata",
-            "xp": 4070,
+            "xp": 7076,
             "level": 42,
-            "money": 103976,
-            "hp": 771,
-            "max_hp": 645,
+            "money": 105523,
+            "hp": 794,
+            "max_hp": 665,
             "base_attack": 185,
             "base_special_attack": 108,
             "inventory": {
@@ -212,7 +232,7 @@
             "bencao_dracula_active": false,
             "bencao_dracula_end_time": 0,
             "amulet_used_since_revive": false,
-            "attribute_points": 4,
+            "attribute_points": 0,
             "location": "Abismo Sombrio",
             "xptriple": true,
             "money_double": true,
@@ -230,8 +250,14 @@
                 "last_spawn_timestamp": 0
             },
             "keys": 5,
-            "last_key_claim_time": 1751754708.562027,
-            "relics_inventory": []
+            "last_key_claim_time": 1751758327.2656999,
+            "relics_inventory": [
+                "Lixo Qualquer",
+                "Prego Enferrujado",
+                "Concha Vazia",
+                "Peda\u00e7o de Galho",
+                "Folha Seca"
+            ]
         },
         "1194654105877094400": {
             "name": "! D'Caracauz",
@@ -273,19 +299,19 @@
                 "defeated_bosses": [],
                 "last_spawn_timestamp": 0
             },
-            "keys": 5,
-            "last_key_claim_time": 1751754709.1590643,
+            "keys": 10,
+            "last_key_claim_time": 1751758328.06509,
             "relics_inventory": []
         },
         "825053988629905479": {
             "name": "\ud835\udd7f\ud835\udd8e\ud835\udd86\ud835\udd8c\ud835\udd94 \u0ca0_\u0ca0",
             "class": "Atirador",
             "style": "Habilidade Inata",
-            "xp": 4247,
-            "level": 24,
-            "money": 37600,
-            "hp": 320,
-            "max_hp": 320,
+            "xp": 2451,
+            "level": 25,
+            "money": 40100,
+            "hp": 330,
+            "max_hp": 330,
             "base_attack": 10,
             "base_special_attack": 30,
             "inventory": {},
@@ -302,7 +328,7 @@
             "bencao_dracula_active": false,
             "bencao_dracula_end_time": 0,
             "amulet_used_since_revive": false,
-            "attribute_points": 46,
+            "attribute_points": 48,
             "location": "Abrigo dos Foras-da-Lei",
             "xptriple": false,
             "money_double": false,
@@ -317,15 +343,15 @@
                 "defeated_bosses": [],
                 "last_spawn_timestamp": 0
             },
-            "keys": 5,
-            "last_key_claim_time": 1751754710.0653996,
+            "keys": 10,
+            "last_key_claim_time": 1751758328.91639,
             "relics_inventory": []
         },
         "1276581708711596123": {
             "name": "\u00c2mbar \ud83c\udc23",
             "class": "Espadachim",
             "style": "Aura",
-            "xp": 52,
+            "xp": 55,
             "level": 1,
             "money": 100,
             "hp": 100,
@@ -361,8 +387,8 @@
                 "defeated_bosses": [],
                 "last_spawn_timestamp": 0
             },
-            "keys": 5,
-            "last_key_claim_time": 1751754711.286202,
+            "keys": 10,
+            "last_key_claim_time": 1751758329.4134352,
             "relics_inventory": []
         },
         "768893660871786557": {
@@ -405,15 +431,15 @@
                 "defeated_bosses": [],
                 "last_spawn_timestamp": 0
             },
-            "keys": 5,
-            "last_key_claim_time": 1751754712.8918335,
+            "keys": 10,
+            "last_key_claim_time": 1751758329.9890556,
             "relics_inventory": []
         },
         "992963562412707960": {
             "name": "Fernandes",
             "class": "Lutador",
             "style": "Aura",
-            "xp": 52,
+            "xp": 68,
             "level": 1,
             "money": 100,
             "hp": 111,
@@ -451,8 +477,8 @@
                 "defeated_bosses": [],
                 "last_spawn_timestamp": 0
             },
-            "keys": 5,
-            "last_key_claim_time": 1751754714.1549842,
+            "keys": 10,
+            "last_key_claim_time": 1751758330.686743,
             "relics_inventory": []
         },
         "1114926582851715106": {
@@ -495,8 +521,8 @@
                 "defeated_bosses": [],
                 "last_spawn_timestamp": 0
             },
-            "keys": 5,
-            "last_key_claim_time": 1751754715.7025743,
+            "keys": 10,
+            "last_key_claim_time": 1751758331.3731918,
             "relics_inventory": []
         },
         "1120405014230347892": {
@@ -539,15 +565,15 @@
                 "defeated_bosses": [],
                 "last_spawn_timestamp": 0
             },
-            "keys": 5,
-            "last_key_claim_time": 1751754716.8925095,
+            "keys": 10,
+            "last_key_claim_time": 1751758331.9229124,
             "relics_inventory": []
         },
         "621614554199228430": {
             "name": "Gwin",
             "class": "Domador",
             "style": "Habilidade Inata",
-            "xp": 13,
+            "xp": 14,
             "level": 1,
             "money": 100,
             "hp": 0,
@@ -583,19 +609,19 @@
                 "defeated_bosses": [],
                 "last_spawn_timestamp": 0
             },
-            "keys": 5,
-            "last_key_claim_time": 1751754719.8540065,
+            "keys": 10,
+            "last_key_claim_time": 1751758332.6732273,
             "relics_inventory": []
         },
         "913864293697589278": {
             "name": "000",
             "class": "Curandeiro",
             "style": "Aura",
-            "xp": 1002,
-            "level": 11,
-            "money": 6600,
-            "hp": 200,
-            "max_hp": 200,
+            "xp": 1350,
+            "level": 12,
+            "money": 8100,
+            "hp": 210,
+            "max_hp": 210,
             "base_attack": 10,
             "base_special_attack": 25,
             "inventory": {},
@@ -612,7 +638,7 @@
             "bencao_dracula_active": false,
             "bencao_dracula_end_time": 0,
             "amulet_used_since_revive": false,
-            "attribute_points": 20,
+            "attribute_points": 22,
             "location": "Abrigo dos Foras-da-Lei",
             "xptriple": false,
             "money_double": false,
@@ -627,19 +653,19 @@
                 "defeated_bosses": [],
                 "last_spawn_timestamp": 0
             },
-            "keys": 5,
-            "last_key_claim_time": 1751754721.3619418,
+            "keys": 10,
+            "last_key_claim_time": 1751758333.3538272,
             "relics_inventory": []
         },
         "1366828187807645764": {
             "name": "Leska tatu",
             "class": "Curandeiro",
             "style": "Aura",
-            "xp": 176,
-            "level": 6,
-            "money": 15583,
-            "hp": 66,
-            "max_hp": 110,
+            "xp": 340,
+            "level": 8,
+            "money": 17083,
+            "hp": 130,
+            "max_hp": 130,
             "base_attack": 10,
             "base_special_attack": 25,
             "inventory": {
@@ -662,7 +688,7 @@
             "bencao_dracula_active": false,
             "bencao_dracula_end_time": 0,
             "amulet_used_since_revive": false,
-            "attribute_points": 2,
+            "attribute_points": 6,
             "location": "Floresta Sussurrante",
             "xptriple": true,
             "money_double": true,
@@ -677,8 +703,8 @@
                 "defeated_bosses": [],
                 "last_spawn_timestamp": 0
             },
-            "keys": 5,
-            "last_key_claim_time": 1751754722.7318459,
+            "keys": 10,
+            "last_key_claim_time": 1751758333.8532412,
             "relics_inventory": []
         },
         "926892054154477620": {
@@ -698,7 +724,17 @@
             "base_special_attack": 20,
             "max_hp": 100,
             "hp": 100,
-            "energy": 5
+            "energy": 10,
+            "class": "Novato",
+            "style": "Nenhum",
+            "keys": 3,
+            "last_key_claim_time": 1751757224.1014247,
+            "relics_inventory": [
+                "Concha Vazia",
+                "Folha Seca"
+            ],
+            "money": 2513,
+            "xp": 5014
         }
     },
     "global_boss_state": {
