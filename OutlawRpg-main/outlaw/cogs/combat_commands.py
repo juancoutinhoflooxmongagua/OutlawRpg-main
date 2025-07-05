@@ -507,6 +507,26 @@ class CombatCommands(commands.Cog):
                                 + quantity_drop
                             )
 
+                    # NEW: Update player's personal boss progression data
+                    # Add the defeated boss to the player's defeated_bosses list
+                    if active_boss_id not in p_data["boss_data"]["defeated_bosses"]:
+                        p_data["boss_data"]["defeated_bosses"].append(active_boss_id)
+
+                    # Update the player's personal boss progression level
+                    next_boss_id_for_player_progression = active_boss_info.get(
+                        "next_boss_unlock"
+                    )
+                    if next_boss_id_for_player_progression:
+                        p_data["boss_data"][
+                            "boss_progression_level"
+                        ] = next_boss_id_for_player_progression
+                    else:
+                        # If there's no next boss, you might want to set it to a terminal state
+                        # For example, None or a specific string like "All Bosses Defeated"
+                        p_data["boss_data"][
+                            "boss_progression_level"
+                        ] = None  # Or "All Bosses Defeated"
+
                     member_for_levelup = self.bot.get_user(int(p_id_str))
                     if member_for_levelup:
                         await self.bot.check_and_process_levelup(

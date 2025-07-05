@@ -210,7 +210,7 @@ ITEMS_DATA = {
         "emoji": "🔮",
         "consumable": True,
         "type": "summon_boss",
-        "boss_id_to_summon": "Colosso de Pedra",
+        "boss_id_to_summon": "colosso_de_pedra",
         "description": "Invoca o Colosso de Pedra para um desafio pessoal.",
     },
     "invocador_devorador_abissal": {
@@ -219,7 +219,7 @@ ITEMS_DATA = {
         "emoji": "🔮",
         "consumable": True,
         "type": "summon_boss",
-        "boss_id_to_summon": "Devorador Abissal",
+        "boss_id_to_summon": "devorador_abissal",
         "description": "Invoca o Devorador Abissal para um desafio personal.",
     },
     "invocador_inferno_guardiao": {
@@ -228,7 +228,7 @@ ITEMS_DATA = {
         "emoji": "🔮",
         "consumable": True,
         "type": "summon_boss",
-        "boss_id_to_summon": "Inferno Guardião",
+        "boss_id_to_summon": "inferno_guardiao",
         "description": "Invoca o Inferno Guardião para um desafio personal.",
     },
     "invocador_tita_esquecido": {
@@ -237,7 +237,7 @@ ITEMS_DATA = {
         "emoji": "🔮",
         "consumable": True,
         "type": "summon_boss",
-        "boss_id_to_summon": "Titã Esquecido",
+        "boss_id_to_summon": "tita_esquecido",
         "description": "Invoca o Titã Esquecido para um desafio personal.",
     },
     "invocador_arauto_das_sombras": {
@@ -246,7 +246,7 @@ ITEMS_DATA = {
         "emoji": "🔮",
         "consumable": True,
         "type": "summon_boss",
-        "boss_id_to_summon": "Arauto das Sombras",
+        "boss_id_to_summon": "arauto_das_sombras",
         "description": "Invoca o Arauto das Sombras para um desafio personal.",
     },
     "invocador_anomalia_dimensional": {
@@ -255,7 +255,7 @@ ITEMS_DATA = {
         "emoji": "🔮",
         "consumable": True,
         "type": "summon_boss",
-        "boss_id_to_summon": "Anomalia Dimensional",
+        "boss_id_to_summon": "anomalia_dimensional",
         "description": "Invoca a Anomalia Dimensional para um desafio personal.",
     },
     "invocador_sentinela_celestial": {
@@ -264,7 +264,7 @@ ITEMS_DATA = {
         "emoji": "🔮",
         "consumable": True,
         "type": "summon_boss",
-        "boss_id_to_summon": "Sentinela Celestial",
+        "boss_id_to_summon": "sentinela_celestial",
         "description": "Invoca a Sentinela Celestial para um desafio personal.",
     },
     "coleira_do_lobo": {
@@ -624,6 +624,8 @@ WORLD_MAP = {
         "conecta": ["Floresta Sussurrante"],
         "desc": "Um acampamento improvisado que serve de refúgio para os renegados.",
         "required_previous_boss": None,
+        "required_item": None,
+        "required_level": None,
     },
     "Floresta Sussurrante": {
         "name": "Floresta Sussurrante",
@@ -632,6 +634,8 @@ WORLD_MAP = {
         "conecta": ["Abrigo dos Foras-da-Lei", "Ruínas do Templo"],
         "desc": "Uma mata densa e perigosa, onde criaturas espreitam nas sombras.",
         "required_previous_boss": None,
+        "required_item": None,
+        "required_level": None,
     },
     "Ruínas do Templo": {
         "name": "Ruínas do Templo",
@@ -640,6 +644,8 @@ WORLD_MAP = {
         "conecta": ["Floresta Sussurrante", "Abismo Sombrio"],
         "desc": "Os restos de um antigo local de poder, agora habitado por guardiões de pedra.",
         "required_previous_boss": None,
+        "required_item": None,
+        "required_level": None,
     },
     "Abismo Sombrio": {
         "name": "Abismo Sombrio",
@@ -647,7 +653,9 @@ WORLD_MAP = {
         "emoji": "🕳️",
         "conecta": ["Ruínas do Templo", "Vale do Inferno"],
         "desc": "Um abismo sem fim, onde as sombras se tornam presas fáceis para predadores famintos.",
-        "required_previous_boss": "Colosso de Pedra",
+        "required_previous_boss": "colosso_de_pedra",  # CORRIGIDO: minúscula
+        "required_item": None,
+        "required_level": None,
     },
     "Vale do Inferno": {
         "name": "Vale do Inferno",
@@ -655,7 +663,9 @@ WORLD_MAP = {
         "emoji": "🔥",
         "conecta": ["Abismo Sombrio", "Templo Esquecido"],
         "desc": "Um vale escaldante cheio de fogo e criaturas que sobrevivem ao calor infernal.",
-        "required_previous_boss": "Devorador Abissal",
+        "required_previous_boss": "devorador_abissal",  # CORRIGIDO: minúscula
+        "required_item": None,
+        "required_level": None,
     },
     "Templo Esquecido": {
         "name": "Templo Esquecido",
@@ -663,7 +673,9 @@ WORLD_MAP = {
         "emoji": "🏯",
         "conecta": ["Vale do Inferno", "Portão das Sombras"],
         "desc": "Ruínas antigas de um templo perdido no tempo, protegido por entidades místicas.",
-        "required_previous_boss": "Inferno Guardião",
+        "required_previous_boss": "inferno_guardiao",  # CORRIGIDO: minúscula
+        "required_item": None,
+        "required_level": None,
     },
     "Portão das Sombras": {
         "name": "Portão das Sombras",
@@ -671,7 +683,9 @@ WORLD_MAP = {
         "emoji": "🚪",
         "conecta": ["Templo Esquecido", "Brecha das Terras"],
         "desc": "Um portal sombrio que conecta os mundos, guardado por forças obscuras.",
-        "required_previous_boss": "Titã Esquecido",
+        "required_previous_boss": "tita_esquecido",  # CORRIGIDO: minúscula
+        "required_item": None,
+        "required_level": None,
     },
     "Brecha das Terras": {
         "name": "Brecha das Terras",
@@ -679,7 +693,9 @@ WORLD_MAP = {
         "emoji": "🌌",
         "conecta": ["Portão das Sombras", "Paraíso"],
         "desc": "O ponto onde múltiplas realidades se encontram e o destino do mundo será decidido.",
-        "required_previous_boss": "Arauto das Sombras",
+        "required_previous_boss": "arauto_das_sombras",  # CORRIGIDO: minúscula
+        "required_item": None,
+        "required_level": None,
     },
     "Paraíso": {
         "name": "Paraíso",
@@ -687,7 +703,9 @@ WORLD_MAP = {
         "emoji": "🌟",
         "conecta": ["Brecha das Terras"],
         "desc": "O santuário sagrado onde a paz e a luz reinam supremos, mas guardado por seres celestiais poderosos.",
-        "required_previous_boss": "Anomalia Dimensional",
+        "required_previous_boss": "anomalia_dimensional",  # CORRIGIDO: minúscula
+        "required_item": None,
+        "required_level": None,
     },
 }
 
@@ -863,7 +881,7 @@ PROFILE_IMAGES = {
     "Curandeiro": "https://i.ibb.co/3Y1sqWcP/image.png",
     "Vampiro": "https://i.imgur.com/X0E6qQL.png",
     "Domador": "https://i.imgur.com/example_tamer.png",
-    "Corpo Seco": "https://imgs.search.brave.com/0-7XXiyDokmhrgN9p6TBkHv_Ah2SxtWlTCsHsNasvjU/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9zdGF0/aWMud2l4c3RhdGlj/LmNvbS9tZWRpYS8z/NzFhMTNfMzI2Njkx/MGRiNGU0NDA4Mzlk/YWIwZmNkZTg4ZTM3/ZWF-bXYyLmpwZy92/MS9jcm9wL3hfMCx5/XzMwNSx3XzE5MjAs/aF85MTUvZmlsbC93/XzYwMCxoXzI5MCxh/bF9jLHFfODAsdXNn/bV8wLjY2XzEuMDBf/MC4wMSxlbmNfYXZp/Zi9jb3Jwby1zZWNv/LmpwZw",
+    "Corpo Seco": "https://imgs.search.brave.com/0-7XXiyDokmhrgN9p6TBkHv_Ah2SxtWlTCsHsNasvjU/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9zdGF0/aWMud2l4c3RhdGlj/LmNvbS9tZWRpYS8z/NzFhMTNfMzI2Njkx/MGRiNGU0NDA4Mzlk/YWIwZmNkZTg4ZTM3/ZWF-bXYyLmpwZy92/MS9jcm9wL3hfMCx5/XzMwNSx3XzE5MjAs/aF8xMjIzL2ZpbGwv/d182MDAsaF8yOTAs/YWxfYyxxXzgwLHVz/Z21fMC42Nl8xLjAw/MC4wMSxlbmNfYXZp/Zi9jb3Jwby1zZWNv/LmpwZw",
     # Imagens das Transformações
     "Lâmina Fantasma": "https://i.imgur.com/CnDR7eP.png",
     "Punho de Aço": "https://i.imgur.com/mDsfNyi.png",
@@ -894,7 +912,7 @@ DEFAULT_PLAYER_BOSS_DATA = {
     "current_boss_id": None,
     "current_boss_hp": 0,
     "last_spawn_channel_id": None,
-    "boss_progression_level": "Colosso de Pedra",
+    "boss_progression_level": "colosso_de_pedra",  # CORRIGIDO: minúscula
     "defeated_bosses": [],
     "last_spawn_timestamp": 0,
 }
