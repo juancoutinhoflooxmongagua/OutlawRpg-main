@@ -132,14 +132,10 @@ def calculate_effective_stats(raw_player_data: dict) -> dict:
         effective_data["max_hp"] = int(
             effective_data["max_hp"] * 1.15
         )  # Ajustado de 1.25
-        effective_data["hp"] = min(
-            raw_player_data["hp"], effective_data["max_hp"]
-        )  # This line is not used in the return, but it is incorrect for effective_data.
+        # Removed: effective_data["hp"] = min(raw_player_data["hp"], effective_data["max_hp"]) # This line is not used in the return, but it is incorrect for effective_data.
     elif effective_data["class"] == "Corpo Seco":
         effective_data["max_hp"] = int(effective_data["max_hp"] * 1.50)
-        effective_data["hp"] = min(
-            raw_player_data["hp"], effective_data["max_hp"]
-        )  # This line is not used in the return, but it is incorrect for effective_data.
+        # Removed: effective_data["hp"] = min(raw_player_data["hp"], effective_data["max_hp"]) # This line is not used in the return, but it is incorrect for effective_data.
         effective_data["attack"] = int(effective_data["attack"] * 1.05)
         effective_data["special_attack"] = int(effective_data["special_attack"] * 1.05)
         effective_data["evasion_chance_bonus"] += 0.10

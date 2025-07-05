@@ -10,10 +10,10 @@
             "913864293697589278",
             "1366828187807645764"
         ],
-        "xp": 582,
-        "money": 590,
+        "xp": 1317,
+        "money": 495,
         "creation_timestamp": 1751675838,
-        "last_ranking_timestamp": 1751737778
+        "last_ranking_timestamp": 1751738635
     },
     "eeb7084a-a9e3-40c2-90af-26083dd3608f": {
         "id": "eeb7084a-a9e3-40c2-90af-26083dd3608f",
@@ -24,9 +24,9 @@
             "926892054154477620",
             "825053988629905479"
         ],
-        "money": 120,
-        "xp": 351,
+        "money": 40,
+        "xp": 117,
         "created_at": 1751688407,
-        "last_ranking_timestamp": 1751737787
+        "last_ranking_timestamp": 1751738627
     }
 }
