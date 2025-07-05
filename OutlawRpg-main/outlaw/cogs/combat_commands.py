@@ -330,6 +330,10 @@ class CombatCommands(commands.Cog):
             )
             return
 
+        # Set the channel ID for boss attacks to the current channel
+        if not current_boss_data.get("channel_id"):
+            current_boss_data["channel_id"] = i.channel.id
+
         if player_id not in current_boss_data.get("participants", []):
             current_boss_data["participants"].append(player_id)
 
