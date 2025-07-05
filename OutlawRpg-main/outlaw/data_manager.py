@@ -7,11 +7,12 @@ import os
 from config import (
     STARTING_LOCATION,
     BOSSES_DATA,
-    DEFAULT_PLAYER_BOSS_DATA,  # Keep this for player-specific boss data initialization
+    DEFAULT_PLAYER_BOSS_DATA,
     INITIAL_CLAN_DATA,
-    INITIAL_HP,  # Added for _initialize_player_defaults to use default HP if not set
-    INITIAL_ATTACK,  # Added for _initialize_player_defaults to use default attack if not set
-    INITIAL_SPECIAL_ATTACK,  # Added for _initialize_player_defaults to use default special attack if not set
+    INITIAL_HP,
+    INITIAL_ATTACK,
+    INITIAL_SPECIAL_ATTACK,
+    BOSS_PROGRESSION_ORDER,  # NEW: Import the boss progression order
 )
 
 # --- Configuração dos Caminhos ---
@@ -22,7 +23,7 @@ CLAN_DATA_FILE = os.path.join(SCRIPT_DIR, "clans_data.json")
 # --- Bancos de Dados em Memória ---
 player_database = {}
 clan_database = {}
-current_boss_data = {}  # Declare global current_boss_data here
+current_boss_data = {}
 
 # --- Funções Auxiliares Privadas ---
 
@@ -49,40 +50,45 @@ def _initialize_player_defaults(player_data: dict):
             if key not in player_data["boss_data"]:
                 player_data["boss_data"][key] = value
 
-    if player_data["boss_data"].get("boss_progression_level") is None:
-        if BOSSES_DATA:
-            player_data["boss_data"]["boss_progression_level"] = list(
-                BOSSES_DATA.keys()
-            )[0]
-        else:
-            player_data["boss_data"]["boss_progression_level"] = "Nenhum Boss Definido"
+    # NEW: Re-evaluate and set boss_progression_level based on defeated bosses
+    player_defeated_bosses = player_data["boss_data"].get("defeated_bosses", [])
+    current_progression_level = None
+    for boss_id in BOSS_PROGRESSION_ORDER:
+        if boss_id not in player_defeated_bosses:
+            current_progression_level = boss_id
+            break
+    # If all bosses are defeated, or no bosses are defined, set to None or a default
+    if current_progression_level is None and BOSS_PROGRESSION_ORDER:
+        # If all predefined bosses are defeated, set to the last boss or a terminal state
+        current_progression_level = BOSS_PROGRESSION_ORDER[
+            -1
+        ]  # Can be changed to None if there's no "after-last-boss" state
+    elif not BOSS_PROGRESSION_ORDER:
+        current_progression_level = (
+            "Nenhum Boss Definido"  # Or handle as appropriate if no bosses exist
+        )
+
+    player_data["boss_data"]["boss_progression_level"] = current_progression_level
 
     # Ensure base stats are present for calculate_effective_stats to work correctly
     if "base_attack" not in player_data:
         player_data["base_attack"] = INITIAL_ATTACK
     if "base_special_attack" not in player_data:
         player_data["base_special_attack"] = INITIAL_SPECIAL_ATTACK
-    if "max_hp" not in player_data:  # Ensure max_hp exists as a base value
+    if "max_hp" not in player_data:
         player_data["max_hp"] = INITIAL_HP
-    if "hp" not in player_data:  # Ensure hp exists
-        player_data["hp"] = player_data["max_hp"]  # Set initial hp to base max_hp
+    if "hp" not in player_data:
+        player_data["hp"] = player_data["max_hp"]
 
-    # Removed: The line `player_data["max_hp"] = effective_stats_on_load["max_hp"]`
-    # This was causing double application of multipliers.
-    # player_data["max_hp"] should store the base value + flat bonuses only.
-
-    # Ensure current HP is capped by the calculated effective max_hp (after all multipliers)
-    # This now relies on calculate_effective_stats being called where actual HP is set/capped.
-    # This line ensures consistency on load, but actual cap during gameplay relies on specific commands.
     if player_data.get("hp") is not None and player_data.get("max_hp") is not None:
         from utils import (
             calculate_effective_stats,
-        )  # Local import to avoid circular dependency
+        )
 
         effective_max_hp = calculate_effective_stats(player_data)["max_hp"]
         player_data["hp"] = min(player_data["hp"], effective_max_hp)
     elif player_data.get("hp") is None:
-        from utils import calculate_effective_stats  # Local import
+        from utils import calculate_effective_stats
 
         effective_max_hp = calculate_effective_stats(player_data)["max_hp"]
         player_data["hp"] = effective_max_hp
@@ -102,29 +108,24 @@ def _initialize_clan_defaults(clan_data: dict, clan_id: str):
 def load_data():
     """Carrega os dados dos jogadores e o estado global do boss do arquivo JSON e inicializa os padrões."""
     global player_database
-    global current_boss_data  # Make sure to declare global
+    global current_boss_data
     try:
         with open(PLAYER_DATA_FILE, "r", encoding="utf-8") as f:
-            full_data = json.load(f)  # Load the entire file content
-            player_database.clear()  # Clear existing data
-            player_database.update(
-                full_data.get("player_data", {})
-            )  # Load player data from 'player_data' key
+            full_data = json.load(f)
+            player_database.clear()
+            player_database.update(full_data.get("player_data", {}))
 
-            current_boss_data.clear()  # Clear existing data
-            # Load global boss state from 'global_boss_state' key
+            current_boss_data.clear()
             global_boss_state_loaded = full_data.get("global_boss_state", {})
             current_boss_data.update(global_boss_state_loaded)
 
-        # Initialize player defaults for all loaded players
         for player_data_item in player_database.values():
             _initialize_player_defaults(player_data_item)
 
-        # Initialize global current_boss_data if it was empty after loading
+        # NEW: Initialize global current_boss_data using BOSS_PROGRESSION_ORDER
         if not current_boss_data or not current_boss_data.get("active_boss_id"):
-            if BOSSES_DATA:
-                # Default to the first boss in BOSSES_DATA
-                first_boss_id = list(BOSSES_DATA.keys())[0]
+            if BOSS_PROGRESSION_ORDER and BOSSES_DATA:
+                first_boss_id = BOSS_PROGRESSION_ORDER[0]
                 current_boss_data.update(
                     {
                         "active_boss_id": first_boss_id,
@@ -134,7 +135,7 @@ def load_data():
                     }
                 )
             else:
-                current_boss_data.clear()  # Ensure it's empty if no bosses are defined
+                current_boss_data.clear()
 
     except FileNotFoundError:
         print(
@@ -157,7 +158,6 @@ def load_clan_data():
         with open(CLAN_DATA_FILE, "r", encoding="utf-8") as f:
             clan_database.clear()
             clan_database.update(json.load(f))
-        # Garante que todos os clãs carregados tenham os campos padrão
         for clan_id, clan_data_item in clan_database.items():
             _initialize_clan_defaults(clan_data_item, clan_id)
     except FileNotFoundError:
@@ -178,7 +178,7 @@ def save_data():
     try:
         data_to_save = {
             "player_data": player_database,
-            "global_boss_state": current_boss_data,  # Save the global boss state
+            "global_boss_state": current_boss_data,
         }
         with open(PLAYER_DATA_FILE, "w", encoding="utf-8") as f:
             json.dump(data_to_save, f, indent=4)
@@ -207,13 +207,11 @@ def get_player_data(user_id: int | str) -> dict | None:
     player_data = player_database.get(user_id_str)
 
     if player_data:
-        # Garante a consistência dos dados sempre que um jogador é acessado
         _initialize_player_defaults(player_data)
 
     return player_data
 
 
 # --- Carregamento Inicial ---
-# Carrega os dados dos arquivos para a memória quando o módulo é importado pela primeira vez.
 load_data()
 load_clan_data()

@@ -1,3 +1,4 @@
+# File: outlawrpg-main/OutlawRpg-main-c997af1f3c14b1b3db469cf3d1fe16d4e78e6654/OutlawRpg-main/outlaw/views/profile_view.py
 import discord
 from discord import ui, ButtonStyle, Interaction, Embed, Color
 from datetime import datetime
@@ -30,7 +31,7 @@ class ProfileView(ui.View):
         super().__init__(timeout=180)
         self.user = user
         self.bot_user = bot_user
-        self.original_interaction = original_interaction
+        self.original_interaction = original_interaction  # Keep this if needed for other purposes, but not for editing the message the buttons are on.
 
     @staticmethod
     def create_xp_bar(current_xp: int, needed_xp: int, length: int = 15) -> str:
@@ -279,10 +280,11 @@ class ProfileView(ui.View):
     )
     async def profile_button(self, interaction: Interaction, button: ui.Button):
         self._disable_all_buttons_except(button)
-        await self.original_interaction.edit_original_response(
+        # CORREÇÃO: Deferir a interação do botão e usar a interação deferida para editar a mensagem.
+        await interaction.response.defer()
+        await interaction.edit_original_response(
             embed=self.create_profile_embed(), view=self
         )
-        await interaction.response.defer()
 
     @ui.button(
         label="Inventário",
@@ -291,10 +293,11 @@ class ProfileView(ui.View):
     )
     async def inventory_button(self, interaction: Interaction, button: ui.Button):
         self._disable_all_buttons_except(button)
-        await self.original_interaction.edit_original_response(
+        # CORREÇÃO: Deferir a interação do botão e usar a interação deferida para editar a mensagem.
+        await interaction.response.defer()
+        await interaction.edit_original_response(
             embed=self.create_inventory_embed(), view=self
         )
-        await interaction.response.defer()
 
     @ui.button(
         label="Recursos",
@@ -303,10 +306,11 @@ class ProfileView(ui.View):
     )
     async def resources_button(self, interaction: Interaction, button: ui.Button):
         self._disable_all_buttons_except(button)
-        await self.original_interaction.edit_original_response(
+        # CORREÇÃO: Deferir a interação do botão e usar a interação deferida para editar a mensagem.
+        await interaction.response.defer()
+        await interaction.edit_original_response(
             embed=self.create_resources_embed(), view=self
         )
-        await interaction.response.defer()
 
     @ui.button(
         label="Registro & Boosts",
@@ -315,10 +319,11 @@ class ProfileView(ui.View):
     )
     async def record_boosts_button(self, interaction: Interaction, button: ui.Button):
         self._disable_all_buttons_except(button)
-        await self.original_interaction.edit_original_response(
+        # CORREÇÃO: Deferir a interação do botão e usar a interação deferida para editar a mensagem.
+        await interaction.response.defer()
+        await interaction.edit_original_response(
             embed=self.create_record_boosts_embed(), view=self
         )
-        await interaction.response.defer()
 
     def _disable_all_buttons_except(self, current_button: ui.Button):
         """Ajuda a desativar todos os botões na view, exceto o clicado."""

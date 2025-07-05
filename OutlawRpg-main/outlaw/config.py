@@ -35,7 +35,7 @@ CLAN_KILL_CONTRIBUTION_PERCENTAGE_MONEY = (
 )
 
 CUSTOM_EMOJIS = {
-    "espada_rpg": "<:espada_rpg:123456789012345678>",  # Substitua pelo ID real
+    "espada_rpg": "<:EspadasDuplas:1391079572006637618>",  # Substitua pelo ID real
     "moeda_ouro": "<:moeda_ouro:9876543210998765432>",  # Substitua pelo ID real
     "hp_icon": "<a:heartbeat_anim:1391079654638489660>",  # Substitua pelo ID real
     "transform": "<a:aura:1389688598139371631>",  # Exemplo de gif/emoji animado
@@ -47,19 +47,19 @@ CUSTOM_EMOJIS = {
     "clan_icon": "🛡️",
     "leader_icon": "👑",
     "member_icon": "👥",
-    "trophy_icon": "🏆",
+    "trophy_icon": "<a:win:1389688665688768592> ",
     "money_icon": "💰",
-    "xp_icon": "✨",
+    "xp_icon": "<a:Special:1391079516788756600> ",
     # Emojis faltantes usados em profile_view.py
     "class_icon": "🎭",  # Placeholder
     "level_icon": "<:Stats:1391079676650328097>",  # Placeholder
     "location_icon": "📍",  # Placeholder
     "status_icon": "📊",  # Placeholder
     "attack_icon": "🗡️",  # Placeholder
-    "special_attack_icon": "✨",  # Placeholder
+    "special_attack_icon": "<a:Special:1391079516788756600> ",  # Placeholder
     "energy_icon": "⚡",  # Placeholder
     "attribute_points_icon": "💎",  # Placeholder
-    "kills_icon": "⚔️",  # Placeholder
+    "kills_icon": "<:Saber:1391079549302734960>",  # Placeholder
     "deaths_icon": "☠️",  # Placeholder
     "bounty_icon": "🏴‍☠️",  # Placeholder
     "xp_boost_icon": "🚀",  # Placeholder
@@ -74,10 +74,10 @@ CUSTOM_EMOJIS = {
     "button_resources_icon": "⚡",  # Para o botão "Recursos"
     "button_record_boosts_icon": "🏆",  # Para o botão "Registro & Boosts"
     # NOVOS: Emojis para os cabeçalhos de campo nos embeds (opcional)
-    "combat_header_icon": "⚔️",  # Para o título "Combate"
+    "combat_header_icon": "<:EspadasDuplas:1391079572006637618> ",  # Para o título "Combate"
     "active_effects_header_icon": "✨",  # Para o título "Efeitos Ativos"
     "resources_header_icon": "⚙️",  # Para o título "Seus Recursos"
-    "journey_header_icon": "🏆",  # Para o título "Sua Jornada"
+    "journey_header_icon": "<a:win:1389688665688768592> ",  # Para o título "Sua Jornada"
 }
 
 
@@ -291,7 +291,7 @@ ITEMS_DATA = {
     },
     "coracao_do_universo": {
         "name": "Coração do Universo",
-        "price": 500000,
+        "price": 5000000,
         "emoji": "💖",
         "consumable": False,
         "type": "unique_passive",
@@ -888,9 +888,9 @@ LEVEL_ROLES = {
     2: 1389604381069938738,
     5: 1389604398103269376,
     10: 1389604405078134894,
-    20: 1389604420702048417,
-    35: 1389604431317827604,
-    50: 1389604749233487923,
+    30: 1389604420702048417,
+    100: 1389604431317827604,
+    350: 1389604749233487923,
 }
 
 NEW_CHARACTER_ROLE_ID = 1388628499182518352
@@ -903,6 +903,17 @@ DEFAULT_PLAYER_BOSS_DATA = {
     "defeated_bosses": [],
     "last_spawn_timestamp": 0,
 }
+
+BOSS_PROGRESSION_ORDER = [
+    "colosso_de_pedra",
+    "devorador_abissal",
+    "inferno_guardiao",
+    "tita_esquecido",
+    "arauto_das_sombras",
+    "anomalia_dimensional",
+    "sentinela_celestial",
+]
+
 
 CLAN_REWARD_ANNOUNCEMENT_CHANNEL_ID = 1387231221616087141
 BOSS_ANNOUNCEMENT_CHANNEL_ID = 987654321098765432
