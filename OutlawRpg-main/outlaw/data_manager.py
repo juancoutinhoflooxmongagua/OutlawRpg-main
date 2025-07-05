@@ -1,10 +1,12 @@
-# File: outlawrpg-main/OutlawRpg-main-36e5d19755e4ada9ae83f9bedc4d3bc8d5a64ec6/OutlawRpg-main/outlaw/data_manager.py
-# data_manager.py
+# File: OutlawRpg-main/outlaw/data_manager.py
+# Este arquivo foi atualizado para incluir o sistema de relíquias e chaves.
+
 import json
 import os
+import time
 
 # Importa as configurações necessárias
-from config import (
+from outlaw.config import (  # Prefixo 'outlaw.' adicionado para imports relativos
     STARTING_LOCATION,
     BOSSES_DATA,
     DEFAULT_PLAYER_BOSS_DATA,
@@ -12,7 +14,7 @@ from config import (
     INITIAL_HP,
     INITIAL_ATTACK,
     INITIAL_SPECIAL_ATTACK,
-    BOSS_PROGRESSION_ORDER,  # NEW: Import the boss progression order
+    BOSS_PROGRESSION_ORDER,
 )
 
 # --- Configuração dos Caminhos ---
@@ -81,17 +83,28 @@ def _initialize_player_defaults(player_data: dict):
         player_data["hp"] = player_data["max_hp"]
 
     if player_data.get("hp") is not None and player_data.get("max_hp") is not None:
-        from utils import (
-            calculate_effective_stats,
-        )
+        # Import moved to inside function to avoid circular dependency if utils imports data_manager
+        from outlaw.utils import calculate_effective_stats
 
         effective_max_hp = calculate_effective_stats(player_data)["max_hp"]
         player_data["hp"] = min(player_data["hp"], effective_max_hp)
     elif player_data.get("hp") is None:
-        from utils import calculate_effective_stats
+        from outlaw.utils import calculate_effective_stats
 
         effective_max_hp = calculate_effective_stats(player_data)["max_hp"]
         player_data["hp"] = effective_max_hp
+
+    # NOVOS CAMPOS PARA O SISTEMA DE BAÚS E RELÍQUIAS
+    if "keys" not in player_data:
+        player_data["keys"] = 0
+    if "last_key_claim_time" not in player_data:
+        player_data["last_key_claim_time"] = 0  # Unix timestamp
+    if "relics_inventory" not in player_data:
+        player_data["relics_inventory"] = []  # Lista de strings com nomes das relíquias
+    if "money" not in player_data:  # Certifica que o campo money existe
+        player_data["money"] = 0
+    if "energy" not in player_data:  # Certifica que o campo energy existe
+        player_data["energy"] = 0
 
 
 def _initialize_clan_defaults(clan_data: dict, clan_id: str):
@@ -195,21 +208,109 @@ def save_clan_data():
         print(f"ERRO CRÍTICO: Não foi possível salvar os dados do clã: {e}")
 
 
-# --- Funções de Acesso a Dados ---
+# --- Funções de Acesso a Dados (Modificadas para usar player_database) ---
 
 
 def get_player_data(user_id: int | str) -> dict | None:
     """
-    Recupera os dados de um jogador do banco de dados, garantindo que
-    todos os campos padrão estejam inicializados.
+    Recupera os dados de um jogador do banco de dados em memória (player_database),
+    garantindo que todos os campos padrão estejam inicializados.
+    Se 'all', retorna o dicionário completo player_database.
     """
     user_id_str = str(user_id)
-    player_data = player_database.get(user_id_str)
 
-    if player_data:
-        _initialize_player_defaults(player_data)
+    if user_id_str == "all":  # Adicionado para a tarefa de geração de chaves
+        return player_database  # Retorna a referência ao dicionário global
 
-    return player_data
+    if user_id_str not in player_database:
+        # Inicializa o perfil do jogador e o adiciona ao player_database
+        player_database[user_id_str] = {}
+        _initialize_player_defaults(player_database[user_id_str])
+        save_data()  # Salva imediatamente para persistir o novo usuário
+        return player_database[user_id_str]  # Retorna o perfil recém-criado
+
+    # Se o jogador já existe, apenas garante que os padrões estejam inicializados
+    _initialize_player_defaults(player_database[user_id_str])
+    return player_database[user_id_str]
+
+
+def update_user_data(user_id: int | str, key: str, value: any):
+    """
+    Atualiza um campo específico para um usuário no banco de dados em memória
+    e persiste a mudança no arquivo JSON.
+    """
+    user_id_str = str(user_id)
+    if user_id_str not in player_database:
+        # Garante que o usuário existe e está inicializado
+        get_player_data(
+            user_id
+        )  # Isso irá criar e inicializar o usuário se ele não existir
+
+    player_database[user_id_str][key] = value
+    save_data()  # Persiste a alteração
+
+
+def add_relic_to_inventory(user_id: int | str, relic_name: str):
+    """Adiciona uma relíquia ao inventário do usuário."""
+    user_data = get_player_data(
+        user_id
+    )  # Garante que o usuário e 'relics_inventory' existem
+    if not isinstance(user_data.get("relics_inventory"), list):
+        user_data["relics_inventory"] = []  # Garante que é uma lista
+    user_data["relics_inventory"].append(relic_name)
+    save_data()
+
+
+def add_user_money(user_id: int | str, amount: int):
+    """Adiciona dinheiro ao usuário."""
+    user_data = get_player_data(user_id)
+    current_money = user_data.get("money", 0)
+    user_data["money"] = current_money + amount
+    save_data()
+
+
+def add_user_energy(user_id: int | str, amount: int):
+    """Adiciona energia ao usuário."""
+    user_data = get_player_data(user_id)
+    current_energy = user_data.get("energy", 0)
+    user_data["energy"] = current_energy + amount
+    save_data()
+
+
+def check_and_add_keys(user_id: int | str):
+    """
+    Verifica se o usuário pode reivindicar chaves e as adiciona.
+    Retorna o número de chaves adicionadas.
+    """
+    user_data = get_player_data(user_id)
+    current_time = time.time()
+    one_hour_in_seconds = 3600  # 1 hora = 3600 segundos
+
+    last_claim = user_data.get("last_key_claim_time", 0)
+    if not isinstance(last_claim, (int, float)):  # Sanity check for old/corrupted data
+        last_claim = 0
+
+    if current_time - last_claim >= one_hour_in_seconds:
+        keys_to_add = 5
+        user_data["keys"] = user_data.get("keys", 0) + keys_to_add
+        user_data["last_key_claim_time"] = current_time
+        save_data()  # Salva o estado atualizado do usuário
+        return keys_to_add
+    return 0
+
+
+def get_time_until_next_key_claim(user_id: int | str):
+    """Retorna o tempo restante em segundos para a próxima reivindicação de chaves."""
+    user_data = get_player_data(user_id)
+    current_time = time.time()
+    last_claim = user_data.get("last_key_claim_time", 0)
+    one_hour_in_seconds = 3600
+
+    time_since_last_claim = current_time - last_claim
+    if time_since_last_claim >= one_hour_in_seconds:
+        return 0  # Já pode reivindicar
+    else:
+        return one_hour_in_seconds - time_since_last_claim
 
 
 # --- Carregamento Inicial ---

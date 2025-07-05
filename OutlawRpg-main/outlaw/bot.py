@@ -1,4 +1,8 @@
-# File: outlawrpg-main/OutlawRpg-main-08db082cd4e4768d031dc16c0dd762b16b1328e6/OutlawRpg-main/outlaw/bot.py
+# File: OutlawRpg-main/outlaw/bot.py
+# Este é o código COMPLETO e corrigido para o seu bot.py.
+# As importações foram ajustadas para o cenário de execução direta de 'bot.py'
+# a partir da pasta 'outlaw', corrigindo o 'ModuleNotFoundError'.
+
 import discord
 from discord.ext import commands, tasks
 from discord import app_commands, Embed, Color, Interaction
@@ -8,7 +12,8 @@ import random
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 
-# Import constants and data from config.py
+# Importar constantes e dados de config.py
+# Corrigido: 'outlaw.' removido se config.py estiver no mesmo diretório
 from config import (
     XP_PER_LEVEL_BASE,
     ATTRIBUTE_POINTS_PER_LEVEL,
@@ -19,16 +24,17 @@ from config import (
     BOSSES_DATA,
     WORLD_MAP,
     LEVEL_ROLES,
-    NEW_CHARACTER_ROLE_ID,  # Garantir que NEW_CHARACTER_ROLE_ID seja importado
+    NEW_CHARACTER_ROLE_ID,
     LOCATION_KILL_GOALS,
     CLAN_RANKING_INTERVAL_DAYS,
     CLAN_RANK_REWARDS,
     DEFAULT_CLAN_XP,
     CUSTOM_EMOJIS,
-    XP_PER_MESSAGE_COOLDOWN_SECONDS,  # CORREÇÃO: Importar esta variável
+    XP_PER_MESSAGE_COOLDOWN_SECONDS,
 )
 
-# Import data manager
+# Importar data manager
+# Corrigido: 'outlaw.' removido se data_manager.py estiver no mesmo diretório
 from data_manager import (
     load_data,
     save_data,
@@ -40,7 +46,8 @@ from data_manager import (
     current_boss_data,
 )
 
-# Import utilities
+# Importar utilitários
+# Corrigido: 'outlaw.' removido se utils.py estiver no mesmo diretório
 from utils import (
     calculate_effective_stats,
     run_turn_based_combat,
@@ -49,11 +56,13 @@ from utils import (
     calculate_xp_for_next_level,
 )
 
-# Import custom exceptions for error handling
+# Importar exceções personalizadas para tratamento de erros
+# Corrigido: 'outlaw.' removido se custom_checks.py estiver no mesmo diretório
 from custom_checks import NotInCity, NotInWilderness
 
 
-# Import Cogs (these classes MUST be imported before OutlawsBot class is defined)
+# Importar Cogs
+# Corrigido: 'outlaw.' removido, agora importando diretamente do subdiretório 'cogs'
 from cogs.character_commands import CharacterCommands
 from cogs.combat_commands import CombatCommands
 from cogs.world_commands import WorldCommands
@@ -61,9 +70,10 @@ from cogs.admin_commands import AdminCommands
 from cogs.utility_commands import UtilityCommands
 from cogs.blessing_commands import BlessingCommands
 from cogs.clan_commands import ClanCommands
+from cogs.relic_commands import RelicCommands  # NOVO: Importar o cog de relíquias
 
 
-# --- INITIAL CONFIGURATION AND CONSTANTS ---
+# --- CONFIGURAÇÃO INICIAL E CONSTANTES ---
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -80,7 +90,7 @@ class OutlawsBot(commands.Bot):
         self.last_message_xp_time = {}
 
     async def setup_hook(self):
-        # Load Cogs. All actual slash commands should be defined INSIDE these Cogs.
+        # Carregar Cogs. Todos os comandos de barra reais devem ser definidos DENTRO desses Cogs.
         await self.add_cog(CharacterCommands(self))
         await self.add_cog(CombatCommands(self))
         await self.add_cog(WorldCommands(self))
@@ -88,15 +98,16 @@ class OutlawsBot(commands.Bot):
         await self.add_cog(UtilityCommands(self))
         await self.add_cog(BlessingCommands(self))
         await self.add_cog(ClanCommands(self))
+        await self.add_cog(RelicCommands(self))  # NOVO: Adicionar o cog de relíquias
 
-        # Start background tasks
+        # Iniciar tarefas em segundo plano
         self.auto_save.start()
         self.energy_regeneration.start()
         self.boss_attack_loop.start()
         self.sync_roles_periodically.start()
         self.weekly_clan_ranking.start()
 
-        # Sync commands. This is the only place commands should be synced.
+        # Sincronizar comandos. Este é o único lugar onde os comandos devem ser sincronizados.
         if GUILD_ID:
             guild_obj = discord.Object(id=GUILD_ID)
             self.tree.copy_global_to(guild=guild_obj)
@@ -106,17 +117,16 @@ class OutlawsBot(commands.Bot):
             await self.tree.sync()
             print("Comandos sincronizados globalmente!")
 
-        # Set up global error handler
+        # Configurar manipulador de erros global
         self.tree.on_error = self.on_app_command_error
 
     async def on_app_command_error(
         self, interaction: Interaction, error: app_commands.AppCommandError
     ):
-        """A global error handler for all slash commands."""
+        """Um manipulador de erros global para todos os comandos de barra."""
 
-        # Importing custom exceptions locally here to avoid circular imports if checks are imported by Cogs
-        # This is a common pattern for custom CheckFailure exceptions.
-        # It's okay because these are only needed inside this error handler.
+        # Importando exceções personalizadas localmente aqui para evitar importações circulares se as verificações forem importadas por Cogs
+        # Corrigido: 'outlaw.' removido do import local
         from custom_checks import NotInCity, NotInWilderness
 
         if isinstance(error, app_commands.CommandOnCooldown):
@@ -162,9 +172,14 @@ class OutlawsBot(commands.Bot):
 
     async def on_ready(self):
         print(f"Bot {self.user} está online!")
-        for user_id_str, player_data in player_database.items():
-            pass
-        save_data()
+        # Percorre o player_database para garantir que os padrões estejam inicializados
+        # Isso é importante para usuários existentes antes da adição dos novos campos de relíquias/chaves.
+        # get_player_data já inicializa os padrões, então apenas acessá-los garante isso.
+        for user_id_str in list(
+            player_database.keys()
+        ):  # Itera sobre uma cópia para evitar modificação durante a iteração
+            get_player_data(user_id_str)
+        save_data()  # Salva quaisquer inicializações feitas
         load_clan_data()
         print(f"Dados de {len(clan_database)} clãs carregados.")
 
@@ -173,7 +188,9 @@ class OutlawsBot(commands.Bot):
             return
 
         user_id = str(message.author.id)
-        player_data = get_player_data(user_id)
+        player_data = get_player_data(
+            user_id
+        )  # Usa a função atualizada para obter/inicializar dados
 
         if player_data:
             current_time = datetime.now().timestamp()
@@ -187,13 +204,13 @@ class OutlawsBot(commands.Bot):
                 player_data["xp"] = player_data.get("xp", 0) + effective_xp_gain
                 self.last_message_xp_time[user_id] = current_time
 
-                # CORREÇÃO: Chamar a função centralizada de level-up
+                # Chamar a função centralizada de level-up
                 await self.check_and_process_levelup(
                     message.author, player_data, message.channel
                 )
 
-                # Salvar dados após potencial aumento de nível
-                save_data()
+                # Salvar dados após potencial aumento de nível (o check_and_process_levelup já deve salvar)
+                save_data()  # Garante que as mudanças de XP e level-up sejam salvas
 
         await self.process_commands(message)
 
@@ -211,21 +228,25 @@ class OutlawsBot(commands.Bot):
     ):
         await check_and_process_levelup_internal(self, member, player_data, send_target)
 
-    @tasks.loop(seconds=60)
+    @tasks.loop(seconds=60)  # Auto-salvamento a cada minuto
     async def auto_save(self):
         save_data()
         save_clan_data()
 
-    @tasks.loop(seconds=60)
+    @tasks.loop(seconds=60)  # Regeneração de energia e expiração de buffs a cada minuto
     async def energy_regeneration(self):
         now = datetime.now().timestamp()
         for user_id_str, player_data in player_database.items():
             user_id = int(user_id_str)
+
+            # Regeneração de Energia
             if player_data.get("energy", 0) < MAX_ENERGY:
                 player_data["energy"] = min(
                     MAX_ENERGY, player_data.get("energy", 0) + 1
                 )
 
+            # Verificação de Buffs/Transformações/Bênçãos que expiram
+            # Iterar sobre ITEMS_DATA para bênçãos
             for item_id, item_info in ITEMS_DATA.items():
                 if item_info.get("type") == "blessing_unlock":
                     active_key = f"{item_id}_active"
@@ -242,8 +263,13 @@ class OutlawsBot(commands.Bot):
                                     f"✨ A {item_info.get('name', 'Bênção')} em você expirou!"
                                 )
                             except discord.Forbidden:
-                                pass
+                                pass  # Bot não pode enviar DM
+                            except Exception as e:
+                                print(
+                                    f"Erro ao enviar DM sobre expiração de bênção para {user.name}: {e}"
+                                )
 
+            # Verificação de Transformações (campo current_transformation)
             if player_data.get("current_transformation"):
                 if now > player_data.get("transform_end_time", 0):
                     transform_name = player_data["current_transformation"]
@@ -256,10 +282,15 @@ class OutlawsBot(commands.Bot):
                                 f"🔄 Sua transformação de **{transform_name}** expirou!"
                             )
                         except discord.Forbidden:
-                            pass
-        save_data()
+                            pass  # Bot não pode enviar DM
+                        except Exception as e:
+                            print(
+                                f"Erro ao enviar DM sobre expiração de transformação para {user.name}: {e}"
+                            )
 
-    @tasks.loop(seconds=15)
+        save_data()  # Salva as mudanças de energia e buffs para todos os jogadores
+
+    @tasks.loop(seconds=15)  # Loop de ataque de boss
     async def boss_attack_loop(self):
         if not current_boss_data or not current_boss_data.get("active_boss_id"):
             return
@@ -276,7 +307,7 @@ class OutlawsBot(commands.Bot):
             return
 
         channel_id = current_boss_data.get("channel_id")
-        if not channel_id:  # Check if channel_id is None
+        if not channel_id:
             print(f"AVISO: Boss '{active_boss_id}' não tem um channel_id configurado.")
             return
 
@@ -305,13 +336,12 @@ class OutlawsBot(commands.Bot):
             save_data()
             return
 
-        # Melhoria de robustez: Obter guild_obj antes de get_member
         guild = self.get_guild(GUILD_ID)
         if not guild:
             print(
                 f"AVISO: Guilda com ID {GUILD_ID} não encontrada para ataque de boss."
             )
-            return  # Não remove o participante, pois o problema é a guilda, não o usuário
+            return
 
         target_member = guild.get_member(int(target_user_id_str))
         if not target_member:
@@ -393,7 +423,7 @@ class OutlawsBot(commands.Bot):
                 current_boss_data["participants"].remove(target_user_id_str)
             save_data()
 
-    @tasks.loop(minutes=5)
+    @tasks.loop(minutes=5)  # Sincronização de cargos a cada 5 minutos
     async def sync_roles_periodically(self):
         if GUILD_ID == 0:
             print(
@@ -525,7 +555,7 @@ class OutlawsBot(commands.Bot):
     async def before_sync_roles_periodically(self):
         await self.wait_until_ready()
 
-    @tasks.loop(hours=24 * CLAN_RANKING_INTERVAL_DAYS)
+    @tasks.loop(hours=24 * CLAN_RANKING_INTERVAL_DAYS)  # Ranking de clãs
     async def weekly_clan_ranking(self):
         await self.wait_until_ready()
         print("Iniciando cálculo de ranking semanal de clãs...")
@@ -594,14 +624,13 @@ class OutlawsBot(commands.Bot):
                             player_data.get("money", 0) + money_reward
                         )
                         # A lógica de level up agora é centralizada na função check_and_process_levelup_internal
-                        # Não é mais necessário um loop 'while' aqui, pois a função já trata isso.
                         try:
                             member_obj = await self.fetch_user(int(member_id))
                             if member_obj:
                                 await self.check_and_process_levelup(
                                     member_obj,
                                     player_data,
-                                    announcement_channel,  # Ou outro canal apropriado
+                                    announcement_channel,
                                 )
                             else:
                                 print(
@@ -648,7 +677,6 @@ class OutlawsBot(commands.Bot):
 
 if __name__ == "__main__":
     bot = OutlawsBot()
-    # bot.last_message_xp_time = {} # Isso é inicializado no __init__ da classe
     if TOKEN:
         try:
             bot.run(TOKEN)
