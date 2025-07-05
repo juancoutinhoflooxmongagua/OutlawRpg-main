@@ -1,3 +1,4 @@
+# File: outlawrpg-main/OutlawRpg-main-36e5d19755e4ada9ae83f9bedc4d3bc8d5a64ec6/OutlawRpg-main/outlaw/cogs/world_commands.py
 import discord
 from discord.ext import commands
 from discord import app_commands, Embed, Color, Interaction
@@ -317,15 +318,18 @@ class WorldCommands(commands.Cog):
             return
 
         if item_info.get("type") == "healing":
+            player_effective_stats = calculate_effective_stats(
+                raw_player_data
+            )  # Get effective stats
             raw_player_data["hp"] = min(
-                raw_player_data.get("max_hp", 1),
+                player_effective_stats.get("max_hp", 1),  # Use effective max_hp as cap
                 raw_player_data.get("hp", 0) + item_info.get("heal", 0),
             )
             raw_player_data.setdefault("inventory", {})[item_id] = (
                 raw_player_data.get("inventory", {}).get(item_id, 0) - 1
             )
             await i.response.send_message(
-                f"{item_info.get('emoji')} Você usou uma {item_info.get('name')} e recuperou {item_info.get('heal',0)} HP! Vida atual: `{raw_player_data.get('hp',0)}/{raw_player_data.get('max_hp',1)}`."
+                f"{item_info.get('emoji')} Você usou uma {item_info.get('name')} e recuperou {item_info.get('heal',0)} HP! Vida atual: `{raw_player_data.get('hp',0)}/{player_effective_stats.get('max_hp',1)}`."  # Use effective max_hp in display
             )
         elif item_info.get("type") == "summon_boss":  # Corrected item type check
             if current_boss_data.get("active_boss_id"):
@@ -345,6 +349,26 @@ class WorldCommands(commands.Cog):
                 return
 
             summoned_boss_info = BOSSES_DATA.get(boss_to_summon_id)
+
+            # --- FIX: Boss Summoning Logic ---
+            player_progression_boss = raw_player_data["boss_data"].get(
+                "boss_progression_level"
+            )
+            player_defeated_bosses = raw_player_data["boss_data"].get(
+                "defeated_bosses", []
+            )
+
+            # Allow summoning if it's the current progression boss OR a previously defeated boss
+            if not (
+                boss_to_summon_id == player_progression_boss
+                or boss_to_summon_id in player_defeated_bosses
+            ):
+                await i.response.send_message(
+                    f"Este invocador ainda não está disponível para você progredir ou você não o derrotou ainda. Você precisa derrotar o **{player_progression_boss}** para desbloquear o próximo, ou este é um boss que você ainda não derrotou.",
+                    ephemeral=True,
+                )
+                return
+            # --- END FIX ---
 
             current_boss_data["active_boss_id"] = (
                 boss_to_summon_id  # Store the ID, not the name
@@ -405,7 +429,9 @@ class WorldCommands(commands.Cog):
             )
             return
 
-        target_stats = calculate_effective_stats(raw_target_data)
+        target_stats = calculate_effective_stats(
+            raw_target_data
+        )  # Get effective stats for target
 
         now, cooldown_key, last_heal = (
             datetime.now().timestamp(),
@@ -436,7 +462,8 @@ class WorldCommands(commands.Cog):
 
         original_hp = raw_target_data.get("hp", 0)
         raw_target_data["hp"] = min(
-            raw_target_data.get("max_hp", 1), raw_target_data.get("hp", 0) + heal_amount
+            target_stats.get("max_hp", 1),  # Use effective max_hp of target as cap
+            raw_target_data.get("hp", 0) + heal_amount,
         )
         healed_for = raw_target_data.get("hp", 0) - original_hp
 

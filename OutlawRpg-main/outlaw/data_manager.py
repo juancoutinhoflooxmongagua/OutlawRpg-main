@@ -1,3 +1,4 @@
+# File: outlawrpg-main/OutlawRpg-main-36e5d19755e4ada9ae83f9bedc4d3bc8d5a64ec6/OutlawRpg-main/outlaw/data_manager.py
 # data_manager.py
 import json
 import os
@@ -8,6 +9,9 @@ from config import (
     BOSSES_DATA,
     DEFAULT_PLAYER_BOSS_DATA,  # Keep this for player-specific boss data initialization
     INITIAL_CLAN_DATA,
+    INITIAL_HP,  # Added for _initialize_player_defaults to use default HP if not set
+    INITIAL_ATTACK,  # Added for _initialize_player_defaults to use default attack if not set
+    INITIAL_SPECIAL_ATTACK,  # Added for _initialize_player_defaults to use default special attack if not set
 )
 
 # --- Configuração dos Caminhos ---
@@ -52,6 +56,36 @@ def _initialize_player_defaults(player_data: dict):
             )[0]
         else:
             player_data["boss_data"]["boss_progression_level"] = "Nenhum Boss Definido"
+
+    # Ensure base stats are present for calculate_effective_stats to work correctly
+    if "base_attack" not in player_data:
+        player_data["base_attack"] = INITIAL_ATTACK
+    if "base_special_attack" not in player_data:
+        player_data["base_special_attack"] = INITIAL_SPECIAL_ATTACK
+    if "max_hp" not in player_data:  # Ensure max_hp exists as a base value
+        player_data["max_hp"] = INITIAL_HP
+    if "hp" not in player_data:  # Ensure hp exists
+        player_data["hp"] = player_data["max_hp"]  # Set initial hp to base max_hp
+
+    # Removed: The line `player_data["max_hp"] = effective_stats_on_load["max_hp"]`
+    # This was causing double application of multipliers.
+    # player_data["max_hp"] should store the base value + flat bonuses only.
+
+    # Ensure current HP is capped by the calculated effective max_hp (after all multipliers)
+    # This now relies on calculate_effective_stats being called where actual HP is set/capped.
+    # This line ensures consistency on load, but actual cap during gameplay relies on specific commands.
+    if player_data.get("hp") is not None and player_data.get("max_hp") is not None:
+        from utils import (
+            calculate_effective_stats,
+        )  # Local import to avoid circular dependency
+
+        effective_max_hp = calculate_effective_stats(player_data)["max_hp"]
+        player_data["hp"] = min(player_data["hp"], effective_max_hp)
+    elif player_data.get("hp") is None:
+        from utils import calculate_effective_stats  # Local import
+
+        effective_max_hp = calculate_effective_stats(player_data)["max_hp"]
+        player_data["hp"] = effective_max_hp
 
 
 def _initialize_clan_defaults(clan_data: dict, clan_id: str):

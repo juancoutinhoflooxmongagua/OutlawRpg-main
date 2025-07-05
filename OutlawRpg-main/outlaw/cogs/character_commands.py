@@ -1,3 +1,4 @@
+# File: outlawrpg-main/OutlawRpg-main-36e5d19755e4ada9ae83f9bedc4d3bc8d5a64ec6/OutlawRpg-main/outlaw/cogs/character_commands.py
 import discord
 from discord.ext import commands
 from discord import app_commands, Embed, Color, Interaction
@@ -19,7 +20,7 @@ from config import (
 from custom_checks import check_player_exists
 from views.class_chooser_view import ClassChooserView
 from views.profile_view import ProfileView
-from utils import calculate_effective_stats
+from utils import calculate_effective_stats  # Keep this import
 
 
 class CharacterCommands(commands.Cog):
@@ -92,7 +93,14 @@ class CharacterCommands(commands.Cog):
             player_data["money"] -= cost
             revive_message = f"Você pagou ${REVIVE_COST} e trapaceou a morte."
 
-        player_data["hp"] = player_data["max_hp"]
+        # OLD: player_data["hp"] = player_data["max_hp"] # This used the base max_hp
+
+        # NEW: Get the effective max_hp before setting current hp
+        effective_stats = calculate_effective_stats(player_data)
+        player_data["hp"] = effective_stats[
+            "max_hp"
+        ]  # Set current hp to the full effective max_hp
+
         player_data["status"] = "online"
         player_data["amulet_used_since_revive"] = False
         save_data()
@@ -143,8 +151,12 @@ class CharacterCommands(commands.Cog):
         elif atributo.value == "special_attack":
             player_data["base_special_attack"] += quantidade * 3
         elif atributo.value == "hp":
-            player_data["max_hp"] += quantidade * 5
-            player_data["hp"] += quantidade * 5
+            player_data["max_hp"] += quantidade * 5  # This increases the base max_hp
+            # After increasing base max_hp, recalculate effective max_hp and set current hp
+            effective_stats_after_distribute = calculate_effective_stats(player_data)
+            player_data["hp"] = effective_stats_after_distribute[
+                "max_hp"
+            ]  # Set current hp to new effective max_hp
         save_data()
         await i.response.send_message(
             embed=Embed(

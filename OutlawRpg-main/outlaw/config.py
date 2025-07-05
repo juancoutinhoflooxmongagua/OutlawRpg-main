@@ -458,20 +458,6 @@ CLASS_TRANSFORMATIONS = {
             "required_blessing": "bencao_dracula",
         },
     },
-    "Corpo Seco": {
-        "Fúria Imortal": {
-            "emoji": "💀",
-            "cost_energy": 1,
-            "duration_seconds": 1 * 60,
-            "attack_multiplier": 2.5,
-            "special_attack_multiplier": 2.5,
-            "hp_multiplier": 0.7,
-            "healing_multiplier": 1.0,
-            "cooldown_reduction_percent": 0.0,
-            "evasion_chance_bonus": 0.0,
-            "note": "A mecânica exata de 'transformar 50% da vida em ataque' requer lógica adicional na função calculate_effective_stats em utils.py ou no comando 'transformar' em world_commands.py, para manipular dinamicamente o HP e o Ataque. Atualmente, o hp_multiplier reduz o HP, e o attack_multiplier fornece um grande bônus de ataque.",
-        },
-    },
     "Domador": {
         "Lobo Descontrolado": {
             "emoji": "🐺",

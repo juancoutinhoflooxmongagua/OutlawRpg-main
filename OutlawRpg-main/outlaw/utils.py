@@ -1,3 +1,4 @@
+# File: outlawrpg-main/OutlawRpg-main-36e5d19755e4ada9ae83f9bedc4d3bc8d5a64ec6/OutlawRpg-main/outlaw/utils.py
 import discord
 import random
 import asyncio
@@ -266,8 +267,14 @@ async def check_and_process_levelup_internal(
         player_data["attribute_points"] = (
             player_data.get("attribute_points", 0) + ATTRIBUTE_POINTS_PER_LEVEL
         )
-        player_data["max_hp"] += 10
-        player_data["hp"] = player_data["max_hp"]
+        player_data["max_hp"] += 10  # Increase base max_hp
+
+        # NEW: After increasing base max_hp, calculate the effective max_hp
+        # and set current hp to this effective max_hp.
+        effective_stats_after_levelup = calculate_effective_stats(player_data)
+        player_data["hp"] = effective_stats_after_levelup[
+            "max_hp"
+        ]  # Set current HP to the full effective max_hp
 
         embed = Embed(
             title="🌟 LEVEL UP! 🌟",
@@ -609,14 +616,14 @@ async def run_turn_based_combat(
             if attack_type_name == "Ataque Básico":
                 heal_from_vampire_basic = int(player_dmg * 0.5)
                 raw_player_data["hp"] = min(
-                    player_stats["max_hp"],  # Changed from raw_player_data["max_hp"]
+                    player_stats["max_hp"],  # Use effective max_hp as cap
                     raw_player_data["hp"] + heal_from_vampire_basic,
                 )
                 log.append(f"🩸 Você sugou `{heal_from_vampire_basic}` HP do inimigo!")
             elif attack_type_name == "Ataque Especial":
                 heal_from_vampire_special = int(player_dmg * 0.75)
                 raw_player_data["hp"] = min(
-                    player_stats["max_hp"],  # Changed from raw_player_data["max_hp"]
+                    player_stats["max_hp"],  # Use effective max_hp as cap
                     raw_player_data["hp"] + heal_from_vampire_special,
                 )
                 log.append(
@@ -696,7 +703,7 @@ async def run_turn_based_combat(
             )
             hp_stolen_on_evade = int(enemy_dmg * hp_steal_percent_on_evade)
             raw_player_data["hp"] = min(
-                player_stats["max_hp"],  # Changed from raw_player_data["max_hp"]
+                player_stats["max_hp"],  # Use effective max_hp as cap
                 raw_player_data["hp"] + hp_stolen_on_evade,
             )
 
