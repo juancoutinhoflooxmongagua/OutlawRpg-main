@@ -161,7 +161,7 @@
             "cooldowns": {
                 "basico_attack_cooldown": 1751730361.564346,
                 "boss_basico_cooldown": 1751731181.41748,
-                "boss_especial_cooldown": 1751731148.428034
+                "boss_especial_cooldown": 1751731188.861685
             },
             "status": "online",
             "bounty": 0,
@@ -530,7 +530,7 @@
     },
     "global_boss_state": {
         "active_boss_id": "Colosso de Pedra",
-        "hp": 3898,
+        "hp": 3824,
         "participants": [
             "945867324085374976",
             "1388233191244042310"
