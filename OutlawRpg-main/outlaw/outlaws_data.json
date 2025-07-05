@@ -4,7 +4,7 @@
             "name": "\u23e4\u035f\u035e\u035f\uaab6\u0362Red X\uaac2",
             "class": "Vampiro",
             "style": "Aura",
-            "xp": 2856,
+            "xp": 2865,
             "level": 23,
             "money": 24560,
             "hp": 450,
@@ -19,19 +19,21 @@
             "cooldowns": {
                 "work_cooldown": 1751727093.257155,
                 "especial_attack_cooldown": 1751682739.645217,
-                "basico_attack_cooldown": 1751691180.992254
+                "basico_attack_cooldown": 1751691180.992254,
+                "boss_especial_cooldown": 1751731137.146746,
+                "boss_basico_cooldown": 1751731153.344571
             },
             "status": "online",
             "bounty": 0,
             "kills": 0,
             "deaths": 10,
-            "energy": 5,
-            "current_transformation": "Rei da Noite",
-            "transform_end_time": 1751731124.635372,
+            "energy": 8,
+            "current_transformation": null,
+            "transform_end_time": 0,
             "aura_blessing_active": false,
             "aura_blessing_end_time": 0,
             "bencao_dracula_active": true,
-            "bencao_dracula_end_time": 1751731000.0742,
+            "bencao_dracula_end_time": 1751731422.842461,
             "amulet_used_since_revive": false,
             "attribute_points": 0,
             "location": "Abrigo dos Foras-da-Lei",
@@ -145,7 +147,7 @@
             "name": "! Adrian_Fds",
             "class": "Domador",
             "style": "Habilidade Inata",
-            "xp": 4554,
+            "xp": 4557,
             "level": 18,
             "money": 12103,
             "hp": 350,
@@ -157,7 +159,9 @@
                 "invocador_colosso_de_pedra": 1
             },
             "cooldowns": {
-                "basico_attack_cooldown": 1751730361.564346
+                "basico_attack_cooldown": 1751730361.564346,
+                "boss_basico_cooldown": 1751731181.41748,
+                "boss_especial_cooldown": 1751731148.428034
             },
             "status": "online",
             "bounty": 0,
@@ -526,8 +530,11 @@
     },
     "global_boss_state": {
         "active_boss_id": "Colosso de Pedra",
-        "hp": 5000,
-        "participants": [],
+        "hp": 3898,
+        "participants": [
+            "945867324085374976",
+            "1388233191244042310"
+        ],
         "channel_id": null
     }
 }

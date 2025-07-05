@@ -327,7 +327,7 @@ class WorldCommands(commands.Cog):
             await i.response.send_message(
                 f"{item_info.get('emoji')} Você usou uma {item_info.get('name')} e recuperou {item_info.get('heal',0)} HP! Vida atual: `{raw_player_data.get('hp',0)}/{raw_player_data.get('max_hp',1)}`."
             )
-        elif item_info.get("type") == "summon":
+        elif item_info.get("type") == "summon_boss":  # Corrected item type check
             if current_boss_data.get("active_boss_id"):
                 await i.response.send_message(
                     f"O {BOSSES_DATA.get(current_boss_data['active_boss_id'], {}).get('name')} já está ativo!",
@@ -335,11 +335,20 @@ class WorldCommands(commands.Cog):
                 )
                 return
 
-            boss_to_summon_name = list(BOSSES_DATA.keys())[0]
+            # Use the boss_id_to_summon from the item_info
+            boss_to_summon_id = item_info.get("boss_id_to_summon")
+            if not boss_to_summon_id or boss_to_summon_id not in BOSSES_DATA:
+                await i.response.send_message(
+                    "Este item invocador não está configurado corretamente ou o boss não existe.",
+                    ephemeral=True,
+                )
+                return
 
-            summoned_boss_info = BOSSES_DATA.get(boss_to_summon_name)
+            summoned_boss_info = BOSSES_DATA.get(boss_to_summon_id)
 
-            current_boss_data["active_boss_id"] = summoned_boss_info.get("name")
+            current_boss_data["active_boss_id"] = (
+                boss_to_summon_id  # Store the ID, not the name
+            )
             current_boss_data["hp"] = summoned_boss_info.get("max_hp", 1)
             current_boss_data["participants"] = [str(i.user.id)]
             current_boss_data["channel_id"] = i.channel.id
