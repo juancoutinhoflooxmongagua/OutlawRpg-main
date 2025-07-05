@@ -12,7 +12,7 @@ from config import (
     STARTING_LOCATION,
     ITEMS_DATA,
     CLASS_TRANSFORMATIONS,
-    PROFILE_IMAGES,
+    # PROFILE_IMAGES (Removido, pois não será mais usado para definir a imagem principal do perfil)
     CUSTOM_EMOJIS,
 )
 
@@ -55,7 +55,6 @@ class ProfileView(ui.View):
 
     def _get_base_profile_embed(self, player_data) -> Embed:
         """Helper para criar a estrutura base do embed, com foco em um design limpo."""
-        # Add a check here to ensure player_data is not None before proceeding
         if player_data is None:
             return Embed(
                 title="❌ Erro",
@@ -64,26 +63,28 @@ class ProfileView(ui.View):
             )
 
         embed_color = self.user.color
-        profile_image_url = PROFILE_IMAGES.get(player_data.get("class", "Unknown"))
+        # profile_image_url = PROFILE_IMAGES.get(player_data.get("class", "Unknown")) # REMOVIDO: Não usará imagens de classe/transformação
 
         if player_data.get("current_transformation"):
             transform_name = player_data["current_transformation"]
             transform_info_from_class = CLASS_TRANSFORMATIONS.get(
                 player_data.get("class", "Unknown"), {}
             ).get(transform_name, {})
-            profile_image_url = PROFILE_IMAGES.get(transform_name, profile_image_url)
+            # profile_image_url = PROFILE_IMAGES.get(transform_name, profile_image_url) # REMOVIDO
             embed_color = Color.orange()
         elif player_data.get("aura_blessing_active"):
             blessing_info = ITEMS_DATA.get("bencao_rei_henrique", {})
             blessing_name = blessing_info.get("name")
-            profile_image_url = PROFILE_IMAGES.get(blessing_name, profile_image_url)
+            # profile_image_url = PROFILE_IMAGES.get(blessing_name, profile_image_url) # REMOVIDO
             embed_color = Color.gold()
 
         # Título mais direto e claro
         embed = Embed(title=f"Perfil de {self.user.display_name}", color=embed_color)
-        embed.set_thumbnail(url=self.user.display_avatar.url)
-        if profile_image_url:
-            embed.set_image(url=profile_image_url)
+        embed.set_thumbnail(
+            url=self.user.display_avatar.url
+        )  # Mantém o avatar do usuário
+        # if profile_image_url: # REMOVIDO: Não usará imagem principal de perfil
+        #     embed.set_image(url=profile_image_url) # REMOVIDO
 
         embed.set_footer(
             text=f"Outlaws RPG • {self.user.name}",
@@ -106,7 +107,6 @@ class ProfileView(ui.View):
             )
 
         embed = self._get_base_profile_embed(player_data)
-        # It's possible _get_base_profile_embed could return an error embed, so check it
         if embed.title == "❌ Erro":
             return embed
 
@@ -177,7 +177,7 @@ class ProfileView(ui.View):
             )
 
         embed = self._get_base_profile_embed(player_data)
-        if embed.title == "❌ Erro":  # Check for error embed
+        if embed.title == "❌ Erro":
             return embed
         embed.title = f"Recursos de {self.user.display_name}"
 
@@ -204,7 +204,7 @@ class ProfileView(ui.View):
             )
 
         embed = self._get_base_profile_embed(player_data)
-        if embed.title == "❌ Erro":  # Check for error embed
+        if embed.title == "❌ Erro":
             return embed
         embed.title = f"Registro e Boosts de {self.user.display_name}"
 
@@ -232,7 +232,7 @@ class ProfileView(ui.View):
             )
 
         embed = self._get_base_profile_embed(player_data)
-        if embed.title == "❌ Erro":  # Check for error embed
+        if embed.title == "❌ Erro":
             return embed
         embed.title = f"Inventário de {self.user.display_name}"
 

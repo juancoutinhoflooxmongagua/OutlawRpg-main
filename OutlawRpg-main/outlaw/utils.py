@@ -28,11 +28,18 @@ from data_manager import (
 )  # NEW
 
 
+# outlawrpg-main/OutlawRpg-main-8bcc99b2e99cf0c68d5c3d868eec3c4fe51088dd/OutlawRpg-main/outlaw/utils.py
+# (Localize a função `calculate_effective_stats` e ajuste-a da seguinte forma)
+def display_money(amount: int) -> str:
+    """Formata um valor inteiro como uma string de moeda."""
+    return f"${amount:,}"
+
+
 def calculate_effective_stats(raw_player_data: dict) -> dict:
-    """Calculates a player's effective stats based on their base stats, transformation, and inventory items.
-    Does NOT modify the original raw_player_data.
+    """Calcula as estatísticas efetivas de um jogador com base em suas estatísticas base, transformação e itens de inventário.
+    NÃO modifica os dados originais do jogador.
     """
-    # ADDED: Handle None input gracefully
+    # ADICIONADO: Lidar com entrada None graciosamente
     if raw_player_data is None:
         return {
             "attack": 0,
@@ -51,7 +58,7 @@ def calculate_effective_stats(raw_player_data: dict) -> dict:
 
     effective_data = raw_player_data.copy()
 
-    # Default values for bonuses/multipliers
+    # Valores padrão para bônus/multiplicadores
     effective_data["attack_bonus_passive_percent"] = 0.0
     effective_data["healing_multiplier"] = 1.0
     effective_data["evasion_chance_bonus"] = 0.0
@@ -59,7 +66,7 @@ def calculate_effective_stats(raw_player_data: dict) -> dict:
     effective_data["xp_multiplier_passive"] = 0.0
     effective_data["money_multiplier_passive"] = 0.0
 
-    # Apply passive bonuses from "Habilidade Inata" source of power (if active)
+    # Aplicar bônus passivos da fonte de poder "Habilidade Inata" (se ativa)
     habilidade_inata_info = ITEMS_DATA.get("habilidade_inata", {})
     if effective_data.get("style") == "Habilidade Inata":
         effective_data["attack_bonus_passive_percent"] += habilidade_inata_info.get(
@@ -69,12 +76,12 @@ def calculate_effective_stats(raw_player_data: dict) -> dict:
             "xp_multiplier_passive", 0.0
         )
 
-    # Initialize current attack/special_attack/max_hp with base values
+    # Inicializar ataque/ataque_especial/vida_maxima atuais com valores base
     effective_data["attack"] = raw_player_data["base_attack"]
     effective_data["special_attack"] = raw_player_data["base_special_attack"]
     effective_data["max_hp"] = raw_player_data["max_hp"]
 
-    # Apply class transformations
+    # Aplicar transformações de classe
     if effective_data.get("current_transformation"):
         transform_name = effective_data["current_transformation"]
         class_name = effective_data["class"]
@@ -100,7 +107,7 @@ def calculate_effective_stats(raw_player_data: dict) -> dict:
                 "cooldown_reduction_percent", 0.0
             )
 
-    # Apply Aura-specific blessing (King Henry's Blessing) if active
+    # Aplicar benção específica da Aura (Benção do Rei Henrique) se ativa
     king_henry_blessing_info = ITEMS_DATA.get("bencao_rei_henrique", {})
     if effective_data.get("aura_blessing_active"):
         effective_data["attack"] = int(
@@ -123,31 +130,21 @@ def calculate_effective_stats(raw_player_data: dict) -> dict:
         )
 
     if effective_data["class"] == "Domador":
-        effective_data["attack"] = int(
-            effective_data["attack"] * 1.20
-        )  # Ajustado de 1.35
-        effective_data["special_attack"] = int(
-            effective_data["special_attack"] * 1.20
-        )  # Ajustado de 1.35
-        effective_data["max_hp"] = int(
-            effective_data["max_hp"] * 1.15
-        )  # Ajustado de 1.25
-        effective_data["hp"] = min(raw_player_data["hp"], effective_data["max_hp"])
+        effective_data["attack"] = int(effective_data["attack"] * 1.20)
+        effective_data["special_attack"] = int(effective_data["special_attack"] * 1.20)
+        effective_data["max_hp"] = int(effective_data["max_hp"] * 1.15)
+        # Nota: A atualização de HP é tratada no final para limitar à vida_maxima
     elif effective_data["class"] == "Corpo Seco":
         effective_data["max_hp"] = int(effective_data["max_hp"] * 1.50)
-        effective_data["hp"] = min(raw_player_data["hp"], effective_data["max_hp"])
+        # Nota: A atualização de HP é tratada no final para limitar à vida_maxima
         effective_data["attack"] = int(effective_data["attack"] * 1.05)
         effective_data["special_attack"] = int(effective_data["special_attack"] * 1.05)
         effective_data["evasion_chance_bonus"] += 0.10
 
-    # Apply item bonuses based on inventory (after transformations for proper stacking)
+    # Aplicar bônus de item com base no inventário (após transformações para empilhamento adequado)
     inventory = effective_data.get("inventory", {})
 
-
-def display_money(amount: int) -> str:
-    """Formata um valor inteiro como uma string de moeda."""
-    return f"${amount:,}"
-    # Manopla do Lutador: Increases attack and HP
+    # Manopla do Lutador: Aumenta ataque e HP
     manopla_lutador_info = ITEMS_DATA.get("manopla_lutador", {})
     if inventory.get("manopla_lutador", 0) > 0 and effective_data["class"] == "Lutador":
         effective_data["attack"] = int(
@@ -158,7 +155,7 @@ def display_money(amount: int) -> str:
             effective_data["max_hp"] + manopla_lutador_info.get("hp_bonus_flat", 0)
         )
 
-    # Espada Fantasma: Attack bonus and HP penalty
+    # Espada Fantasma: Bônus de ataque e penalidade de HP
     espada_fantasma_info = ITEMS_DATA.get("espada_fantasma", {})
     if (
         inventory.get("espada_fantasma", 0) > 0
@@ -172,9 +169,10 @@ def display_money(amount: int) -> str:
             effective_data["max_hp"]
             * (1 - espada_fantasma_info.get("hp_penalty_percent", 0.0))
         )
-        effective_data["hp"] = min(effective_data["hp"], effective_data["max_hp"])
+        # effective_data["hp"] é limitado no final, então não há necessidade de min aqui especificamente para hp
+        # effective_data["hp"] = min(effective_data["hp"], effective_data["max_hp"]) # Linha redundante removida
 
-    # Cajado do Curandeiro: Increases healing effectiveness
+    # Cajado do Curandeiro: Aumenta a eficácia da cura
     cajado_curandeiro_info = ITEMS_DATA.get("cajado_curandeiro", {})
     if (
         inventory.get("cajado_curandeiro", 0) > 0
@@ -184,7 +182,7 @@ def display_money(amount: int) -> str:
             "effect_multiplier", 1.0
         )
 
-    # Mira Semi-Automática: Adds to total cooldown reduction for special attacks
+    # Mira Semi-Automática: Adiciona à redução total de cooldown para ataques especiais
     mira_semi_automatica_info = ITEMS_DATA.get("mira_semi_automatica", {})
     if (
         inventory.get("mira_semi_automatica", 0) > 0
@@ -194,7 +192,7 @@ def display_money(amount: int) -> str:
             "cooldown_reduction_percent", 0.0
         )
 
-    # NOVO: Coleira do Lobo Alfa (Domador item)
+    # Coleira do Lobo Alfa (Item do Domador)
     coleira_lobo_info = ITEMS_DATA.get("coleira_do_lobo", {})
     if inventory.get("coleira_do_lobo", 0) > 0 and effective_data["class"] == "Domador":
         effective_data["attack"] = int(
@@ -205,7 +203,7 @@ def display_money(amount: int) -> str:
             effective_data["max_hp"] + coleira_lobo_info.get("hp_bonus_flat", 0)
         )
 
-    # NOVO: Armadura de Osso Antigo (Corpo Seco item)
+    # Armadura de Osso Antigo (Item do Corpo Seco)
     armadura_osso_info = ITEMS_DATA.get("armadura_de_osso", {})
     if (
         inventory.get("armadura_de_osso", 0) > 0
@@ -218,7 +216,7 @@ def display_money(amount: int) -> str:
             "cooldown_reduction_percent", 0.0
         )
 
-    # NOVO: Coração do Universo (End-Game Item)
+    # Coração do Universo (Item de Fim de Jogo)
     coracao_universo_info = ITEMS_DATA.get("coracao_do_universo", {})
     if inventory.get("coracao_do_universo", 0) > 0:
         effective_data["attack"] = int(

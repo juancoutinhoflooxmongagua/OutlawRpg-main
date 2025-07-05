@@ -23,7 +23,7 @@ CLAN_RANK_REWARDS = {  # XP and Money rewards for top 3 clans
     2: {"xp": 3000, "money": 1500},
     3: {"xp": 1000, "money": 500},
 }
-CLAN_CREATION_COST = 5000  # Cost to create a new clan
+CLAN_CREATION_COST = 2000  # Cost to create a new clan
 DEFAULT_CLAN_XP = 0  # Initial XP for a new clan
 MAX_CLAN_MEMBERS = 10  # Maximum number of members allowed in a clan
 CLAN_RANKING_INTERVAL_DAYS = 7  # How often the clan ranking happens
@@ -720,18 +720,18 @@ ENEMIES = {
     "Abismo Sombrio": [
         {
             "name": "Aranha das Sombras",
-            "hp": 80,
+            "hp": 180,
             "attack": 18,
             "xp": 35,
-            "money": 25,
+            "money": 252,
             "thumb": "https://c.tenor.com/Q1UgRkPJzMAAAAAC/spider-shadow.gif",
         },
         {
             "name": "Serpente Abissal",
-            "hp": 90,
+            "hp": 190,
             "attack": 22,
             "xp": 40,
-            "money": 30,
+            "money": 304,
             "thumb": "https://c.tenor.com/n9Zyr_d-5O0AAAAC/sea-serpent.gif",
         },
     ],
@@ -827,7 +827,7 @@ ENEMIES = {
     ],
 }
 
-
+""" 
 PROFILE_IMAGES = {
     # Imagens das Classes Base
     "Espadachim": "https://i.imgur.com/RC3rJNc.png",
@@ -851,7 +851,7 @@ PROFILE_IMAGES = {
     "Rei da Noite": "https://example.com/night_king.png",
 }
 
-
+"""
 LEVEL_ROLES = {
     2: 1389604381069938738,
     5: 1389604398103269376,
@@ -871,3 +871,6 @@ DEFAULT_PLAYER_BOSS_DATA = {
     "defeated_bosses": [],
     "last_spawn_timestamp": 0,
 }
+
+CLAN_REWARD_ANNOUNCEMENT_CHANNEL_ID = 1387231221616087141
+BOSS_ANNOUNCEMENT_CHANNEL_ID = 987654321098765432

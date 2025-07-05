@@ -1,11 +1,10 @@
-# File: outlawrpg-main/OutlawRpg-main-08db082cd4e4768d031dc16c0dd762b16b1328e6/OutlawRpg-main/outlaw/cogs/combat_commands.py
 import discord
 from discord.ext import commands
 from discord import app_commands, Embed, Color, Interaction
 import random
 from datetime import datetime
 
-from data_manager import get_player_data, save_data, player_database
+from data_manager import get_player_data, save_data, player_database, current_boss_data
 from config import (
     ENEMIES,
     WORLD_MAP,
@@ -394,8 +393,9 @@ class CombatCommands(commands.Cog):
                 if p_data := get_player_data(p_id_str):
                     player_stats_for_rewards = calculate_effective_stats(p_data)
 
+                    # Construção da mensagem de ganho de dinheiro refatorada
                     money_gain_raw = active_boss_info.get("money_reward", 0)
-                    final_money_message_suffix = ""
+                    money_bonus_sources = []
 
                     if (
                         player_stats_for_rewards.get("money_multiplier_passive", 0.0)
@@ -410,21 +410,23 @@ class CombatCommands(commands.Cog):
                                 )
                             )
                         )
-                        final_money_message_suffix += f" (Bônus Passivo: +{int(player_stats_for_rewards.get('money_multiplier_passive', 0.0)*100)}%!)"
+                        money_bonus_sources.append(
+                            f"Bônus Passivo: +{int(player_stats_for_rewards.get('money_multiplier_passive', 0.0)*100)}%!"
+                        )
 
                     if p_data.get("money_double") is True:
                         money_gain = money_gain_raw * 2
-                        final_money_message_suffix = (
-                            "(duplicado!" + final_money_message_suffix + ")"
-                        )
+                        money_bonus_sources.append("duplicado!")
                     else:
                         money_gain = money_gain_raw
 
-                    money_message = f"💰 +${money_gain}{final_money_message_suffix}"
-                    p_data["money"] = p_data.get("money", 0) + money_gain
+                    money_message = f"💰 +${money_gain}"
+                    if money_bonus_sources:
+                        money_message += f" ({', '.join(money_bonus_sources)})"
 
+                    # Construção da mensagem de ganho de XP refatorada
                     xp_gain_raw = active_boss_info.get("xp_reward", 0)
-                    final_xp_message_suffix = ""
+                    xp_bonus_sources = []
 
                     if player_stats_for_rewards.get("xp_multiplier_passive", 0.0) > 0:
                         xp_gain_raw = int(
@@ -436,17 +438,21 @@ class CombatCommands(commands.Cog):
                                 )
                             )
                         )
-                        final_xp_message_suffix += f" (Bônus Passivo: +{int(player_stats_for_rewards.get('xp_multiplier_passive', 0.0)*100)}%!)"
+                        xp_bonus_sources.append(
+                            f"Bônus Passivo: +{int(player_stats_for_rewards.get('xp_multiplier_passive', 0.0)*100)}%!"
+                        )
 
                     if p_data.get("xptriple") is True:
                         xp_gain = xp_gain_raw * 3
-                        final_xp_message_suffix = (
-                            "(triplicado!" + final_xp_message_suffix + ")"
-                        )
+                        xp_bonus_sources.append("triplicado!")
                     else:
                         xp_gain = xp_gain_raw
 
-                    xp_message = f"✨ +{xp_gain} XP{final_xp_message_suffix}"
+                    xp_message = f"✨ +{xp_gain} XP"
+                    if xp_bonus_sources:
+                        xp_message += f" ({', '.join(xp_bonus_sources)})"
+
+                    p_data["money"] = p_data.get("money", 0) + money_gain
                     p_data["xp"] = p_data.get("xp", 0) + xp_gain
 
                     for item_drop_id, quantity_drop in active_boss_info.get(
@@ -504,9 +510,11 @@ class CombatCommands(commands.Cog):
                             p_data,
                             i.channel,
                         )
-            final_embed.add_field(
-                name="Recompensas", value=f"{money_message}\n{xp_message}"
-            )
+            # The 'final_embed' variable is not defined in the original code,
+            # so I'm assuming it should be the 'embed' object defined earlier.
+            # If 'final_embed' is supposed to be a separate embed, you'll need
+            # to define it before this point.
+            embed.add_field(name="Recompensas", value=f"{money_message}\n{xp_message}")
 
             next_boss_id = active_boss_info.get("next_boss_unlock")
             if next_boss_id and next_boss_id in BOSSES_DATA:

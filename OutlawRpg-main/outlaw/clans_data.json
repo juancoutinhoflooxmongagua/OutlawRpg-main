@@ -1,1 +1,27 @@
-{}
+{
+    "101245cf-1b24-4e4e-bc98-8fd9b4321c99": {
+        "id": "101245cf-1b24-4e4e-bc98-8fd9b4321c99",
+        "name": "Outlaws",
+        "leader_id": "1388233191244042310",
+        "members": [
+            "1388233191244042310",
+            "945867324085374976"
+        ],
+        "xp": 0,
+        "money": 0,
+        "creation_timestamp": 1751675838,
+        "last_ranking_timestamp": 1751688998
+    },
+    "eeb7084a-a9e3-40c2-90af-26083dd3608f": {
+        "id": "eeb7084a-a9e3-40c2-90af-26083dd3608f",
+        "name": "Kakumei Gun",
+        "leader": "345023618968715264",
+        "members": [
+            "345023618968715264"
+        ],
+        "money": 16,
+        "xp": 19,
+        "created_at": 1751688407,
+        "last_ranking_timestamp": 1751688999
+    }
+}

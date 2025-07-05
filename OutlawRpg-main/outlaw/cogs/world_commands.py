@@ -1,4 +1,3 @@
-# File: outlawrpg-main/OutlawRpg-main-08db082cd4e4768d031dc16c0dd762b16b1328e6/OutlawRpg-main/outlaw/cogs/world_commands.py
 import discord
 from discord.ext import commands
 from discord import app_commands, Embed, Color, Interaction
@@ -86,42 +85,76 @@ class WorldCommands(commands.Cog):
             ]
         )
 
+        # Construção da mensagem de ganho de dinheiro refatorada
         money_gain_raw = job["money"]
-        xp_gain_raw = job["xp"]
+        money_bonus_sources = []
 
+        # Aplicar money_double primeiro
         if player_data.get("money_double") is True:
-            money_gain = money_gain_raw * 2
-            money_message = f"**${money_gain}** (duplicado!)"
-        else:
-            money_gain = money_gain_raw
-            money_message = f"**${money_gain}**"
+            money_gain_raw *= 2
+            money_bonus_sources.append("duplicado!")
 
-        xp_multiplier_passive = ITEMS_DATA.get("habilidade_inata", {}).get(
-            "xp_multiplier_passive", 0.0
+        # Aplicar multiplicador passivo de dinheiro do Coração do Universo
+        player_stats_for_work = calculate_effective_stats(player_data)
+        money_multiplier_passive_value = player_stats_for_work.get(
+            "money_multiplier_passive", 0.0
         )
 
-        if player_data.get("style") == "Habilidade Inata" and xp_multiplier_passive > 0:
-            xp_gain_raw = int(xp_gain_raw * (1 + xp_multiplier_passive))
+        if money_multiplier_passive_value > 0:
+            money_gain_raw = int(money_gain_raw * (1 + money_multiplier_passive_value))
+            money_bonus_sources.append(
+                f"Passivo: +{int(money_multiplier_passive_value*100)}%!"
+            )
 
-        if player_data.get("xptriple") is True:
-            xp_gain = xp_gain_raw * 3
-            xp_message = f"e **{xp_gain}** XP (triplicado!)"
-        else:
-            xp_gain = xp_gain_raw
-            xp_message = f"e **{xp_gain}** XP"
+        money_gain = money_gain_raw
+        money_message = f"**${money_gain}**"
+        if money_bonus_sources:
+            money_message += f" ({', '.join(money_bonus_sources)})"
 
+        # Construção da mensagem de ganho de XP refatorada
+        xp_gain_raw = job["xp"]
+        xp_bonus_sources = []
+
+        # Aplicar multiplicador passivo de XP da Habilidade Inata
+        xp_multiplier_passive_value_habilidade_inata = ITEMS_DATA.get(
+            "habilidade_inata", {}
+        ).get("xp_multiplier_passive", 0.0)
         if (
             player_data.get("style") == "Habilidade Inata"
-            and xp_multiplier_passive > 0
-            and not player_data.get("xptriple")
+            and xp_multiplier_passive_value_habilidade_inata > 0
         ):
-            xp_message += f" (Habilidade Inata: +{int(xp_multiplier_passive*100)}%!)"
-        elif (
-            player_data.get("style") == "Habilidade Inata"
-            and xp_multiplier_passive > 0
-            and player_data.get("xptriple")
+            xp_gain_raw = int(
+                xp_gain_raw * (1 + xp_multiplier_passive_value_habilidade_inata)
+            )
+            xp_bonus_sources.append(
+                f"Habilidade Inata: +{int(xp_multiplier_passive_value_habilidade_inata*100)}%"
+            )
+
+        # Aplicar multiplicador passivo de XP do Coração do Universo
+        xp_multiplier_passive_value_coracao_universo = player_stats_for_work.get(
+            "xp_multiplier_passive", 0.0
+        )
+        if (
+            xp_multiplier_passive_value_coracao_universo > 0
+            and player_data.get("inventory", {}).get("coracao_do_universo", 0) > 0
         ):
-            xp_message = f"e **{xp_gain}** XP (triplicado + Habilidade Inata: +{int(xp_multiplier_passive*100)}%!)"
+            xp_gain_raw = int(
+                xp_gain_raw * (1 + xp_multiplier_passive_value_coracao_universo)
+            )
+            xp_bonus_sources.append(
+                f"Passivo: +{int(xp_multiplier_passive_value_coracao_universo*100)}%!"
+            )
+
+        # Aplicar xptriple
+        if player_data.get("xptriple") is True:
+            xp_gain = xp_gain_raw * 3
+            xp_bonus_sources.append("triplicado!")
+        else:
+            xp_gain = xp_gain_raw
+
+        xp_message = f"e **{xp_gain}** XP"
+        if xp_bonus_sources:
+            xp_message += f" ({', '.join(xp_bonus_sources)})"
 
         player_data["money"] = player_data.get("money", 0) + money_gain
         player_data["xp"] = player_data.get("xp", 0) + xp_gain
