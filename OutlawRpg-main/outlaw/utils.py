@@ -32,6 +32,23 @@ def calculate_effective_stats(raw_player_data: dict) -> dict:
     """Calculates a player's effective stats based on their base stats, transformation, and inventory items.
     Does NOT modify the original raw_player_data.
     """
+    # ADDED: Handle None input gracefully
+    if raw_player_data is None:
+        return {
+            "attack": 0,
+            "special_attack": 0,
+            "max_hp": 0,
+            "hp": 0,
+            "attack_bonus_passive_percent": 0.0,
+            "healing_multiplier": 1.0,
+            "evasion_chance_bonus": 0.0,
+            "cooldown_reduction_percent": 0.0,
+            "xp_multiplier_passive": 0.0,
+            "money_multiplier_passive": 0.0,
+            "class": "Unknown",
+            "style": "Unknown",
+        }
+
     effective_data = raw_player_data.copy()
 
     # Default values for bonuses/multipliers
@@ -777,7 +794,6 @@ async def run_turn_based_combat(
             total_ratio_base = owner_base_for_ratio + wolf_base_for_ratio
             if total_ratio_base > 0:
                 owner_ratio = owner_base_for_ratio / total_ratio_base
-                # The problematic line 751 was here, now corrected:
                 owner_display_hp = int(player_hp * owner_ratio)
                 wolf_display_hp = player_hp - owner_display_hp
             else:

@@ -55,6 +55,14 @@ class ProfileView(ui.View):
 
     def _get_base_profile_embed(self, player_data) -> Embed:
         """Helper para criar a estrutura base do embed, com foco em um design limpo."""
+        # Add a check here to ensure player_data is not None before proceeding
+        if player_data is None:
+            return Embed(
+                title="❌ Erro",
+                description="Dados do jogador não encontrados ao criar o embed base.",
+                color=Color.red(),
+            )
+
         embed_color = self.user.color
         profile_image_url = PROFILE_IMAGES.get(player_data.get("class", "Unknown"))
 
@@ -97,8 +105,12 @@ class ProfileView(ui.View):
                 color=Color.red(),
             )
 
-        player_stats = calculate_effective_stats(player_data)
         embed = self._get_base_profile_embed(player_data)
+        # It's possible _get_base_profile_embed could return an error embed, so check it
+        if embed.title == "❌ Erro":
+            return embed
+
+        player_stats = calculate_effective_stats(player_data)
 
         # --- Descrição Principal (Resumo Essencial) ---
         xp_needed = int(XP_PER_LEVEL_BASE * (player_data.get("level", 1) ** 1.2))
@@ -165,6 +177,8 @@ class ProfileView(ui.View):
             )
 
         embed = self._get_base_profile_embed(player_data)
+        if embed.title == "❌ Erro":  # Check for error embed
+            return embed
         embed.title = f"Recursos de {self.user.display_name}"
 
         energy_bar = self.create_progress_bar(player_data.get("energy", 0), MAX_ENERGY)
@@ -190,6 +204,8 @@ class ProfileView(ui.View):
             )
 
         embed = self._get_base_profile_embed(player_data)
+        if embed.title == "❌ Erro":  # Check for error embed
+            return embed
         embed.title = f"Registro e Boosts de {self.user.display_name}"
 
         record_boosts_value = (
@@ -216,6 +232,8 @@ class ProfileView(ui.View):
             )
 
         embed = self._get_base_profile_embed(player_data)
+        if embed.title == "❌ Erro":  # Check for error embed
+            return embed
         embed.title = f"Inventário de {self.user.display_name}"
 
         inventory_items = player_data.get("inventory", {})
