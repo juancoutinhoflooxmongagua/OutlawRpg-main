@@ -36,7 +36,7 @@ CLAN_KILL_CONTRIBUTION_PERCENTAGE_MONEY = (
 
 CUSTOM_EMOJIS = {
     "espada_rpg": "<:espada_rpg:123456789012345678>",  # Substitua pelo ID real
-    "moeda_ouro": "<:moeda_ouro:987654321098765432>",  # Substitua pelo ID real
+    "moeda_ouro": "<:moeda_ouro:9876543210998765432>",  # Substitua pelo ID real
     "hp_icon": "<a:heartbeat_anim:1391079654638489660>",  # Substitua pelo ID real
     "transform": "<a:aura:1389688598139371631>",  # Exemplo de gif/emoji animado
     "machado_guerreiro": "<:machado_guerreiro:123123123123123123>",
@@ -441,8 +441,8 @@ CLASS_TRANSFORMATIONS = {
             "emoji": "🧛",
             "cost_energy": TRANSFORM_COST,
             "duration_seconds": 5 * 60,
-            "attack_multiplier": 1.80,  # Revertido para original
-            "special_attack_multiplier": 2.00,  # Revertido para original
+            "attack_multiplier": 1.80,
+            "special_attack_multiplier": 2.00,
             "hp_multiplier": 1.05,
             "healing_multiplier": 1.0,
             "cooldown_reduction_percent": 0.0,
@@ -452,8 +452,8 @@ CLASS_TRANSFORMATIONS = {
             "emoji": CUSTOM_EMOJIS.get("transform", "✨"),
             "cost_energy": TRANSFORM_COST + 2,
             "duration_seconds": 7 * 60,
-            "attack_multiplier": 1.90,  # Revertido para original
-            "special_attack_multiplier": 2.20,  # Revertido para original
+            "attack_multiplier": 1.90,
+            "special_attack_multiplier": 2.20,
             "evasion_chance_bonus": 0.05,
             "required_blessing": "bencao_dracula",
         },
@@ -489,7 +489,8 @@ CLASS_TRANSFORMATIONS = {
 
 
 BOSSES_DATA = {
-    "Colosso de Pedra": {
+    # Changed keys to snake_case IDs for consistency
+    "colosso_de_pedra": {
         "id": "colosso_de_pedra",
         "name": "Colosso de Pedra",
         "max_hp": 5000,
@@ -502,11 +503,11 @@ BOSSES_DATA = {
             "Ruínas do Templo",
         ],
         "thumbnail": "https://c.tenor.com/NLQ2AoVfEQUAAAAd/tenor.gif",
-        "next_boss_unlock": "Devorador Abissal",
+        "next_boss_unlock": "devorador_abissal",  # Corrected to snake_case
         "required_level": 1,
         "price_invoker": 1000,
     },
-    "Devorador Abissal": {
+    "devorador_abissal": {
         "id": "devorador_abissal",
         "name": "Devorador Abissal",
         "max_hp": 12500,
@@ -519,11 +520,11 @@ BOSSES_DATA = {
         },
         "spawn_locations": ["Abismo Sombrio"],
         "thumbnail": "https://c.tenor.com/f2S9_G2tEwAAAAAd/abyssal-devourer.gif",
-        "next_boss_unlock": "Inferno Guardião",
+        "next_boss_unlock": "inferno_guardiao",  # Corrected to snake_case
         "required_level": 5,
         "price_invoker": 2500,
     },
-    "Inferno Guardião": {
+    "inferno_guardiao": {
         "id": "inferno_guardiao",
         "name": "Inferno Guardião",
         "max_hp": 31250,
@@ -537,11 +538,11 @@ BOSSES_DATA = {
         },
         "spawn_locations": ["Vale do Inferno"],
         "thumbnail": "https://c.tenor.com/7b9011A43IAAAAd/inferno-guardian.gif",
-        "next_boss_unlock": "Titã Esquecido",
+        "next_boss_unlock": "tita_esquecido",  # Corrected to snake_case
         "required_level": 10,
         "price_invoker": 6000,
     },
-    "Titã Esquecido": {
+    "tita_esquecido": {
         "id": "tita_esquecido",
         "name": "Titã Esquecido",
         "max_hp": 78125,
@@ -555,11 +556,11 @@ BOSSES_DATA = {
         },
         "spawn_locations": ["Templo Esquecido"],
         "thumbnail": "https://c.tenor.com/A6j5QjE2vVAAAAAd/forgotten-titan.gif",
-        "next_boss_unlock": "Arauto das Sombras",
+        "next_boss_unlock": "arauto_das_sombras",  # Corrected to snake_case
         "required_level": 15,
         "price_invoker": 15000,
     },
-    "Arauto das Sombras": {
+    "arauto_das_sombras": {
         "id": "arauto_das_sombras",
         "name": "Arauto das Sombras",
         "max_hp": 195312,
@@ -573,11 +574,11 @@ BOSSES_DATA = {
         },
         "spawn_locations": ["Portão das Sombras"],
         "thumbnail": "https://c.tenor.com/y8m0v_eF2AAAAAd/shadow-herald.gif",
-        "next_boss_unlock": "Anomalia Dimensional",
+        "next_boss_unlock": "anomalia_dimensional",  # Corrected to snake_case
         "required_level": 20,
         "price_invoker": 40000,
     },
-    "Anomalia Dimensional": {
+    "anomalia_dimensional": {
         "id": "anomalia_dimensional",
         "name": "Anomalia Dimensional",
         "max_hp": 488280,
@@ -591,11 +592,11 @@ BOSSES_DATA = {
         },
         "spawn_locations": ["Brecha das Terras"],
         "thumbnail": "https://c.tenor.com/gK9x2C34z4kAAAAd/dimensional-anomaly.gif",
-        "next_boss_unlock": "Sentinela Celestial",
+        "next_boss_unlock": "sentinela_celestial",  # Corrected to snake_case
         "required_level": 30,
         "price_invoker": 100000,
     },
-    "Sentinela Celestial": {
+    "sentinela_celestial": {
         "id": "sentinela_celestial",
         "name": "Sentinela Celestial",
         "max_hp": 1220700,
@@ -653,7 +654,7 @@ WORLD_MAP = {
         "emoji": "🕳️",
         "conecta": ["Ruínas do Templo", "Vale do Inferno"],
         "desc": "Um abismo sem fim, onde as sombras se tornam presas fáceis para predadores famintos.",
-        "required_previous_boss": "colosso_de_pedra",  # CORRIGIDO: minúscula
+        "required_previous_boss": "colosso_de_pedra",  # Consistent snake_case ID
         "required_item": None,
         "required_level": None,
     },
@@ -663,7 +664,7 @@ WORLD_MAP = {
         "emoji": "🔥",
         "conecta": ["Abismo Sombrio", "Templo Esquecido"],
         "desc": "Um vale escaldante cheio de fogo e criaturas que sobrevivem ao calor infernal.",
-        "required_previous_boss": "devorador_abissal",  # CORRIGIDO: minúscula
+        "required_previous_boss": "devorador_abissal",  # Consistent snake_case ID
         "required_item": None,
         "required_level": None,
     },
@@ -673,7 +674,7 @@ WORLD_MAP = {
         "emoji": "🏯",
         "conecta": ["Vale do Inferno", "Portão das Sombras"],
         "desc": "Ruínas antigas de um templo perdido no tempo, protegido por entidades místicas.",
-        "required_previous_boss": "inferno_guardiao",  # CORRIGIDO: minúscula
+        "required_previous_boss": "inferno_guardiao",  # Consistent snake_case ID
         "required_item": None,
         "required_level": None,
     },
@@ -683,7 +684,7 @@ WORLD_MAP = {
         "emoji": "🚪",
         "conecta": ["Templo Esquecido", "Brecha das Terras"],
         "desc": "Um portal sombrio que conecta os mundos, guardado por forças obscuras.",
-        "required_previous_boss": "tita_esquecido",  # CORRIGIDO: minúscula
+        "required_previous_boss": "tita_esquecido",  # Consistent snake_case ID
         "required_item": None,
         "required_level": None,
     },
@@ -693,7 +694,7 @@ WORLD_MAP = {
         "emoji": "🌌",
         "conecta": ["Portão das Sombras", "Paraíso"],
         "desc": "O ponto onde múltiplas realidades se encontram e o destino do mundo será decidido.",
-        "required_previous_boss": "arauto_das_sombras",  # CORRIGIDO: minúscula
+        "required_previous_boss": "arauto_das_sombras",  # Consistent snake_case ID
         "required_item": None,
         "required_level": None,
     },
@@ -703,7 +704,7 @@ WORLD_MAP = {
         "emoji": "🌟",
         "conecta": ["Brecha das Terras"],
         "desc": "O santuário sagrado onde a paz e a luz reinam supremos, mas guardado por seres celestiais poderosos.",
-        "required_previous_boss": "anomalia_dimensional",  # CORRIGIDO: minúscula
+        "required_previous_boss": "anomalia_dimensional",  # Consistent snake_case ID
         "required_item": None,
         "required_level": None,
     },
@@ -739,140 +740,140 @@ ENEMIES = {
     "Ruínas do Templo": [
         {
             "name": "Guardião de Pedra",
-            "hp": 800,  # 400 * 2
-            "attack": 76,  # 38 * 2
-            "xp": 520,  # 260 * 2
-            "money": 400,  # 200 * 2
+            "hp": 800,
+            "attack": 76,
+            "xp": 520,
+            "money": 400,
             "thumb": "https://c.tenor.com/NLQ2AoVfEQUAAAAd/tenor.gif",
         },
         {
             "name": "Espectro Antigo",
-            "hp": 180,  # 90 * 2
-            "attack": 204,  # 102 * 2
-            "xp": 160,  # 80 * 2
-            "money": 320,  # 160 * 2
+            "hp": 180,
+            "attack": 204,
+            "xp": 160,
+            "money": 320,
             "thumb": "https://c.tenor.com/tTXMqhKPCFwAAAAd/tenor.gif",
         },
         {
             "name": "Gárgula Vingativa",
-            "hp": 440,  # 220 * 2
-            "attack": 100,  # 50 * 2
-            "xp": 130,  # 65 * 2
-            "money": 330,  # 165 * 2
+            "hp": 440,
+            "attack": 100,
+            "xp": 130,
+            "money": 330,
             "thumb": "https://c.tenor.com/Ub7Nd2q36RYAAAAd/tenor.gif",
         },
     ],
     "Abismo Sombrio": [
         {
             "name": "Aranha das Sombras",
-            "hp": 720,  # 180 * 4
-            "attack": 72,  # 18 * 4
-            "xp": 140,  # 35 * 4
-            "money": 1008,  # 252 * 4
+            "hp": 720,
+            "attack": 72,
+            "xp": 140,
+            "money": 1008,
             "thumb": "https://c.tenor.com/Q1UgRkPJzMAAAAAC/spider-shadow.gif",
         },
         {
             "name": "Serpente Abissal",
-            "hp": 760,  # 190 * 4
-            "attack": 88,  # 22 * 4
-            "xp": 160,  # 40 * 4
-            "money": 1216,  # 304 * 4
+            "hp": 760,
+            "attack": 88,
+            "xp": 160,
+            "money": 1216,
             "thumb": "https://c.tenor.com/n9Zyr_d-5O0AAAAC/sea-serpent.gif",
         },
     ],
     "Vale do Inferno": [
         {
             "name": "Demônio Flamejante",
-            "hp": 800,  # 100 * 8
-            "attack": 224,  # 28 * 8
-            "xp": 400,  # 50 * 8
-            "money": 320,  # 40 * 8
+            "hp": 800,
+            "attack": 224,
+            "xp": 400,
+            "money": 320,
             "thumb": "https://c.tenor.com/vA1zDKkpFfIAAAAC/fire-demon.gif",
         },
         {
             "name": "Cão Infernal",
-            "hp": 960,  # 120 * 8
-            "attack": 240,  # 30 * 8
-            "xp": 440,  # 55 * 8
-            "money": 360,  # 45 * 8
+            "hp": 960,
+            "attack": 240,
+            "xp": 440,
+            "money": 360,
             "thumb": "https://c.tenor.com/z8mELvPmsN8AAAAC/hellhound.gif",
         },
     ],
     "Templo Esquecido": [
         {
             "name": "Guardião Espectral",
-            "hp": 2400,  # 150 * 16
-            "attack": 560,  # 35 * 16
-            "xp": 1120,  # 70 * 16
-            "money": 960,  # 60 * 16
+            "hp": 2400,
+            "attack": 560,
+            "xp": 1120,
+            "money": 960,
             "thumb": "https://c.tenor.com/Dq52zpNYdJ4AAAAC/ghost-guardian.gif",
         },
         {
             "name": "Mago Ancião",
-            "hp": 2080,  # 130 * 16
-            "attack": 640,  # 40 * 16
-            "xp": 1200,  # 75 * 16
-            "money": 1040,  # 65 * 16
+            "hp": 2080,
+            "attack": 640,
+            "xp": 1200,
+            "money": 1040,
             "thumb": "https://c.tenor.com/ysXUvq-wT5MAAAAAC/old-mage.gif",
         },
     ],
     "Portão das Sombras": [
         {
             "name": "Sombra Errante",
-            "hp": 5120,  # 160 * 32
-            "attack": 1440,  # 45 * 32
-            "xp": 2560,  # 80 * 32
-            "money": 2240,  # 70 * 32
+            "hp": 5120,
+            "attack": 1440,
+            "xp": 2560,
+            "money": 2240,
             "thumb": "https://c.tenor.com/53EpyO-t1aIAAAAC/shadow-figure.gif",
         },
         {
             "name": "Guardião das Trevas",
-            "hp": 5760,  # 180 * 32
-            "attack": 1600,  # 50 * 32
-            "xp": 2880,  # 90 * 32
-            "money": 2400,  # 75 * 32
+            "hp": 5760,
+            "attack": 1600,
+            "xp": 2880,
+            "money": 2400,
             "thumb": "https://c.tenor.com/EOhB81CS_2wAAAAC/dark-guardian.gif",
         },
     ],
     "Brecha das Terras": [
         {
             "name": "Caótico Dimensional",
-            "hp": 19200,  # 300 * 64
-            "attack": 5120,  # 80 * 64
-            "xp": 9600,  # 150 * 64
-            "money": 7680,  # 120 * 64
+            "hp": 19200,
+            "attack": 5120,
+            "xp": 9600,
+            "money": 7680,
             "thumb": "https://c.tenor.com/GV31bRfFNy8AAAAC/dimensional-chaos.gif",
         },
         {
             "name": "Guardião da Brecha",
-            "hp": 22400,  # 350 * 64
-            "attack": 5760,  # 90 * 64
-            "xp": 11520,  # 180 * 64
-            "money": 9600,  # 150 * 64
+            "hp": 22400,
+            "attack": 5760,
+            "xp": 11520,
+            "money": 9600,
             "thumb": "https://c.tenor.com/VuE-xM7RjTwAAAAC/gatekeeper.gif",
         },
     ],
     "Paraíso": [
         {
             "name": "Arcanjo Guardião",
-            "hp": 64000,  # 500 * 128
-            "attack": 15360,  # 120 * 128
-            "xp": 38400,  # 300 * 128
-            "money": 32000,  # 250 * 128
+            "hp": 64000,
+            "attack": 15360,
+            "xp": 38400,
+            "money": 32000,
             "thumb": "https://c.tenor.com/89zGuwH3Ys8AAAAC/angelic.gif",
         },
         {
             "name": "Serafim de Luz",
-            "hp": 70400,  # 550 * 128
-            "attack": 16640,  # 130 * 128
-            "xp": 44800,  # 350 * 128
-            "money": 38400,  # 300 * 128
+            "hp": 70400,
+            "attack": 16640,
+            "xp": 44800,
+            "money": 38400,
             "thumb": "https://c.tenor.com/I7CKPqu5XJMAAAAAC/seraphim.gif",
         },
     ],
 }
 
-""" 
+"""
 PROFILE_IMAGES = {
     # Imagens das Classes Base
     "Espadachim": "https://i.imgur.com/RC3rJNc.png",
@@ -912,7 +913,7 @@ DEFAULT_PLAYER_BOSS_DATA = {
     "current_boss_id": None,
     "current_boss_hp": 0,
     "last_spawn_channel_id": None,
-    "boss_progression_level": "colosso_de_pedra",  # CORRIGIDO: minúscula
+    "boss_progression_level": "colosso_de_pedra",  # Consistent snake_case ID
     "defeated_bosses": [],
     "last_spawn_timestamp": 0,
 }
