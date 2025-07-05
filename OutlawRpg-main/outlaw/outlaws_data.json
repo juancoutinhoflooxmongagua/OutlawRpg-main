@@ -4,7 +4,7 @@
             "name": "\u23e4\u035f\u035e\u035f\uaab6\u0362Red X\uaac2",
             "class": "Vampiro",
             "style": "Aura",
-            "xp": 4602,
+            "xp": 4611,
             "level": 40,
             "money": 27524,
             "hp": 645,
@@ -54,15 +54,18 @@
                     "colosso_de_pedra"
                 ],
                 "last_spawn_timestamp": 0
-            }
+            },
+            "keys": 5,
+            "last_key_claim_time": 1751754706.8010013,
+            "relics_inventory": []
         },
         "345023618968715264": {
             "name": "Pierri.",
             "class": "Corpo Seco",
             "style": "Aura",
-            "xp": 7809,
+            "xp": 12815,
             "level": 42,
-            "money": 31259,
+            "money": 33767,
             "hp": 295,
             "max_hp": 690,
             "base_attack": 249,
@@ -107,7 +110,12 @@
                     "colosso_de_pedra"
                 ],
                 "last_spawn_timestamp": 0
-            }
+            },
+            "keys": 4,
+            "last_key_claim_time": 1751754707.3230913,
+            "relics_inventory": [
+                "Concha Vazia"
+            ]
         },
         "854382404809261076": {
             "name": "! \u09e1\u09e3\u035c\u0361Astollfo\u2661\u0f73\u2027\u207a",
@@ -161,7 +169,10 @@
                     "colosso_de_pedra"
                 ],
                 "last_spawn_timestamp": 0
-            }
+            },
+            "keys": 5,
+            "last_key_claim_time": 1751754707.915503,
+            "relics_inventory": []
         },
         "945867324085374976": {
             "name": "! Adrian_Fds",
@@ -217,7 +228,10 @@
                     "colosso_de_pedra"
                 ],
                 "last_spawn_timestamp": 0
-            }
+            },
+            "keys": 5,
+            "last_key_claim_time": 1751754708.562027,
+            "relics_inventory": []
         },
         "1194654105877094400": {
             "name": "! D'Caracauz",
@@ -258,7 +272,10 @@
                 "boss_progression_level": "colosso_de_pedra",
                 "defeated_bosses": [],
                 "last_spawn_timestamp": 0
-            }
+            },
+            "keys": 5,
+            "last_key_claim_time": 1751754709.1590643,
+            "relics_inventory": []
         },
         "825053988629905479": {
             "name": "\ud835\udd7f\ud835\udd8e\ud835\udd86\ud835\udd8c\ud835\udd94 \u0ca0_\u0ca0",
@@ -299,7 +316,10 @@
                 "boss_progression_level": "colosso_de_pedra",
                 "defeated_bosses": [],
                 "last_spawn_timestamp": 0
-            }
+            },
+            "keys": 5,
+            "last_key_claim_time": 1751754710.0653996,
+            "relics_inventory": []
         },
         "1276581708711596123": {
             "name": "\u00c2mbar \ud83c\udc23",
@@ -340,7 +360,10 @@
                 "boss_progression_level": "colosso_de_pedra",
                 "defeated_bosses": [],
                 "last_spawn_timestamp": 0
-            }
+            },
+            "keys": 5,
+            "last_key_claim_time": 1751754711.286202,
+            "relics_inventory": []
         },
         "768893660871786557": {
             "name": "EtheryalFalcon",
@@ -381,7 +404,10 @@
                 "boss_progression_level": "colosso_de_pedra",
                 "defeated_bosses": [],
                 "last_spawn_timestamp": 0
-            }
+            },
+            "keys": 5,
+            "last_key_claim_time": 1751754712.8918335,
+            "relics_inventory": []
         },
         "992963562412707960": {
             "name": "Fernandes",
@@ -424,7 +450,10 @@
                 "boss_progression_level": "colosso_de_pedra",
                 "defeated_bosses": [],
                 "last_spawn_timestamp": 0
-            }
+            },
+            "keys": 5,
+            "last_key_claim_time": 1751754714.1549842,
+            "relics_inventory": []
         },
         "1114926582851715106": {
             "name": "! \u23e4\u035f\u035e\u035f\uaab6\u0362Capuz Vermelho\uaac2",
@@ -465,7 +494,10 @@
                 "boss_progression_level": "colosso_de_pedra",
                 "defeated_bosses": [],
                 "last_spawn_timestamp": 0
-            }
+            },
+            "keys": 5,
+            "last_key_claim_time": 1751754715.7025743,
+            "relics_inventory": []
         },
         "1120405014230347892": {
             "name": "Jinx",
@@ -506,13 +538,16 @@
                 "boss_progression_level": "colosso_de_pedra",
                 "defeated_bosses": [],
                 "last_spawn_timestamp": 0
-            }
+            },
+            "keys": 5,
+            "last_key_claim_time": 1751754716.8925095,
+            "relics_inventory": []
         },
         "621614554199228430": {
             "name": "Gwin",
             "class": "Domador",
             "style": "Habilidade Inata",
-            "xp": 12,
+            "xp": 13,
             "level": 1,
             "money": 100,
             "hp": 0,
@@ -547,13 +582,16 @@
                 "boss_progression_level": "colosso_de_pedra",
                 "defeated_bosses": [],
                 "last_spawn_timestamp": 0
-            }
+            },
+            "keys": 5,
+            "last_key_claim_time": 1751754719.8540065,
+            "relics_inventory": []
         },
         "913864293697589278": {
             "name": "000",
             "class": "Curandeiro",
             "style": "Aura",
-            "xp": 1001,
+            "xp": 1002,
             "level": 11,
             "money": 6600,
             "hp": 200,
@@ -588,13 +626,16 @@
                 "boss_progression_level": "colosso_de_pedra",
                 "defeated_bosses": [],
                 "last_spawn_timestamp": 0
-            }
+            },
+            "keys": 5,
+            "last_key_claim_time": 1751754721.3619418,
+            "relics_inventory": []
         },
         "1366828187807645764": {
             "name": "Leska tatu",
             "class": "Curandeiro",
             "style": "Aura",
-            "xp": 167,
+            "xp": 176,
             "level": 6,
             "money": 15583,
             "hp": 66,
@@ -635,7 +676,29 @@
                 "boss_progression_level": "colosso_de_pedra",
                 "defeated_bosses": [],
                 "last_spawn_timestamp": 0
-            }
+            },
+            "keys": 5,
+            "last_key_claim_time": 1751754722.7318459,
+            "relics_inventory": []
+        },
+        "926892054154477620": {
+            "location": "Abrigo dos Foras-da-Lei",
+            "clan_id": null,
+            "clan_role": null,
+            "location_kill_tracker": {},
+            "boss_data": {
+                "current_boss_id": null,
+                "current_boss_hp": 0,
+                "last_spawn_channel_id": null,
+                "boss_progression_level": "colosso_de_pedra",
+                "defeated_bosses": [],
+                "last_spawn_timestamp": 0
+            },
+            "base_attack": 10,
+            "base_special_attack": 20,
+            "max_hp": 100,
+            "hp": 100,
+            "energy": 5
         }
     },
     "global_boss_state": {
