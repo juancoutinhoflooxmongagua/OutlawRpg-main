@@ -6,15 +6,14 @@ import os
 import time
 
 # Importa as configurações necessárias
-from config import (
+from .config import (  # Alterado para importação relativa
     STARTING_LOCATION,
-    BOSSES_DATA,
     DEFAULT_PLAYER_BOSS_DATA,
     INITIAL_CLAN_DATA,
     INITIAL_HP,
     INITIAL_ATTACK,
     INITIAL_SPECIAL_ATTACK,
-    BOSS_PROGRESSION_ORDER,
+    # Removido: BOSSES_DATA, BOSS_PROGRESSION_ORDER,
 )
 
 # --- Configuração dos Caminhos ---
@@ -25,7 +24,7 @@ CLAN_DATA_FILE = os.path.join(SCRIPT_DIR, "clans_data.json")
 # --- Bancos de Dados em Memória ---
 player_database = {}
 clan_database = {}
-current_boss_data = {}
+# Removido: current_boss_data = {}
 
 # --- Funções Auxiliares Privadas ---
 
@@ -44,33 +43,18 @@ def _initialize_player_defaults(player_data: dict):
         player_data["location_kill_tracker"] = {}
 
     # Ensure player's specific boss_data is initialized
+    # Lógica de inicialização de dados de chefe alterada/removida
     if "boss_data" not in player_data:
         player_data["boss_data"] = DEFAULT_PLAYER_BOSS_DATA.copy()
     else:
-        # Ensure all sub-fields of boss_data are present based on DEFAULT_PLAYER_BOSS_DATA
+        # Garante que todos os subcampos de boss_data estejam presentes
+        # Como DEFAULT_PLAYER_BOSS_DATA agora é vazio, este loop pode ser removido ou mantido (não fará nada)
         for key, value in DEFAULT_PLAYER_BOSS_DATA.items():
             if key not in player_data["boss_data"]:
                 player_data["boss_data"][key] = value
 
-    # NEW: Re-evaluate and set boss_progression_level based on defeated bosses
-    player_defeated_bosses = player_data["boss_data"].get("defeated_bosses", [])
-    current_progression_level = None
-    for boss_id in BOSS_PROGRESSION_ORDER:
-        if boss_id not in player_defeated_bosses:
-            current_progression_level = boss_id
-            break
-    # If all bosses are defeated, or no bosses are defined, set to None or a default
-    if current_progression_level is None and BOSS_PROGRESSION_ORDER:
-        # If all predefined bosses are defeated, set to the last boss or a terminal state
-        current_progression_level = BOSS_PROGRESSION_ORDER[
-            -1
-        ]  # Can be changed to None if there's no "after-last-boss" state
-    elif not BOSS_PROGRESSION_ORDER:
-        current_progression_level = (
-            "Nenhum Boss Definido"  # Or handle as appropriate if no bosses exist
-        )
-
-    player_data["boss_data"]["boss_progression_level"] = current_progression_level
+    # Removido: NEW: Re-evaluate and set boss_progression_level based on defeated bosses
+    # Removida toda a lógica de progressão de chefe aqui.
 
     # Ensure base stats are present for calculate_effective_stats to work correctly
     if "base_attack" not in player_data:
@@ -92,12 +76,16 @@ def _initialize_player_defaults(player_data: dict):
 
     if player_data.get("hp") is not None and player_data.get("max_hp") is not None:
         # Import moved to inside function to avoid circular dependency if utils imports data_manager
-        from utils import calculate_effective_stats  # Corrigido: Importação direta
+        from .utils import (
+            calculate_effective_stats,
+        )  # Alterado para importação relativa
 
         effective_max_hp = calculate_effective_stats(player_data)["max_hp"]
         player_data["hp"] = min(player_data["hp"], effective_max_hp)
     elif player_data.get("hp") is None:
-        from utils import calculate_effective_stats  # Corrigido: Importação direta
+        from .utils import (
+            calculate_effective_stats,
+        )  # Alterado para importação relativa
 
         effective_max_hp = calculate_effective_stats(player_data)["max_hp"]
         player_data["hp"] = effective_max_hp
@@ -127,49 +115,33 @@ def _initialize_clan_defaults(clan_data: dict, clan_id: str):
 
 
 def load_data():
-    """Carrega os dados dos jogadores e o estado global do boss do arquivo JSON e inicializa os padrões."""
+    """Carrega os dados dos jogadores do arquivo JSON e inicializa os padrões."""
     global player_database
-    global current_boss_data
+    # Removido: global current_boss_data
     try:
         with open(PLAYER_DATA_FILE, "r", encoding="utf-8") as f:
             full_data = json.load(f)
             player_database.clear()
             player_database.update(full_data.get("player_data", {}))
 
-            current_boss_data.clear()
-            global_boss_state_loaded = full_data.get("global_boss_state", {})
-            current_boss_data.update(global_boss_state_loaded)
+            # Removido: Lógica de carregamento de current_boss_data e global_boss_state_loaded
+            # Removido: Lógica de inicialização global de current_boss_data usando BOSS_PROGRESSION_ORDER
 
         for player_data_item in player_database.values():
             _initialize_player_defaults(player_data_item)
-
-        # NEW: Initialize global current_boss_data using BOSS_PROGRESSION_ORDER
-        if not current_boss_data or not current_boss_data.get("active_boss_id"):
-            if BOSS_PROGRESSION_ORDER and BOSSES_DATA:
-                first_boss_id = BOSS_PROGRESSION_ORDER[0]
-                current_boss_data.update(
-                    {
-                        "active_boss_id": first_boss_id,
-                        "hp": BOSSES_DATA[first_boss_id]["max_hp"],
-                        "participants": [],
-                        "channel_id": None,
-                    }
-                )
-            else:
-                current_boss_data.clear()
 
     except FileNotFoundError:
         print(
             "Arquivo de dados do jogador não encontrado. Um novo será criado ao salvar."
         )
         player_database.clear()
-        current_boss_data.clear()
+        # Removido: current_boss_data.clear()
     except json.JSONDecodeError as e:
         print(
             f"ERRO: Não foi possível decodificar o JSON de dados do jogador: {e}. Um novo arquivo será usado."
         )
         player_database.clear()
-        current_boss_data.clear()
+        # Removido: current_boss_data.clear()
 
 
 def load_clan_data():
@@ -195,11 +167,11 @@ def load_clan_data():
 
 
 def save_data():
-    """Salva os dados dos jogadores e o estado global do boss no arquivo JSON."""
+    """Salva os dados dos jogadores no arquivo JSON."""
     try:
         data_to_save = {
             "player_data": player_database,
-            "global_boss_state": current_boss_data,
+            # Removido: "global_boss_state": current_boss_data,
         }
         with open(PLAYER_DATA_FILE, "w", encoding="utf-8") as f:
             json.dump(data_to_save, f, indent=4)

@@ -1,9 +1,12 @@
 import discord
 from discord.ui import View, Button
 from discord import Interaction, Embed, Color
-from data_manager import get_player_data, save_data, player_database, current_boss_data
-from config import WORLD_MAP, BOSSES_DATA, ITEMS_DATA
-from utils import calculate_effective_stats
+from ..data_manager import (
+    get_player_data,
+    save_data,
+    player_database,
+)  # Alterado para importação relativa
+from ..config import WORLD_MAP, ITEMS_DATA  # Alterado para importação relativa
 import asyncio
 
 
@@ -43,21 +46,7 @@ class TravelButton(Button):
             )
             return
 
-        # Verifica o requisito de boss
-        required_boss_id = location_info.get("required_previous_boss")
-        if required_boss_id:
-            player_defeated_bosses = player_data.get("boss_data", {}).get(
-                "defeated_bosses", []
-            )
-            if required_boss_id not in player_defeated_bosses:
-                boss_name = BOSSES_DATA.get(required_boss_id, {}).get(
-                    "name", "boss necessário"
-                )
-                await i.response.send_message(
-                    f"Você não pode viajar para {self.location_name} ainda! Você precisa derrotar o {boss_name} primeiro.",
-                    ephemeral=True,
-                )
-                return
+        # Removida a verificação de requisito de chefe anterior
 
         # Verifica o requisito de item
         required_item = location_info.get("required_item")
@@ -121,14 +110,14 @@ class TravelView(View):
             # Desabilita o botão se os requisitos não forem atendidos
             is_disabled = False
 
-            # Verifica o requisito de boss
-            required_boss_id = loc_info.get("required_previous_boss")
-            if required_boss_id:
-                player_defeated_bosses = player_data.get("boss_data", {}).get(
-                    "defeated_bosses", []
-                )
-                if required_boss_id not in player_defeated_bosses:
-                    is_disabled = True
+            # Removida a verificação de requisito de chefe anterior
+            # required_boss_id = loc_info.get("required_previous_boss")
+            # if required_boss_id:
+            #     player_defeated_bosses = player_data.get("boss_data", {}).get(
+            #         "defeated_bosses", []
+            #     )
+            #     if required_boss_id not in player_defeated_bosses:
+            #         is_disabled = True
 
             # Verifica o requisito de item
             required_item = loc_info.get("required_item")

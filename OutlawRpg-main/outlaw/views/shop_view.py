@@ -1,8 +1,8 @@
 import discord
 from discord import ui, ButtonStyle, Interaction, Embed, Color
 
-from data_manager import get_player_data, save_data
-from config import ITEMS_DATA, BOSSES_DATA
+from ..data_manager import get_player_data, save_data
+from ..config import ITEMS_DATA
 
 
 class ShopView(ui.View):
@@ -13,17 +13,14 @@ class ShopView(ui.View):
         # Categorize items
         self.potions_items = []
         self.general_items = []
-        self.invoker_items = []
 
         for item_id, item_info in ITEMS_DATA.items():
             if item_info.get("price") is not None:  # Only show purchasable items
                 item_type = item_info.get("type")
                 item_subtype = item_info.get("subtype")  # Get the subtype
 
-                if item_type == "consumable" and item_subtype == "potion":
+                if item_type == "healing":
                     self.potions_items.append((item_id, item_info))
-                elif item_type == "summon_boss":
-                    self.invoker_items.append((item_id, item_info))
                 else:  # All other items: general consumables (non-potions), equipables, blessing unlocks, etc.
                     self.general_items.append((item_id, item_info))
 
@@ -33,7 +30,6 @@ class ShopView(ui.View):
         """Adds buttons for category selection."""
         self.clear_items()
         self.add_item(self.CategoryButton("Itens", "general", row=0))
-        self.add_item(self.CategoryButton("Invocadores", "invokers", row=0))
 
     def _add_item_buttons(self, items_list):
         """Adds specific item buttons to the view, handling row placement."""
@@ -79,8 +75,6 @@ class ShopView(ui.View):
                 view._add_item_buttons(view.potions_items)
             elif self.category_key == "general":
                 view._add_item_buttons(view.general_items)
-            elif self.category_key == "invokers":
-                view._add_item_buttons(view.invoker_items)
 
             await i.response.edit_message(view=view)
 
@@ -144,40 +138,7 @@ class ShopView(ui.View):
                 await i.response.send_message("Dinheiro insuficiente!", ephemeral=True)
                 return
 
-            if item_info.get("type") == "summon_boss":
-                boss_id_to_summon = item_info.get("boss_id_to_summon")
-                boss_info = BOSSES_DATA.get(boss_id_to_summon)
-
-                if not boss_info:
-                    await i.response.send_message(
-                        "Erro: Dados do chefe para este invocador não encontrados.",
-                        ephemeral=True,
-                    )
-                    return
-
-                if player_data["level"] < boss_info.get("required_level", 1):
-                    await i.response.send_message(
-                        f"Você precisa ser Nível {boss_info.get('required_level', 1)} para comprar este invocador.",
-                        ephemeral=True,
-                    )
-                    return
-
-                player_progression_boss = player_data["boss_data"].get(
-                    "boss_progression_level"
-                )
-                player_defeated_bosses = player_data["boss_data"].get(
-                    "defeated_bosses", []
-                )
-
-                if (
-                    boss_id_to_summon != player_progression_boss
-                    and boss_id_to_summon not in player_defeated_bosses
-                ):
-                    await i.response.send_message(
-                        f"Este invocador ainda não está disponível para você progredir. Você precisa derrotar o **{player_progression_boss}** para desbloquear o próximo, ou este é um boss que você ainda não derrotou.",
-                        ephemeral=True,
-                    )
-                    return
+            # Removido: Lógica de invocação de boss (elif item_info.get("type") == "summon_boss":)
 
             if item_info.get("consumable") == False:
                 if player_data["inventory"].get(self.item_id, 0) > 0:
@@ -214,12 +175,10 @@ class ShopView(ui.View):
             await i.response.send_message(
                 f"**{i.user.display_name}** comprou 1x {ITEMS_DATA[self.item_id]['name']}!"
             )
-            # After purchase, re-display the items in the current category
+            # Após a compra, re-exiba os itens na categoria atual
             view: ShopView = self.view
             if view.current_category == "potions":
                 view._add_item_buttons(view.potions_items)
             elif view.current_category == "general":
                 view._add_item_buttons(view.general_items)
-            elif view.current_category == "invokers":
-                view._add_item_buttons(view.invoker_items)
             await i.message.edit(view=view)

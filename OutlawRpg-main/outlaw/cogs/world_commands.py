@@ -1,26 +1,33 @@
-# File: outlawrpg-main/OutlawRpg-main-36e5d19755e4ada9ae83f9bedc4d3bc8d5a64ec6/OutlawRpg-main/outlaw/cogs/world_commands.py
 import discord
 from discord.ext import commands
 from discord import app_commands, Embed, Color, Interaction
 import random
 from datetime import datetime
 
-from data_manager import get_player_data, save_data, player_database, current_boss_data
-from config import (
+from ..data_manager import (
+    get_player_data,
+    save_data,
+    player_database,
+)  # Removido: current_boss_data
+from ..config import (  # Alterado para importação relativa
     WORLD_MAP,
     STARTING_LOCATION,
     ITEMS_DATA,
     TRANSFORM_COST,
     CLASS_TRANSFORMATIONS,
     MAX_ENERGY,
-    BOSSES_DATA,
+    # Removido: BOSSES_DATA,
     INITIAL_ATTACK,
     INITIAL_SPECIAL_ATTACK,
 )
-from custom_checks import check_player_exists, is_in_city, is_in_wilderness
-from utils import calculate_effective_stats
-from views.travel_view import TravelView
-from views.shop_view import ShopView
+from ..custom_checks import (
+    check_player_exists,
+    is_in_city,
+    is_in_wilderness,
+)  # Alterado para importação relativa
+from ..utils import calculate_effective_stats  # Alterado para importação relativa
+from ..views.travel_view import TravelView  # Alterado para importação relativa
+from ..views.shop_view import ShopView  # Alterado para importação relativa
 
 
 class WorldCommands(commands.Cog):
@@ -194,8 +201,7 @@ class WorldCommands(commands.Cog):
 
                 if item_info.get("type") == "healing":
                     description = f"Restaura {item_info['heal']} HP."
-                elif item_info.get("type") == "summon":
-                    description = "Invoca o terrível boss atual (se não estiver ativo)."
+                # Removido: elif item_info.get("type") == "summon":
                 elif item_info.get("type") == "unique_passive":
                     description = (
                         f"{item_info.get('description', 'Item passivo único.')}"
@@ -331,70 +337,7 @@ class WorldCommands(commands.Cog):
             await i.response.send_message(
                 f"{item_info.get('emoji')} Você usou uma {item_info.get('name')} e recuperou {item_info.get('heal',0)} HP! Vida atual: `{raw_player_data.get('hp',0)}/{player_effective_stats.get('max_hp',1)}`."  # Use effective max_hp in display
             )
-        elif item_info.get("type") == "summon_boss":  # Corrected item type check
-            if current_boss_data.get("active_boss_id"):
-                await i.response.send_message(
-                    f"O {BOSSES_DATA.get(current_boss_data['active_boss_id'], {}).get('name')} já está ativo!",
-                    ephemeral=True,
-                )
-                return
-
-            # Use the boss_id_to_summon from the item_info
-            boss_to_summon_id = item_info.get("boss_id_to_summon")
-            if not boss_to_summon_id or boss_to_summon_id not in BOSSES_DATA:
-                await i.response.send_message(
-                    "Este item invocador não está configurado corretamente ou o boss não existe.",
-                    ephemeral=True,
-                )
-                return
-
-            summoned_boss_info = BOSSES_DATA.get(boss_to_summon_id)
-
-            # --- FIX: Boss Summoning Logic ---
-            player_progression_boss = raw_player_data["boss_data"].get(
-                "boss_progression_level"
-            )
-            player_defeated_bosses = raw_player_data["boss_data"].get(
-                "defeated_bosses", []
-            )
-
-            # Allow summoning if it's the current progression boss OR a previously defeated boss
-            if not (
-                boss_to_summon_id == player_progression_boss
-                or boss_to_summon_id in player_defeated_bosses
-            ):
-                await i.response.send_message(
-                    f"Este invocador ainda não está disponível para você progredir ou você não o derrotou ainda. Você precisa derrotar o **{player_progression_boss}** para desbloquear o próximo, ou este é um boss que você ainda não derrotou.",
-                    ephemeral=True,
-                )
-                return
-            # --- END FIX ---
-
-            current_boss_data["active_boss_id"] = (
-                boss_to_summon_id  # Store the ID, not the name
-            )
-            current_boss_data["hp"] = summoned_boss_info.get("max_hp", 1)
-            current_boss_data["participants"] = [str(i.user.id)]
-            current_boss_data["channel_id"] = i.channel.id
-
-            raw_player_data.setdefault("inventory", {})[item_id] = (
-                raw_player_data.get("inventory", {}).get(item_id, 0) - 1
-            )
-
-            embed = Embed(
-                title=f"{item_info.get('emoji')} O {summoned_boss_info.get('name')} APARECEU! {item_info.get('emoji')}",
-                description=f"Invocado por **{i.user.display_name}**! Usem `/atacar_boss`!",
-                color=Color.dark_red(),
-            )
-            embed.add_field(
-                name="Vida do Boss",
-                value=f"`{current_boss_data.get('hp',0)}/{summoned_boss_info.get('max_hp',1)}`",
-            ).set_thumbnail(
-                url=summoned_boss_info.get(
-                    "thumbnail", "https://i.imgur.com/example_boss_default.png"
-                )
-            )
-            await i.response.send_message(embed=embed)
+        # Removido: elif item_info.get("type") == "summon_boss":
         else:
             await i.response.send_message(
                 "Este item não possui uma ação de 'usar' definida.", ephemeral=True
@@ -627,6 +570,7 @@ class WorldCommands(commands.Cog):
                 description=f"{i.user.display_name} liberou seu poder oculto e se tornou um(a) {forma.value} por {transform_info_found.get('duration_seconds',0) // 60} minutos!",
                 color=Color.dark_red() if player_class == "Vampiro" else Color.gold(),
             )
+            # Removido: embed.set_thumbnail(url="https://c.tenor.com/2U54k92V-i4AAAAC/tenor.gif")
             await i.response.send_message(embed=embed)
             save_data()
             return

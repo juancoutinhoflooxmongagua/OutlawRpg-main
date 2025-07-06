@@ -5,10 +5,10 @@ import asyncio
 from datetime import datetime
 from discord import Interaction, Embed, Color
 
-from config import (
+from .config import (  # Alterado para importação relativa
     ITEMS_DATA,
     CLASS_TRANSFORMATIONS,
-    BOSSES_DATA,
+    # Removido: BOSSES_DATA,
     XP_PER_LEVEL_BASE,
     ATTRIBUTE_POINTS_PER_LEVEL,
     CRITICAL_CHANCE,
@@ -17,16 +17,16 @@ from config import (
     STARTING_LOCATION,
     LEVEL_ROLES,
     TRANSFORM_COST,
-    CLAN_KILL_CONTRIBUTION_PERCENTAGE_XP,  # NEW
-    CLAN_KILL_CONTRIBUTION_PERCENTAGE_MONEY,  # NEW
+    CLAN_KILL_CONTRIBUTION_PERCENTAGE_XP,
+    CLAN_KILL_CONTRIBUTION_PERCENTAGE_MONEY,
 )
 
-from data_manager import (
+from .data_manager import (  # Alterado para importação relativa
     save_data,
     get_player_data,
     clan_database,
     save_clan_data,
-)  # NEW
+)
 
 
 def calculate_effective_stats(raw_player_data: dict) -> dict:
@@ -649,6 +649,7 @@ async def run_turn_based_combat(
         if raw_player_data["class"] == "Domador":
             owner_base_for_ratio = raw_player_data["max_hp"]
             wolf_base_for_ratio = int(raw_player_data["max_hp"] * 0.50)
+
             total_ratio_base = owner_base_for_ratio + wolf_base_for_ratio
 
             if total_ratio_base > 0:
@@ -806,13 +807,16 @@ async def run_turn_based_combat(
                 owner_ratio = owner_base_for_ratio / total_ratio_base
                 owner_display_hp = int(player_hp * owner_ratio)
                 wolf_display_hp = player_hp - owner_display_hp
+                player_hp_display_text = (
+                    f"❤️ Você: {max(0, owner_display_hp)}/{owner_display_max_hp}\n"
+                    f"🐺 Lobo: {max(0, wolf_display_hp)}/{wolf_display_max_hp}"
+                )
             else:
                 owner_display_hp = player_hp
                 wolf_display_hp = 0
-            player_hp_display_text = (
-                f"❤️ Você: {max(0, owner_display_hp)}/{owner_display_max_hp}\n"
-                f"🐺 Lobo: {max(0, wolf_display_hp)}/{wolf_display_max_hp}"
-            )
+                player_hp_display_text = (
+                    f"❤️ {max(0, player_hp)}/{player_stats['max_hp']}"
+                )
         else:
             player_hp_display_text = f"❤️ {max(0, player_hp)}/{player_stats['max_hp']}"
 

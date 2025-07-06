@@ -1,8 +1,3 @@
-# File: OutlawRpg-main/outlaw/bot.py
-# Este é o código COMPLETO e corrigido para o seu bot.py.
-# As importações foram ajustadas para o cenário de execução direta de 'bot.py'
-# a partir da pasta 'outlaw', corrigindo o 'ModuleNotFoundError'.
-
 import discord
 from discord.ext import commands, tasks
 from discord import app_commands, Embed, Color, Interaction
@@ -13,15 +8,13 @@ from datetime import datetime, timedelta
 from dotenv import load_dotenv
 
 # Importar constantes e dados de config.py
-# Corrigido: 'outlaw.' removido se config.py estiver no mesmo diretório
-from config import (
+from .config import (
     XP_PER_LEVEL_BASE,
     ATTRIBUTE_POINTS_PER_LEVEL,
     MAX_ENERGY,
     STARTING_LOCATION,
     ITEMS_DATA,
     CLASS_TRANSFORMATIONS,
-    BOSSES_DATA,
     WORLD_MAP,
     LEVEL_ROLES,
     NEW_CHARACTER_ROLE_ID,
@@ -34,8 +27,7 @@ from config import (
 )
 
 # Importar data manager
-# Corrigido: 'outlaw.' removido se data_manager.py estiver no mesmo diretório
-from data_manager import (
+from .data_manager import (
     load_data,
     save_data,
     get_player_data,
@@ -43,12 +35,10 @@ from data_manager import (
     load_clan_data,
     save_clan_data,
     clan_database,
-    current_boss_data,
 )
 
 # Importar utilitários
-# Corrigido: 'outlaw.' removido se utils.py estiver no mesmo diretório
-from utils import (
+from .utils import (
     calculate_effective_stats,
     run_turn_based_combat,
     check_and_process_levelup_internal,
@@ -57,20 +47,18 @@ from utils import (
 )
 
 # Importar exceções personalizadas para tratamento de erros
-# Corrigido: 'outlaw.' removido se custom_checks.py estiver no mesmo diretório
-from custom_checks import NotInCity, NotInWilderness
+from .custom_checks import NotInCity, NotInWilderness
 
 
 # Importar Cogs
-# Corrigido: 'outlaw.' removido, agora importando diretamente do subdiretório 'cogs'
-from cogs.character_commands import CharacterCommands
-from cogs.combat_commands import CombatCommands
-from cogs.world_commands import WorldCommands
-from cogs.admin_commands import AdminCommands
-from cogs.utility_commands import UtilityCommands
-from cogs.blessing_commands import BlessingCommands
-from cogs.clan_commands import ClanCommands
-from cogs.relic_commands import RelicCommands  # NOVO: Importar o cog de relíquias
+from .cogs.character_commands import CharacterCommands
+from .cogs.combat_commands import CombatCommands
+from .cogs.world_commands import WorldCommands
+from .cogs.admin_commands import AdminCommands
+from .cogs.utility_commands import UtilityCommands
+from .cogs.blessing_commands import BlessingCommands
+from .cogs.clan_commands import ClanCommands
+from .cogs.relic_commands import RelicCommands
 
 
 # --- CONFIGURAÇÃO INICIAL E CONSTANTES ---
@@ -98,12 +86,12 @@ class OutlawsBot(commands.Bot):
         await self.add_cog(UtilityCommands(self))
         await self.add_cog(BlessingCommands(self))
         await self.add_cog(ClanCommands(self))
-        await self.add_cog(RelicCommands(self))  # NOVO: Adicionar o cog de relíquias
+        await self.add_cog(RelicCommands(self))
 
         # Iniciar tarefas em segundo plano
         self.auto_save.start()
         self.energy_regeneration.start()
-        self.boss_attack_loop.start()
+        # Removido: self.boss_attack_loop.start()
         self.sync_roles_periodically.start()
         self.weekly_clan_ranking.start()
 
@@ -126,8 +114,7 @@ class OutlawsBot(commands.Bot):
         """Um manipulador de erros global para todos os comandos de barra."""
 
         # Importando exceções personalizadas localmente aqui para evitar importações circulares se as verificações forem importadas por Cogs
-        # Corrigido: 'outlaw.' removido do import local
-        from custom_checks import NotInCity, NotInWilderness
+        from .custom_checks import NotInCity, NotInWilderness
 
         if isinstance(error, app_commands.CommandOnCooldown):
             await interaction.response.send_message(
@@ -289,139 +276,6 @@ class OutlawsBot(commands.Bot):
                             )
 
         save_data()  # Salva as mudanças de energia e buffs para todos os jogadores
-
-    @tasks.loop(seconds=15)  # Loop de ataque de boss
-    async def boss_attack_loop(self):
-        if not current_boss_data or not current_boss_data.get("active_boss_id"):
-            return
-
-        active_boss_id = current_boss_data["active_boss_id"]
-        active_boss_info = BOSSES_DATA.get(active_boss_id)
-
-        if not active_boss_info:
-            print(
-                f"AVISO: Boss ativo com ID '{active_boss_id}' não encontrado em BOSSES_DATA."
-            )
-            current_boss_data.clear()
-            save_data()
-            return
-
-        channel_id = current_boss_data.get("channel_id")
-        if not channel_id:
-            print(f"AVISO: Boss '{active_boss_id}' não tem um channel_id configurado.")
-            return
-
-        channel = self.get_channel(channel_id)
-        if not channel:
-            print(
-                f"AVISO: Canal '{channel_id}' para o boss '{active_boss_id}' não encontrado."
-            )
-            current_boss_data.clear()
-            save_data()
-            return
-
-        participants = list(current_boss_data.get("participants", []))
-        if not participants:
-            print(f"Boss {active_boss_id} não tem participantes ativos.")
-            return
-
-        target_user_id_str = random.choice(participants)
-        target_player_data = get_player_data(target_user_id_str)
-
-        if not target_player_data or target_player_data.get("status") in [
-            "afk",
-            "dead",
-        ]:
-            current_boss_data["participants"].remove(target_user_id_str)
-            save_data()
-            return
-
-        guild = self.get_guild(GUILD_ID)
-        if not guild:
-            print(
-                f"AVISO: Guilda com ID {GUILD_ID} não encontrada para ataque de boss."
-            )
-            return
-
-        target_member = guild.get_member(int(target_user_id_str))
-        if not target_member:
-            print(
-                f"Membro {target_user_id_str} não encontrado na guilda para ataque de boss."
-            )
-            current_boss_data["participants"].remove(target_user_id_str)
-            save_data()
-            return
-
-        damage_to_deal = random.randint(
-            active_boss_info.get("attack", 0) // 2, active_boss_info.get("attack", 0)
-        )
-
-        player_effective_stats = calculate_effective_stats(target_player_data)
-        total_evasion_chance = player_effective_stats.get("evasion_chance_bonus", 0.0)
-
-        for item_id, item_info in ITEMS_DATA.items():
-            if (
-                item_info.get("type") == "blessing_unlock"
-                and item_info.get("evasion_chance", 0.0) > 0
-            ):
-                if target_player_data.get(f"{item_id}_active", False):
-                    total_evasion_chance += item_info.get("evasion_chance", 0.0)
-
-        log_message = f"👹 **Fúria do {active_boss_info['name']}** ataca **{target_member.display_name}**!"
-
-        evaded = False
-        hp_stolen_on_evade = 0
-        if random.random() < total_evasion_chance:
-            max_hp_steal_percent = 0.0
-            for item_id, item_info in ITEMS_DATA.items():
-                if (
-                    item_info.get("type") == "blessing_unlock"
-                    and item_info.get("evasion_chance", 0.0) > 0
-                ):
-                    if target_player_data.get(f"{item_id}_active", False):
-                        max_hp_steal_percent = max(
-                            max_hp_steal_percent,
-                            item_info.get("hp_steal_percent_on_evade", 0.0),
-                        )
-
-            hp_stolen_on_evade = int(damage_to_deal * max_hp_steal_percent)
-            target_player_data["hp"] = min(
-                target_player_data.get("max_hp", 1),
-                target_player_data.get("hp", 0) + hp_stolen_on_evade,
-            )
-            log_message += f"\n👻 **DESVIADO!** Você evitou o ataque e sugou `{hp_stolen_on_evade}` HP!"
-            evaded = True
-        else:
-            target_player_data["hp"] = target_player_data.get("hp", 0) - damage_to_deal
-            log_message += f"\nVocê sofreu `{damage_to_deal}` de dano!"
-
-        if target_player_data.get("hp", 0) <= 0:
-            target_player_data["hp"] = 0
-            target_player_data["status"] = "dead"
-            target_player_data["deaths"] = target_player_data.get("deaths", 0) + 1
-            log_message += "\n☠️ Você foi derrotado pelo Boss!"
-            if target_user_id_str in current_boss_data["participants"]:
-                current_boss_data["participants"].remove(target_user_id_str)
-
-        save_data()
-
-        attack_embed = Embed(
-            title="Ataque de Boss!",
-            description=log_message,
-            color=Color.dark_orange(),
-        )
-        attack_embed.set_footer(
-            text=f"Sua vida: {max(0, target_player_data.get('hp',0))}/{target_player_data.get('max_hp',1)}"
-        )
-        try:
-            await channel.send(target_member.mention, embed=attack_embed)
-        except Exception as e:
-            print(
-                f"Erro ao enviar mensagem de ataque de boss para {target_member.display_name} no canal {channel_id}: {e}"
-            )
-            if target_user_id_str in current_boss_data["participants"]:
-                current_boss_data["participants"].remove(target_user_id_str)
-            save_data()
 
     @tasks.loop(minutes=5)  # Sincronização de cargos a cada 5 minutos
     async def sync_roles_periodically(self):

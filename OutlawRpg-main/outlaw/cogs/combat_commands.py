@@ -4,8 +4,12 @@ from discord import app_commands, Embed, Color, Interaction
 import random
 from datetime import datetime
 
-from data_manager import get_player_data, save_data, player_database, current_boss_data
-from config import (
+from ..data_manager import (
+    get_player_data,
+    save_data,
+    player_database,
+)  # Removido: current_boss_data
+from ..config import (  # Alterado para importação relativa
     ENEMIES,
     WORLD_MAP,
     TRANSFORM_COST,
@@ -13,14 +17,20 @@ from config import (
     CLASS_TRANSFORMATIONS,
     CRITICAL_CHANCE,
     CRITICAL_MULTIPLIER,
-    BOSSES_DATA,
+    # Removido: BOSSES_DATA,
     BOUNTY_PERCENTAGE,
     INITIAL_ATTACK,
     INITIAL_SPECIAL_ATTACK,
 )
 
-from custom_checks import check_player_exists, is_in_wilderness
-from utils import calculate_effective_stats, run_turn_based_combat
+from ..custom_checks import (
+    check_player_exists,
+    is_in_wilderness,
+)  # Alterado para importação relativa
+from ..utils import (
+    calculate_effective_stats,
+    run_turn_based_combat,
+)  # Alterado para importação relativa
 
 
 class CombatCommands(commands.Cog):
@@ -534,11 +544,9 @@ class CombatCommands(commands.Cog):
                             p_data,
                             i.channel,
                         )
-            # The 'final_embed' variable is not defined in the original code,
-            # so I'm assuming it should be the 'embed' object defined earlier.
-            # If 'final_embed' is supposed to be a separate embed, you'll need
-            # to define it before this point.
-            embed.add_field(name="Recompensas", value=f"{money_message}\n{xp_message}")
+            embed.add_field(
+                name="Recompensas", value=f"{money_message}\n{xp_message}"
+            )  # This line was causing an error
 
             next_boss_id = active_boss_info.get("next_boss_unlock")
             if next_boss_id and next_boss_id in BOSSES_DATA:

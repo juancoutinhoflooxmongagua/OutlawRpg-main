@@ -113,7 +113,6 @@ ITEMS_DATA = {
         "type": "healing",
         "description": "Restaura uma grande quantidade de HP.",
     },
-    # REMOVIDO: "invocador" genérico
     "amuleto_de_pedra": {
         "name": "Amuleto de Pedra",
         "effect": "second_chance",
@@ -203,70 +202,6 @@ ITEMS_DATA = {
         "type": "blessing_unlock",
         "description": "Bênção temporária que aprimora muito seus atributos e reduz cooldowns.",
     },
-    # NOVOS ITENS INVOCADORES DE BOSS (adicionados para permitir compra na loja)
-    "invocador_colosso_de_pedra": {
-        "name": "Invocador do Colosso de Pedra",
-        "price": 1000,
-        "emoji": "🔮",
-        "consumable": True,
-        "type": "summon_boss",
-        "boss_id_to_summon": "colosso_de_pedra",
-        "description": "Invoca o Colosso de Pedra para um desafio pessoal.",
-    },
-    "invocador_devorador_abissal": {
-        "name": "Invocador do Devorador Abissal",
-        "price": 2500,
-        "emoji": "🔮",
-        "consumable": True,
-        "type": "summon_boss",
-        "boss_id_to_summon": "devorador_abissal",
-        "description": "Invoca o Devorador Abissal para um desafio personal.",
-    },
-    "invocador_inferno_guardiao": {
-        "name": "Invocador do Inferno Guardião",
-        "price": 6000,
-        "emoji": "🔮",
-        "consumable": True,
-        "type": "summon_boss",
-        "boss_id_to_summon": "inferno_guardiao",
-        "description": "Invoca o Inferno Guardião para um desafio personal.",
-    },
-    "invocador_tita_esquecido": {
-        "name": "Invocador do Titã Esquecido",
-        "price": 15000,
-        "emoji": "🔮",
-        "consumable": True,
-        "type": "summon_boss",
-        "boss_id_to_summon": "tita_esquecido",
-        "description": "Invoca o Titã Esquecido para um desafio personal.",
-    },
-    "invocador_arauto_das_sombras": {
-        "name": "Invocador do Arauto das Sombras",
-        "price": 40000,
-        "emoji": "🔮",
-        "consumable": True,
-        "type": "summon_boss",
-        "boss_id_to_summon": "arauto_das_sombras",
-        "description": "Invoca o Arauto das Sombras para um desafio personal.",
-    },
-    "invocador_anomalia_dimensional": {
-        "name": "Invocador da Anomalia Dimensional",
-        "price": 100000,
-        "emoji": "🔮",
-        "consumable": True,
-        "type": "summon_boss",
-        "boss_id_to_summon": "anomalia_dimensional",
-        "description": "Invoca a Anomalia Dimensional para um desafio personal.",
-    },
-    "invocador_sentinela_celestial": {
-        "name": "Invocador da Sentinela Celestial",
-        "price": 250000,
-        "emoji": "🔮",
-        "consumable": True,
-        "type": "summon_boss",
-        "boss_id_to_summon": "sentinela_celestial",
-        "description": "Invoca a Sentinela Celestial para um desafio personal.",
-    },
     "coleira_do_lobo": {
         "name": "Coleira do Lobo Alfa",
         "price": 7500,
@@ -304,37 +239,7 @@ ITEMS_DATA = {
     },
 }
 
-LOCATION_KILL_GOALS = {
-    "Floresta Sussurrante": {
-        "kills_required": 60,
-        "invoker_id": "invocador_colosso_de_pedra",
-    },
-    "Ruínas do Templo": {
-        "kills_required": 60,
-        "invoker_id": "invocador_colosso_de_pedra",
-    },
-    "Abismo Sombrio": {
-        "kills_required": 60,
-        "invoker_id": "invocador_devorador_abissal",
-    },
-    "Vale do Inferno": {
-        "kills_required": 60,
-        "invoker_id": "invocador_inferno_guardiao",
-    },
-    "Templo Esquecido": {
-        "kills_required": 60,
-        "invoker_id": "invocador_tita_esquecido",
-    },
-    "Portão das Sombras": {
-        "kills_required": 60,
-        "invoker_id": "invocador_arauto_das_sombras",
-    },
-    "Brecha das Terras": {
-        "kills_required": 60,
-        "invoker_id": "invocador_anomalia_dimensional",
-    },
-    "Paraíso": {"kills_required": 60, "invoker_id": "invocador_sentinela_celestial"},
-}
+LOCATION_KILL_GOALS = {}
 
 
 CLASS_TRANSFORMATIONS = {
@@ -474,134 +379,8 @@ CLASS_TRANSFORMATIONS = {
 }
 
 
-BOSSES_DATA = {
-    # Changed keys to snake_case IDs for consistency
-    "colosso_de_pedra": {
-        "id": "colosso_de_pedra",
-        "name": "Colosso de Pedra",
-        "max_hp": 5000,
-        "attack": 150,
-        "xp_reward": 1000,
-        "money_reward": 5000,
-        "drops": {"amuleto_de_pedra": 1, "pocao": 10},
-        "spawn_locations": [
-            "Floresta Sussurrante",
-            "Ruínas do Templo",
-        ],
-        "thumbnail": "https://c.tenor.com/NLQ2AoVfEQUAAAAd/tenor.gif",
-        "next_boss_unlock": "devorador_abissal",  # Corrected to snake_case
-        "required_level": 1,
-        "price_invoker": 1000,
-    },
-    "devorador_abissal": {
-        "id": "devorador_abissal",
-        "name": "Devorador Abissal",
-        "max_hp": 12500,
-        "attack": 375,
-        "xp_reward": 2500,
-        "money_reward": 12500,
-        "drops": {
-            "super_pocao": 2,
-            "invocador_colosso_de_pedra": 1,
-        },
-        "spawn_locations": ["Abismo Sombrio"],
-        "thumbnail": "https://c.tenor.com/f2S9_G2tEwAAAAAd/abyssal-devourer.gif",
-        "next_boss_unlock": "inferno_guardiao",  # Corrected to snake_case
-        "required_level": 5,
-        "price_invoker": 2500,
-    },
-    "inferno_guardiao": {
-        "id": "inferno_guardiao",
-        "name": "Inferno Guardião",
-        "max_hp": 31250,
-        "attack": 937,
-        "xp_reward": 6250,
-        "money_reward": 31250,
-        "drops": {
-            "cajado_curandeiro": 1,
-            "manopla_lutador": 1,
-            "invocador_devorador_abissal": 1,
-        },
-        "spawn_locations": ["Vale do Inferno"],
-        "thumbnail": "https://c.tenor.com/7b9011A43IAAAAd/inferno-guardian.gif",
-        "next_boss_unlock": "tita_esquecido",  # Corrected to snake_case
-        "required_level": 10,
-        "price_invoker": 6000,
-    },
-    "tita_esquecido": {
-        "id": "tita_esquecido",
-        "name": "Titã Esquecido",
-        "max_hp": 78125,
-        "attack": 2342,
-        "xp_reward": 15625,
-        "money_reward": 78125,
-        "drops": {
-            "mira_semi_automatica": 1,
-            "espada_fantasma": 1,
-            "invocador_inferno_guardiao": 1,
-        },
-        "spawn_locations": ["Templo Esquecido"],
-        "thumbnail": "https://c.tenor.com/A6j5QjE2vVAAAAAd/forgotten-titan.gif",
-        "next_boss_unlock": "arauto_das_sombras",  # Corrected to snake_case
-        "required_level": 15,
-        "price_invoker": 15000,
-    },
-    "arauto_das_sombras": {
-        "id": "arauto_das_sombras",
-        "name": "Arauto das Sombras",
-        "max_hp": 195312,
-        "attack": 5855,
-        "xp_reward": 39062,
-        "money_reward": 195312,
-        "drops": {
-            "bencao_dracula": 1,
-            "bencao_rei_henrique": 1,
-            "invocador_tita_esquecido": 1,
-        },
-        "spawn_locations": ["Portão das Sombras"],
-        "thumbnail": "https://c.tenor.com/y8m0v_eF2AAAAAd/shadow-herald.gif",
-        "next_boss_unlock": "anomalia_dimensional",  # Corrected to snake_case
-        "required_level": 20,
-        "price_invoker": 40000,
-    },
-    "anomalia_dimensional": {
-        "id": "anomalia_dimensional",
-        "name": "Anomalia Dimensional",
-        "max_hp": 488280,
-        "attack": 14638,
-        "xp_reward": 97656,
-        "money_reward": 488280,
-        "drops": {
-            "invocador_arauto_das_sombras": 1,
-            "amuleto_de_pedra": 1,
-            "habilidade_inata": 1,
-        },
-        "spawn_locations": ["Brecha das Terras"],
-        "thumbnail": "https://c.tenor.com/gK9x2C34z4kAAAAd/dimensional-anomaly.gif",
-        "next_boss_unlock": "sentinela_celestial",  # Corrected to snake_case
-        "required_level": 30,
-        "price_invoker": 100000,
-    },
-    "sentinela_celestial": {
-        "id": "sentinela_celestial",
-        "name": "Sentinela Celestial",
-        "max_hp": 1220700,
-        "attack": 36595,
-        "xp_reward": 244140,
-        "money_reward": 1220700,
-        "drops": {
-            "invocador_anomalia_dimensional": 1,
-            "amuleto_de_pedra": 1,
-            "habilidade_inata": 2,
-            "bencao_rei_henrique": 1,
-        },
-        "spawn_locations": ["Paraíso"],
-        "thumbnail": "https://c.tenor.com/f3k2b_9m0AAAAAd/celestial-sentinel.gif",
-        "next_boss_unlock": None,
-        "required_level": 50,
-        "price_invoker": 250000,
-    },
-}
+BOSSES_DATA = {}  # Conteúdo removido e vazio
+
 
 WORLD_MAP = {
     "Abrigo dos Foras-da-Lei": {
@@ -640,7 +419,7 @@ WORLD_MAP = {
         "emoji": "🕳️",
         "conecta": ["Ruínas do Templo", "Vale do Inferno"],
         "desc": "Um abismo sem fim, onde as sombras se tornam presas fáceis para predadores famintos.",
-        "required_previous_boss": "colosso_de_pedra",  # Consistent snake_case ID
+        "required_previous_boss": None,  # ALTERADO: Era "colosso_de_pedra"
         "required_item": None,
         "required_level": None,
     },
@@ -650,7 +429,7 @@ WORLD_MAP = {
         "emoji": "🔥",
         "conecta": ["Abismo Sombrio", "Templo Esquecido"],
         "desc": "Um vale escaldante cheio de fogo e criaturas que sobrevivem ao calor infernal.",
-        "required_previous_boss": "devorador_abissal",  # Consistent snake_case ID
+        "required_previous_boss": None,  # ALTERADO: Era "devorador_abissal"
         "required_item": None,
         "required_level": None,
     },
@@ -660,7 +439,7 @@ WORLD_MAP = {
         "emoji": "🏯",
         "conecta": ["Vale do Inferno", "Portão das Sombras"],
         "desc": "Ruínas antigas de um templo perdido no tempo, protegido por entidades místicas.",
-        "required_previous_boss": "inferno_guardiao",  # Consistent snake_case ID
+        "required_previous_boss": None,  # ALTERADO: Era "inferno_guardiao"
         "required_item": None,
         "required_level": None,
     },
@@ -670,7 +449,7 @@ WORLD_MAP = {
         "emoji": "🚪",
         "conecta": ["Templo Esquecido", "Brecha das Terras"],
         "desc": "Um portal sombrio que conecta os mundos, guardado por forças obscuras.",
-        "required_previous_boss": "tita_esquecido",  # Consistent snake_case ID
+        "required_previous_boss": None,  # ALTERADO: Era "tita_esquecido"
         "required_item": None,
         "required_level": None,
     },
@@ -680,7 +459,7 @@ WORLD_MAP = {
         "emoji": "🌌",
         "conecta": ["Portão das Sombras", "Paraíso"],
         "desc": "O ponto onde múltiplas realidades se encontram e o destino do mundo será decidido.",
-        "required_previous_boss": "arauto_das_sombras",  # Consistent snake_case ID
+        "required_previous_boss": None,  # ALTERADO: Era "arauto_das_sombras"
         "required_item": None,
         "required_level": None,
     },
@@ -690,7 +469,7 @@ WORLD_MAP = {
         "emoji": "🌟",
         "conecta": ["Brecha das Terras"],
         "desc": "O santuário sagrado onde a paz e a luz reinam supremos, mas guardado por seres celestiais poderosos.",
-        "required_previous_boss": "anomalia_dimensional",  # Consistent snake_case ID
+        "required_previous_boss": None,  # ALTERADO: Era "anomalia_dimensional"
         "required_item": None,
         "required_level": None,
     },
@@ -895,25 +674,10 @@ LEVEL_ROLES = {
 
 NEW_CHARACTER_ROLE_ID = 1388628499182518352
 
-DEFAULT_PLAYER_BOSS_DATA = {
-    "current_boss_id": None,
-    "current_boss_hp": 0,
-    "last_spawn_channel_id": None,
-    "boss_progression_level": "colosso_de_pedra",  # Consistent snake_case ID
-    "defeated_bosses": [],
-    "last_spawn_timestamp": 0,
-}
+DEFAULT_PLAYER_BOSS_DATA = {}  # Conteúdo removido e vazio
 
-BOSS_PROGRESSION_ORDER = [
-    "colosso_de_pedra",
-    "devorador_abissal",
-    "inferno_guardiao",
-    "tita_esquecido",
-    "arauto_das_sombras",
-    "anomalia_dimensional",
-    "sentinela_celestial",
-]
+BOSS_PROGRESSION_ORDER = []  # Conteúdo removido e vazio
 
 
 CLAN_REWARD_ANNOUNCEMENT_CHANNEL_ID = 1387231221616087141
-BOSS_ANNOUNCEMENT_CHANNEL_ID = 987654321098765432
+BOSS_ANNOUNCEMENT_CHANNEL_ID = 0  # Alterado para 0

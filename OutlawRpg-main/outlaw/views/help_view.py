@@ -1,6 +1,6 @@
 import discord
 from discord import ui, Interaction, Embed, Color
-from config import ITEMS_DATA, CLASS_TRANSFORMATIONS, CUSTOM_EMOJIS
+from ..config import ITEMS_DATA, CLASS_TRANSFORMATIONS, CUSTOM_EMOJIS
 
 
 class HelpView(ui.View):
@@ -82,9 +82,6 @@ class HelpView(ui.View):
                 value="[Aura] Ativa diretamente a Benção do Rei Henrique.",
                 inline=False,
             )
-            embed.add_field(
-                name="/atacar_boss", value="Ataca o boss global.", inline=False
-            )
         elif topic == "Sistema de Classes":
             class_descriptions = []
             for class_name, transforms in CLASS_TRANSFORMATIONS.items():
@@ -103,12 +100,12 @@ class HelpView(ui.View):
                 embed.description += f"\n\nAlém disso, **Vampiros** podem ativar a {ITEMS_DATA.get('bencao_dracula', {}).get('emoji', '🦇')} **Bênção de Drácula** para desviar e sugar HP!"
 
         elif topic == "Sistema de Combate":
+            # Removido: A menção a atacar_boss
             embed.description = "Batalhas são por turnos. Acertos Críticos (10% de chance) causam 50% a mais de dano!"
         elif topic == "Itens Especiais":
             potion_info = ITEMS_DATA.get("pocao", {})
             super_potion_info = ITEMS_DATA.get("super_pocao", {})
             amulet_info = ITEMS_DATA.get("amuleto_de_pedra", {})
-            invocador_info = ITEMS_DATA.get("invocador", {})
             healer_staff_info = ITEMS_DATA.get("cajado_curandeiro", {})
             fighter_gauntlet_info = ITEMS_DATA.get("manopla_lutador", {})
             shooter_sight_info = ITEMS_DATA.get("mira_semi_automatica", {})
@@ -123,12 +120,7 @@ class HelpView(ui.View):
             )
             embed.add_field(
                 name=f"{amulet_info.get('emoji', '❔')} {amulet_info.get('name', 'Amuleto de Pedra')}",
-                value="Item raro dropado pelo Colosso de Pedra. Concede uma segunda chance em combate, salvando-o da morte iminente uma vez por batalha. Este item é **permanente** e não é consumido.",
-                inline=False,
-            )
-            embed.add_field(
-                name=f"{invocador_info.get('emoji', '❔')} {invocador_info.get('name', 'Invocador do Colosso')}",
-                value="Invoca o terrível boss atual do mundo. Um item consumível por uso.",
+                value="Item raro que concede uma segunda chance em combate, salvando-o da morte iminente uma vez por batalha. Este item é **permanente** e não é consumido.",
                 inline=False,
             )
             embed.add_field(
