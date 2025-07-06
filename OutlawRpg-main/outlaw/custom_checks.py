@@ -59,3 +59,21 @@ def is_in_wilderness(i: Interaction):
     raise NotInWilderness(
         f"Você está em uma cidade. Este comando só pode ser usado em áreas selvagens. Sua localização atual: {location_info.get('name', 'Desconhecida')}."
     )
+
+
+def is_not_in_city(i: Interaction):
+    """Checks if the player's current location is NOT a 'city' type."""
+    player_data = get_player_data(i.user.id)
+    if not player_data:
+        raise app_commands.CheckFailure("Você não possui uma ficha de personagem.")
+
+    current_location_id = player_data.get("location", STARTING_LOCATION)
+    location_info = WORLD_MAP.get(current_location_id, {})
+
+    if location_info.get("type") != "cidade":
+        return True
+    # You might want a different custom exception here if 'not in wilderness' implies 'in city'
+    # or you can use CheckFailure directly for simplicity if 'NotInCity' isn't suitable for inverse
+    raise NotInCity( # Reusing NotInCity exception here, as it implies the same root issue for a command that expects to be outside a city
+        f"Você está em uma cidade. Este comando não pode ser usado em uma cidade. Sua localização atual: {location_info.get('name', 'Desconhecida')}."
+    )

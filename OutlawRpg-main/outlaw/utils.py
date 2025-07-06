@@ -1,931 +1,433 @@
-# File: outlawrpg-main/OutlawRpg-main-36e5d19755e4ada9ae83f9bedc4d3bc8d5a64ec6/OutlawRpg-main/outlaw/utils.py
-import discord
+# utils.py
+import math
 import random
-import asyncio
-from datetime import datetime
-from discord import Interaction, Embed, Color
+import time
+from datetime import datetime, timedelta
+import discord
 
-from .config import (  # Alterado para importação relativa
-    ITEMS_DATA,
-    CLASS_TRANSFORMATIONS,
-    # Removido: BOSSES_DATA,
-    XP_PER_LEVEL_BASE,
-    ATTRIBUTE_POINTS_PER_LEVEL,
+from config import (
     CRITICAL_CHANCE,
     CRITICAL_MULTIPLIER,
-    MAX_ENERGY,
-    STARTING_LOCATION,
+    XP_PER_LEVEL_BASE,
     LEVEL_ROLES,
-    TRANSFORM_COST,
+    ATTRIBUTE_POINTS_PER_LEVEL,
+    NEW_CHARACTER_ROLE_ID,
+    CLASS_TRANSFORMATIONS,
+    ITEMS_DATA,
     CLAN_KILL_CONTRIBUTION_PERCENTAGE_XP,
     CLAN_KILL_CONTRIBUTION_PERCENTAGE_MONEY,
 )
-
-from .data_manager import (  # Alterado para importação relativa
-    save_data,
+from data_manager import (
+    player_database,
     get_player_data,
+    save_data,
     clan_database,
+    get_clan_data,
     save_clan_data,
 )
 
 
-def calculate_effective_stats(raw_player_data: dict) -> dict:
-    """Calculates a player's effective stats based on their base stats, transformation, and inventory items.
-    Does NOT modify the original raw_player_data.
-    """
-    # ADDED: Handle None input gracefully
-    if raw_player_data is None:
-        return {
-            "attack": 0,
-            "special_attack": 0,
-            "max_hp": 0,
-            "hp": 0,
-            "attack_bonus_passive_percent": 0.0,
-            "healing_multiplier": 1.0,
-            "evasion_chance_bonus": 0.0,
-            "cooldown_reduction_percent": 0.0,
-            "xp_multiplier_passive": 0.0,
-            "money_multiplier_passive": 0.0,
-            "class": "Unknown",
-            "style": "Unknown",
-        }
+def calculate_effective_stats(player_data: dict) -> dict:
+    """Calcula os atributos efetivos de um jogador, incluindo bônus de itens e transformações."""
+    effective_hp = player_data["max_hp"]
+    effective_attack = player_data["attack"]
+    effective_special_attack = player_data["special_attack"]
+    xp_multiplier = 1.0
+    money_multiplier = 1.0
+    healing_multiplier = 1.0
+    cooldown_reduction_percent = 0.0
+    evasion_chance_bonus = 0.0
 
-    effective_data = raw_player_data.copy()
+    # Bônus de atributos
+    if player_data["class"] == "Lutador":
+        effective_hp += player_data["strength"] * 1.5
+        effective_attack += player_data["strength"] * 0.8
+    elif player_data["class"] == "Espadachim":
+        effective_attack += player_data["agility"] * 1.2
+        effective_hp += player_data["agility"] * 0.5
+    elif player_data["class"] == "Atirador":
+        effective_special_attack += player_data["intelligence"] * 1.5
+        effective_attack += player_data["intelligence"] * 0.5
+    elif player_data["class"] == "Curandeiro":
+        healing_multiplier += player_data["intelligence"] * 0.02
+        effective_hp += player_data["constitution"] * 1.0
+    elif player_data["class"] == "Vampiro":
+        effective_attack += player_data["strength"] * 0.7
+        effective_special_attack += player_data["intelligence"] * 1.0
+        healing_multiplier += player_data["dexterity"] * 0.015  # Roubo de vida
+    elif player_data["class"] == "Domador":
+        effective_attack += player_data["strength"] * 0.6
+        effective_hp += player_data["constitution"] * 0.7
+        xp_multiplier += player_data["dexterity"] * 0.005  # Bônus de XP de caça
+    elif player_data["class"] == "Corpo Seco":
+        effective_hp += player_data["constitution"] * 1.8
+        effective_attack += player_data["strength"] * 0.5
 
-    # Default values for bonuses/multipliers
-    effective_data["attack_bonus_passive_percent"] = 0.0
-    effective_data["healing_multiplier"] = 1.0
-    effective_data["evasion_chance_bonus"] = 0.0
-    effective_data["cooldown_reduction_percent"] = 0.0
-    effective_data["xp_multiplier_passive"] = 0.0
-    effective_data["money_multiplier_passive"] = 0.0
+    # Bônus do item "Habilidade Inata (Passiva)" (bônus de estilo)
+    if "habilidade_inata" in player_data.get("inventory", {}):
+        if player_data.get("power_style") == "Força":
+            effective_attack *= 1.05
+            effective_hp *= 1.02
+        elif player_data.get("power_style") == "Agilidade":
+            effective_attack *= 1.03
+            evasion_chance_bonus += 0.03
+        elif player_data.get("power_style") == "Inteligência":
+            effective_special_attack *= 1.07
+            cooldown_reduction_percent += 0.03
+        elif player_data.get("power_style") == "Constituição":
+            effective_hp *= 1.07
+        elif player_data.get("power_style") == "Destreza":
+            xp_multiplier += 0.05
+            money_multiplier += 0.05
 
-    # Apply passive bonuses from "Habilidade Inata" source of power (if active)
-    habilidade_inata_info = ITEMS_DATA.get("habilidade_inata", {})
-    if effective_data.get("style") == "Habilidade Inata":
-        effective_data["attack_bonus_passive_percent"] += habilidade_inata_info.get(
-            "attack_bonus_passive_percent", 0.0
-        )
-        effective_data["xp_multiplier_passive"] += habilidade_inata_info.get(
-            "xp_multiplier_passive", 0.0
-        )
+    # Bônus de itens equipados
+    for item_id in player_data.get("equipped_items", {}).values():
+        item_info = ITEMS_DATA.get(item_id)
+        if item_info and item_info.get("type") == "equipable":
+            if item_info.get("class_restriction") and item_info["class_restriction"] != player_data["class"]:
+                continue # Pular item se houver restrição de classe e não corresponder
 
-    # Initialize current attack/special_attack/max_hp with base values
-    effective_data["attack"] = raw_player_data["base_attack"]
-    effective_data["special_attack"] = raw_player_data["base_special_attack"]
-    effective_data["max_hp"] = raw_player_data["max_hp"]
+            if "attack_bonus_percent" in item_info:
+                effective_attack *= (1 + item_info["attack_bonus_percent"])
+            if "hp_bonus_flat" in item_info:
+                effective_hp += item_info["hp_bonus_flat"]
+            if "special_attack_bonus_percent" in item_info:
+                effective_special_attack *= (1 + item_info["special_attack_bonus_percent"])
+            if "cooldown_reduction_percent" in item_info:
+                cooldown_reduction_percent += item_info["cooldown_reduction_percent"]
+            if "effect_multiplier" in item_info and item_info.get("description") == "Aumenta a eficácia de todas as suas curas em 20%.":
+                healing_multiplier *= item_info["effect_multiplier"]
+            if "hp_penalty_percent" in item_info:
+                effective_hp *= (1 - item_info["hp_penalty_percent"])
 
-    # Apply class transformations
-    if effective_data.get("current_transformation"):
-        transform_name = effective_data["current_transformation"]
-        class_name = effective_data["class"]
-        transform_info = CLASS_TRANSFORMATIONS.get(class_name, {}).get(transform_name)
-        if transform_info:
-            effective_data["attack"] = int(
-                effective_data["attack"] * transform_info.get("attack_multiplier", 1.0)
+    # Efeito do amuleto de pedra
+    if "amuleto_de_pedra" in player_data.get("inventory", {}):
+        # O amuleto de pedra é um item passivo, não afeta os atributos diretamente,
+        # mas sim a lógica de combate (segunda chance), então não entra aqui.
+        pass
+
+    # Efeito do Coração do Universo
+    if "coracao_do_universo" in player_data.get("inventory", {}):
+        item_info = ITEMS_DATA.get("coracao_do_universo")
+        if item_info:
+            effective_attack *= (1 + item_info.get("attack_multiplier", 0) / 100)
+            effective_hp *= (1 + item_info.get("max_hp_multiplier", 0) / 100)
+            xp_multiplier += item_info.get("xp_multiplier_passive", 0)
+            money_multiplier += item_info.get("money_multiplier_passive", 0)
+            cooldown_reduction_percent += item_info.get("cooldown_reduction_percent", 0)
+
+    # Bônus de Transformações/Bênçãos ativas
+    if player_data.get("current_transformation"):
+        transform_name = player_data["current_transformation"]
+        player_class = player_data["class"]
+        if player_class in CLASS_TRANSFORMATIONS and transform_name in CLASS_TRANSFORMATIONS[player_class]:
+            transform_info = CLASS_TRANSFORMATIONS[player_class][transform_name]
+            effective_attack *= transform_info.get("attack_multiplier", 1.0)
+            effective_special_attack *= transform_info.get("special_attack_multiplier", 1.0)
+            effective_hp *= transform_info.get("hp_multiplier", 1.0)
+            healing_multiplier *= transform_info.get("healing_multiplier", 1.0)
+            cooldown_reduction_percent += transform_info.get("cooldown_reduction_percent", 0.0)
+            evasion_chance_bonus += transform_info.get("evasion_chance_bonus", 0.0)
+
+    # Aplicar bênçãos que afetam atributos diretamente
+    for item_id, item_info in ITEMS_DATA.items():
+        if item_info.get("type") == "blessing_unlock" and player_data.get(f"{item_id}_active"):
+            if "attack_multiplier" in item_info:
+                effective_attack *= item_info["attack_multiplier"]
+            if "special_attack_multiplier" in item_info:
+                effective_special_attack *= item_info["special_attack_multiplier"]
+            if "max_hp_multiplier" in item_info:
+                effective_hp *= item_info["max_hp_multiplier"]
+            if "cooldown_reduction_percent" in item_info:
+                cooldown_reduction_percent += item_info["cooldown_reduction_percent"]
+            if "evasion_chance" in item_info:
+                evasion_chance_bonus += item_info["evasion_chance"]
+
+    # Garantir que HP não seja negativo
+    effective_hp = max(1, math.floor(effective_hp))
+    effective_attack = max(1, math.floor(effective_attack))
+    effective_special_attack = max(1, math.floor(effective_special_attack))
+
+    return {
+        "hp": effective_hp,
+        "attack": effective_attack,
+        "special_attack": effective_special_attack,
+        "xp_multiplier": xp_multiplier,
+        "money_multiplier": money_multiplier,
+        "healing_multiplier": healing_multiplier,
+        "cooldown_reduction_percent": min(0.95, cooldown_reduction_percent), # Limitar redução de cooldown
+        "evasion_chance": min(0.75, evasion_chance_bonus), # Limitar chance de esquiva
+    }
+
+
+async def run_turn_based_combat(bot, interaction, player_id, enemy_data):
+    # from views.combat_views import CombatView # Importação local para evitar circular
+
+    player_data = get_player_data(str(player_id))
+    original_hp = player_data["hp"]
+    player_stats = calculate_effective_stats(player_data)
+    player_current_hp = player_data["hp"]
+    enemy_current_hp = enemy_data["hp"]
+
+    # Resetar 'second_chance_used' para cada nova batalha
+    second_chance_used_in_combat = False
+    if "amuleto_de_pedra" in player_data.get("inventory", {}):
+        player_data["second_chance_used"] = False # Garantir que está Falso no início da batalha
+        save_data()
+
+    combat_log = [f"**--- Início do Combate contra {enemy_data['name']} ---**"]
+
+    # Função auxiliar para adicionar ao log e garantir o limite
+    def add_to_log(message):
+        combat_log.append(message)
+        # Manter o log em um tamanho razoável
+        if len(combat_log) > 20:
+            combat_log.pop(1) # Remove as entradas mais antigas, exceto o cabeçalho
+
+    while player_current_hp > 0 and enemy_current_hp > 0:
+        # Turno do Jogador
+        player_hit_chance = random.random()
+        is_player_critical = random.random() < CRITICAL_CHANCE
+        player_damage = player_stats["attack"]
+        if is_player_critical:
+            player_damage = math.floor(player_damage * CRITICAL_MULTIPLIER)
+            add_to_log(
+                f"{interaction.user.mention} atacou {enemy_data['name']} e causou **{player_damage}** de dano! (Crítico!)"
             )
-            effective_data["special_attack"] = int(
-                effective_data["special_attack"]
-                * transform_info.get("special_attack_multiplier", 1.0)
+        else:
+            add_to_log(
+                f"{interaction.user.mention} atacou {enemy_data['name']} e causou **{player_damage}** de dano."
             )
-            effective_data["max_hp"] = int(
-                effective_data["max_hp"] * transform_info.get("hp_multiplier", 1.0)
+        enemy_current_hp -= player_damage
+
+        if enemy_current_hp <= 0:
+            add_to_log(f"**{enemy_data['name']} foi derrotado!**")
+            break
+
+        # Turno do Inimigo
+        enemy_hit_chance = random.random()
+        if enemy_hit_chance > player_stats["evasion_chance"]: # Verifica se o jogador desviou
+            enemy_damage = enemy_data["attack"]
+            add_to_log(
+                f"{enemy_data['name']} atacou {interaction.user.mention} e causou **{enemy_damage}** de dano."
             )
-            effective_data["healing_multiplier"] *= transform_info.get(
-                "healing_multiplier", 1.0
-            )
-            effective_data["evasion_chance_bonus"] += transform_info.get(
-                "evasion_chance_bonus", 0.0
-            )
-            effective_data["cooldown_reduction_percent"] += transform_info.get(
-                "cooldown_reduction_percent", 0.0
-            )
+            player_current_hp -= enemy_damage
 
-    # Apply Aura-specific blessing (King Henry's Blessing) if active
-    king_henry_blessing_info = ITEMS_DATA.get("bencao_rei_henrique", {})
-    if effective_data.get("aura_blessing_active"):
-        effective_data["attack"] = int(
-            effective_data["attack"]
-            * king_henry_blessing_info.get("attack_multiplier", 1.0)
-        )
-        effective_data["special_attack"] = int(
-            effective_data["special_attack"]
-            * king_henry_blessing_info.get("special_attack_multiplier", 1.0)
-        )
-        effective_data["max_hp"] = int(
-            effective_data["max_hp"]
-            * king_henry_blessing_info.get("max_hp_multiplier", 1.0)
-        )
-        effective_data["healing_multiplier"] *= king_henry_blessing_info.get(
-            "healing_multiplier", 1.0
-        )
-        effective_data["cooldown_reduction_percent"] += king_henry_blessing_info.get(
-            "cooldown_reduction_percent", 0.0
-        )
+            # Lógica de roubo de HP se a Bênção de Drácula estiver ativa E o jogador desviou
+            # Nota: O roubo de HP na Bênção de Drácula é condicional ao desvio
+            if player_data.get("bencao_dracula_active") and player_hit_chance <= player_stats["evasion_chance"]:
+                hp_steal_percent = ITEMS_DATA.get("bencao_dracula", {}).get("hp_steal_percent_on_evade", 0)
+                if hp_steal_percent > 0:
+                    hp_stolen = math.floor(enemy_damage * hp_steal_percent)
+                    player_current_hp = min(player_stats["hp"], player_current_hp + hp_stolen)
+                    add_to_log(f"✨ Você desviou e roubou **{hp_stolen} HP** de {enemy_data['name']}!")
+        else:
+            add_to_log(f"{interaction.user.mention} desviou do ataque de {enemy_data['name']}!")
 
-    if effective_data["class"] == "Domador":
-        effective_data["attack"] = int(
-            effective_data["attack"] * 1.20
-        )  # Ajustado de 1.35
-        effective_data["special_attack"] = int(
-            effective_data["special_attack"] * 1.20
-        )  # Ajustado de 1.35
-        effective_data["max_hp"] = int(
-            effective_data["max_hp"] * 1.15
-        )  # Ajustado de 1.25
-        # Removed: effective_data["hp"] = min(raw_player_data["hp"], effective_data["max_hp"]) # This line is not used in the return, but it is incorrect for effective_data.
-    elif effective_data["class"] == "Corpo Seco":
-        effective_data["max_hp"] = int(effective_data["max_hp"] * 1.50)
-        # Removed: effective_data["hp"] = min(raw_player_data["hp"], effective_data["max_hp"]) # This line is not used in the return, but it is incorrect for effective_data.
-        effective_data["attack"] = int(effective_data["attack"] * 1.05)
-        effective_data["special_attack"] = int(effective_data["special_attack"] * 1.05)
-        effective_data["evasion_chance_bonus"] += 0.10
 
-    # Apply item bonuses based on inventory (after transformations for proper stacking)
-    inventory = effective_data.get("inventory", {})
+        if player_current_hp <= 0:
+            # Lógica da segunda chance do Amuleto de Pedra
+            if (
+                "amuleto_de_pedra" in player_data.get("inventory", {})
+                and not player_data.get("second_chance_used")
+            ):
+                player_current_hp = math.floor(player_stats["hp"] * 0.30)  # Recupera 30% do HP máximo
+                player_data["second_chance_used"] = True
+                save_data() # Salva o uso da segunda chance
+                add_to_log(
+                    "🪨 Seu Amuleto de Pedra brilhou! Você recebeu uma segunda chance e recuperou 30% do seu HP!"
+                )
+            else:
+                add_to_log(f"**{interaction.user.mention} foi derrotado!**")
+                break
 
-    # Manopla do Lutador: Increases attack and HP
-    manopla_lutador_info = ITEMS_DATA.get("manopla_lutador", {})
-    if inventory.get("manopla_lutador", 0) > 0 and effective_data["class"] == "Lutador":
-        effective_data["attack"] = int(
-            effective_data["attack"]
-            * (1 + manopla_lutador_info.get("attack_bonus_percent", 0.0))
-        )
-        effective_data["max_hp"] = int(
-            effective_data["max_hp"] + manopla_lutador_info.get("hp_bonus_flat", 0)
-        )
+    # --- Fim do Combate ---
+    if player_current_hp <= 0:
+        player_data["hp"] = 1  # Deixa o HP em 1 para indicar derrota sem ser 0
+        player_data["deaths"] = player_data.get("deaths", 0) + 1
+        player_data["status"] = "dead"
+        save_data()
+        final_message = f"💀 **Você foi derrotado por {enemy_data['name']}!** Retorne à cidade para se curar."
+        embed_color = discord.Color.red()
+    else:
+        xp_gain = enemy_data["xp"]
+        money_gain = enemy_data["money"]
 
-    # Espada Fantasma: Attack bonus and HP penalty
-    espada_fantasma_info = ITEMS_DATA.get("espada_fantasma", {})
-    if (
-        inventory.get("espada_fantasma", 0) > 0
-        and effective_data["class"] == "Espadachim"
-    ):
-        effective_data["attack"] = int(
-            effective_data["attack"]
-            * (1 + espada_fantasma_info.get("attack_bonus_percent", 0.0))
-        )
-        effective_data["max_hp"] = int(
-            effective_data["max_hp"]
-            * (1 - espada_fantasma_info.get("hp_penalty_percent", 0.0))
-        )
-        # Removed: effective_data["hp"] = min(effective_data["hp"], effective_data["max_hp"])
+        # Aplicar multiplicadores de XP e Dinheiro
+        effective_xp_gain = get_player_effective_xp_gain(player_data, xp_gain)
+        effective_money_gain = math.floor(money_gain * player_stats["money_multiplier"])
 
-    # Cajado do Curandeiro: Increases healing effectiveness
-    cajado_curandeiro_info = ITEMS_DATA.get("cajado_curandeiro", {})
-    if (
-        inventory.get("cajado_curandeiro", 0) > 0
-        and effective_data["class"] == "Curandeiro"
-    ):
-        effective_data["healing_multiplier"] *= cajado_curandeiro_info.get(
-            "effect_multiplier", 1.0
-        )
+        player_data["xp"] = player_data.get("xp", 0) + effective_xp_gain
+        player_data["money"] = player_data.get("money", 0) + effective_money_gain
+        player_data["kills"] = player_data.get("kills", 0) + 1
+        player_data["hp"] = player_current_hp # Salvar HP restante
 
-    # Mira Semi-Automática: Adds to total cooldown reduction for special attacks
-    mira_semi_automatica_info = ITEMS_DATA.get("mira_semi_automatica", {})
-    if (
-        inventory.get("mira_semi_automatica", 0) > 0
-        and effective_data["class"] == "Atirador"
-    ):
-        effective_data["cooldown_reduction_percent"] += mira_semi_automatica_info.get(
-            "cooldown_reduction_percent", 0.0
-        )
+        # Contribuição para o clã
+        if player_data.get("clan_id"):
+            clan_id = player_data["clan_id"]
+            clan_data = get_clan_data(clan_id)
+            if clan_data:
+                clan_xp_contribution = math.floor(xp_gain * CLAN_KILL_CONTRIBUTION_PERCENTAGE_XP)
+                clan_money_contribution = math.floor(money_gain * CLAN_KILL_CONTRIBUTION_PERCENTAGE_MONEY)
+                clan_data["xp"] = clan_data.get("xp", 0) + clan_xp_contribution
+                clan_data["money"] = clan_data.get("money", 0) + clan_money_contribution
+                save_clan_data()
+                add_to_log(f"🛡️ Seu clã ganhou **{clan_xp_contribution} XP** e **${clan_money_contribution}** pela sua vitória!")
 
-    # NOVO: Coleira do Lobo Alfa (Domador item)
-    coleira_lobo_info = ITEMS_DATA.get("coleira_do_lobo", {})
-    if inventory.get("coleira_do_lobo", 0) > 0 and effective_data["class"] == "Domador":
-        effective_data["attack"] = int(
-            effective_data["attack"]
-            * (1 + coleira_lobo_info.get("attack_bonus_percent", 0.0))
-        )
-        effective_data["max_hp"] = int(
-            effective_data["max_hp"] + coleira_lobo_info.get("hp_bonus_flat", 0)
-        )
 
-    # NOVO: Armadura de Osso Antigo (Corpo Seco item)
-    armadura_osso_info = ITEMS_DATA.get("armadura_de_osso", {})
-    if (
-        inventory.get("armadura_de_osso", 0) > 0
-        and effective_data["class"] == "Corpo Seco"
-    ):
-        effective_data["max_hp"] = int(
-            effective_data["max_hp"] + armadura_osso_info.get("hp_bonus_flat", 0)
-        )
-        effective_data["cooldown_reduction_percent"] += armadura_osso_info.get(
-            "cooldown_reduction_percent", 0.0
-        )
+        # Chamar a função centralizada de level-up
+        await check_and_process_levelup_internal(bot, interaction.user, player_data, interaction)
 
-    # NOVO: Coração do Universo (End-Game Item)
-    coracao_universo_info = ITEMS_DATA.get("coracao_do_universo", {})
-    if inventory.get("coracao_do_universo", 0) > 0:
-        effective_data["attack"] = int(
-            effective_data["attack"]
-            * coracao_universo_info.get("attack_multiplier", 1.0)
-        )
-        effective_data["max_hp"] = int(
-            effective_data["max_hp"]
-            * coracao_universo_info.get("max_hp_multiplier", 1.0)
-        )
-        effective_data["xp_multiplier_passive"] += coracao_universo_info.get(
-            "xp_multiplier_passive", 0.0
-        )
-        effective_data["money_multiplier_passive"] += coracao_universo_info.get(
-            "money_multiplier_passive", 0.0
-        )
-        effective_data["cooldown_reduction_percent"] += coracao_universo_info.get(
-            "cooldown_reduction_percent", 0.0
-        )
+        save_data() # Salva todas as mudanças após o combate
 
-    effective_data["attack"] = int(
-        effective_data["attack"]
-        * (1 + effective_data.get("attack_bonus_passive_percent", 0.0))
+        final_message = (
+            f"🎉 **Você derrotou {enemy_data['name']}!**\n"
+            f"Você ganhou **{effective_xp_gain} XP** e **${effective_money_gain}**."
+        )
+        embed_color = discord.Color.green()
+
+    embed = discord.Embed(
+        title="Relatório de Combate",
+        description="\n".join(combat_log),
+        color=embed_color,
     )
+    embed.add_field(name="Seu HP Final", value=f"{max(0, player_current_hp)}/{player_stats['hp']}")
+    embed.set_thumbnail(url=enemy_data["thumb"])
+    embed.set_footer(text=f"Próximo ataque disponível em breve.")
 
-    # Removed this line as hp should not be managed here, only max_hp and other derived stats.
-    # effective_data["hp"] = min(raw_player_data["hp"], effective_data["max_hp"])
+    try:
+        # Tenta editar a mensagem original da interação
+        await interaction.edit_original_response(embed=embed, view=None)
+    except Exception:
+        # Se falhar (ex: interação expirou), tenta enviar uma nova mensagem
+        await interaction.channel.send(embed=embed)
 
-    return effective_data
 
-
-def display_money(amount: int) -> str:
-    """Formata um valor inteiro como uma string de moeda."""
-    return f"${amount:,}"
+def calculate_xp_for_next_level(current_level: int) -> int:
+    """Calcula a XP necessária para o próximo nível."""
+    return XP_PER_LEVEL_BASE * (current_level**2)
 
 
 async def check_and_process_levelup_internal(
-    bot_instance,
-    member: discord.Member,
-    player_data: dict,
-    send_target: Interaction | discord.TextChannel,
+    bot, member: discord.Member, player_data: dict, send_target: any
 ):
-    level = player_data.get("level", 1)
-    xp_needed = int(XP_PER_LEVEL_BASE * (level**1.2))
+    """
+    Verifica e processa o level-up de um jogador.
+    Pode ser chamado de on_message, comandos de combate, ou tarefas de ranking.
+    `send_target` pode ser uma `Interaction` ou um `discord.TextChannel`.
+    """
+    old_level = player_data.get("level", 1)
+    xp_needed_for_next_level = calculate_xp_for_next_level(old_level)
 
-    while player_data["xp"] >= xp_needed:
+    level_up_occurred = False
+    while player_data["xp"] >= xp_needed_for_next_level:
         player_data["level"] += 1
-        player_data["xp"] -= xp_needed
-        player_data["attribute_points"] = (
-            player_data.get("attribute_points", 0) + ATTRIBUTE_POINTS_PER_LEVEL
-        )
-        player_data["max_hp"] += 10  # Increase base max_hp
+        player_data["attribute_points"] += ATTRIBUTE_POINTS_PER_LEVEL
+        player_data["hp"] = player_data["max_hp"]  # Recupera HP ao subir de nível
+        level_up_occurred = True
+        xp_needed_for_next_level = calculate_xp_for_next_level(player_data["level"])
 
-        # NEW: After increasing base max_hp, calculate the effective max_hp
-        # and set current hp to this effective max_hp.
-        effective_stats_after_levelup = calculate_effective_stats(player_data)
-        player_data["hp"] = effective_stats_after_levelup[
-            "max_hp"
-        ]  # Set current HP to the full effective max_hp
+    if level_up_occurred:
+        save_data()  # Salvar os novos dados de level/xp/atributos
 
-        embed = Embed(
-            title="🌟 LEVEL UP! 🌟",
-            description=f"Parabéns, {member.mention}! Você alcançou o **Nível {player_data['level']}**!",
-            color=Color.gold(),
-        )
-        embed.set_thumbnail(
-            url="https://media.tenor.com/drx1lO9cfEAAAAi/dark-souls-bonfire.gif"
-        )
-        embed.add_field(
-            name="Recompensas",
-            value=f"🔹 **{ATTRIBUTE_POINTS_PER_LEVEL}** Pontos de Atributo\n🔹 Vida totalmente restaurada!",
-            inline=False,
-        )
-        embed.set_footer(text="Use /distribuir_pontos para ficar mais forte!")
-
-        if isinstance(LEVEL_ROLES, dict):
-            sorted_level_roles_keys = sorted(LEVEL_ROLES.keys(), reverse=True)
-
-            current_role_to_assign = None
-            for required_level in sorted_level_roles_keys:
-                if player_data["level"] >= required_level:
-                    current_role_to_assign = LEVEL_ROLES[required_level]
-                    break
-
-            guild_id_from_context = (
-                send_target.guild_id
-                if isinstance(send_target, Interaction)
-                else send_target.guild.id
-            )
-            guild = bot_instance.get_guild(guild_id_from_context)
-
+        # Sincronizar cargos imediatamente após o level-up
+        if bot.GUILD_ID:
+            guild = bot.get_guild(bot.GUILD_ID)
             if guild:
                 member_obj = guild.get_member(member.id)
                 if member_obj:
-                    roles_to_remove = []
-                    for level_key, role_id in LEVEL_ROLES.items():
-                        role_to_remove = guild.get_role(role_id)
-                        if role_to_remove and role_to_remove in member_obj.roles:
-                            roles_to_remove.append(role_to_remove)
-
-                    if roles_to_remove:
-                        try:
-                            await member_obj.remove_roles(
-                                *roles_to_remove,
-                                reason="Level up - updating level roles",
-                            )
-                        except discord.Forbidden:
-                            print(
-                                f"Erro: Bot sem permissão para remover cargos de nível para {member.display_name}."
-                            )
-                        except discord.HTTPException as e:
-                            print(
-                                f"Erro ao remover cargos de nível para {member.display_name}: {e}"
-                            )
-
-                    if current_role_to_assign:
-                        role = guild.get_role(current_role_to_assign)
-                        if role and role not in member_obj.roles:
+                    # Remover cargo de 'novo personagem' se ainda tiver
+                    if isinstance(NEW_CHARACTER_ROLE_ID, int) and NEW_CHARACTER_ROLE_ID > 0:
+                        new_char_role = guild.get_role(NEW_CHARACTER_ROLE_ID)
+                        if new_char_role and new_char_role in member_obj.roles:
                             try:
-                                await member_obj.add_roles(
-                                    role,
-                                    reason=f"Reached Level {player_data['level']}",
-                                )
-                                embed.add_field(
-                                    name="🎉 Novo Cargo Desbloqueado!",
-                                    value=f"Você recebeu o cargo `{role.name}`!",
-                                    inline=False,
-                                )
+                                await member_obj.remove_roles(new_char_role, reason="Level Up")
                             except discord.Forbidden:
-                                print(
-                                    f"Erro: Bot não tem permissão para adicionar o cargo {role.name} ao usuário {member.display_name}. Verifique as permissões do bot e a hierarquia de cargos."
-                                )
-                            except discord.HTTPException as e:
-                                print(
-                                    f"Erro ao adicionar cargo para {member.display_name}: {e}"
-                                )
-                        elif not role:
-                            print(
-                                f"Aviso: Cargo com ID {current_role_to_assign} não encontrado na guilda {guild.name}."
-                            )
-                else:
-                    print(
-                        f"Aviso: Membro {member.display_name} não encontrado na guilda para atualizar cargos."
-                    )
-            else:
-                print(
-                    f"Aviso: Guilda com ID {guild_id_from_context} não encontrada para conceder cargo de nível."
-                )
+                                print(f"AVISO: Não foi possível remover cargo {new_char_role.name} de {member_obj.display_name} (permissão negada).")
+                            except Exception as e:
+                                print(f"Erro ao remover cargo de novo personagem: {e}")
 
-        if isinstance(send_target, Interaction):
-            try:
-                if send_target.response.is_done():
-                    await send_target.followup.send(embed=embed)
-                else:
-                    await send_target.response.send_message(embed=embed)
-            except discord.InteractionResponded:
-                await send_target.channel.send(embed=embed)
-            except Exception as e:
-                print(f"Erro ao enviar embed de level up na interação: {e}")
-        else:
+                    # Atribuir o novo cargo de nível
+                    current_level = player_data["level"]
+                    highest_applicable_role_id = None
+                    for required_level in sorted(LEVEL_ROLES.keys(), reverse=True):
+                        if current_level >= required_level:
+                            highest_applicable_role_id = LEVEL_ROLES[required_level]
+                            break
+
+                    if highest_applicable_role_id:
+                        role_to_add = guild.get_role(highest_applicable_role_id)
+                        if role_to_add and role_to_add not in member_obj.roles:
+                            try:
+                                # Remover cargos de níveis anteriores
+                                roles_to_remove = [
+                                    r for r in member_obj.roles
+                                    if r.id in LEVEL_ROLES.values() and r.id != highest_applicable_role_id
+                                ]
+                                if roles_to_remove:
+                                    await member_obj.remove_roles(*roles_to_remove, reason="Level Up")
+                                await member_obj.add_roles(role_to_add, reason="Level Up")
+                            except discord.Forbidden:
+                                print(f"AVISO: Não foi possível atribuir/remover cargos de nível para {member_obj.display_name} (permissão negada).")
+                            except Exception as e:
+                                print(f"Erro ao atribuir/remover cargos de nível: {e}")
+
+        # Enviar mensagem de level-up
+        embed = discord.Embed(
+            title="🎉 Parabéns! Você subiu de nível!",
+            description=f"Você alcançou o **Nível {player_data['level']}**!",
+            color=discord.Color.gold(),
+        )
+        embed.add_field(name="Atributos Livres", value=player_data["attribute_points"])
+        embed.set_thumbnail(url=member.display_avatar.url)
+
+        if isinstance(send_target, discord.Interaction):
+            if not send_target.response.is_done():
+                await send_target.response.send_message(embed=embed)
+            else:
+                await send_target.followup.send(embed=embed)
+        elif isinstance(send_target, discord.TextChannel):
             await send_target.send(embed=embed)
 
-        xp_needed = int(XP_PER_LEVEL_BASE * (player_data["level"] ** 1.2))
 
-
-# NEW: Function to calculate XP needed for the next level
-def calculate_xp_for_next_level(level: int) -> int:
-    return int(XP_PER_LEVEL_BASE * (level**1.2))
-
-
-# NEW: Function to get effective XP gain with passive multipliers
 def get_player_effective_xp_gain(player_data: dict, base_xp_gain: int) -> int:
-    player_stats = calculate_effective_stats(
-        player_data
-    )  # Ensure passive multipliers are applied
-    xp_multiplier_passive = player_stats.get("xp_multiplier_passive", 0.0)
-    effective_xp_gain = int(base_xp_gain * (1 + xp_multiplier_passive))
+    """Calcula o ganho de XP efetivo de um jogador, aplicando multiplicadores."""
+    effective_xp_gain = base_xp_gain
+    player_stats = calculate_effective_stats(player_data) # Para pegar o xp_multiplier
 
-    # Check for xptriple
-    if player_data.get("xptriple") is True:
-        effective_xp_gain *= 3
-    return effective_xp_gain
+    effective_xp_gain = math.floor(effective_xp_gain * player_stats["xp_multiplier"])
 
+    # Adicionalmente, se o jogador tiver a Habilidade Inata e o estilo de poder for "Destreza"
+    if "habilidade_inata" in player_data.get("inventory", {}) and player_data.get("power_style") == "Destreza":
+        item_info = ITEMS_DATA.get("habilidade_inata", {})
+        effective_xp_gain = math.floor(effective_xp_gain * (1 + item_info.get("xp_multiplier_passive", 0)))
 
-async def run_turn_based_combat(
-    bot_instance,
-    interaction: Interaction,
-    raw_player_data: dict,
-    enemy: dict,
-    initial_attack_style: str = "basico",
-):
-    log = []
-    player_hp = raw_player_data["hp"]
-    enemy_hp = enemy["hp"]
-    amulet_activated_this_combat = False
+    # Se o jogador tiver o Coração do Universo
+    if "coracao_do_universo" in player_data.get("inventory", {}):
+        item_info = ITEMS_DATA.get("coracao_do_universo", {})
+        effective_xp_gain = math.floor(effective_xp_gain * (1 + item_info.get("xp_multiplier_passive", 0)))
 
-    player_stats = calculate_effective_stats(raw_player_data)
 
-    owner_display_hp = player_hp
-    wolf_display_hp = 0
-    owner_display_max_hp = player_stats["max_hp"]
-    wolf_display_max_hp = 0
-    player_hp_display_text = ""
+    return max(1, effective_xp_gain) # Garantir que o ganho mínimo de XP seja 1
 
-    if raw_player_data["class"] == "Domador":
-        owner_base_for_ratio = raw_player_data["max_hp"]
-        wolf_base_for_ratio = int(raw_player_data["max_hp"] * 0.50)
 
-        total_ratio_base = owner_base_for_ratio + wolf_base_for_ratio
+# Função auxiliar para formatar tempo de cooldown
+def format_cooldown(seconds: int) -> str:
+    if seconds <= 0:
+        return "Disponível!"
+    minutes, seconds = divmod(seconds, 60)
+    if minutes > 0:
+        return f"{int(minutes)}m {int(seconds)}s"
+    return f"{int(seconds)}s"
 
-        if total_ratio_base > 0:
-            owner_ratio = owner_base_for_ratio / total_ratio_base
 
-            owner_display_hp = int(player_hp * owner_ratio)
-            wolf_display_hp = player_hp - owner_display_hp
+def get_remaining_cooldown(last_use_time: int, cooldown_seconds: int, cooldown_reduction_percent: float = 0.0) -> int:
+    """Calcula o tempo de cooldown restante para uma habilidade, aplicando redução."""
+    effective_cooldown = cooldown_seconds * (1 - cooldown_reduction_percent)
+    elapsed_time = datetime.now().timestamp() - last_use_time
+    remaining_cooldown = math.ceil(effective_cooldown - elapsed_time)
+    return max(0, remaining_cooldown)
 
-            owner_display_max_hp = int(player_stats["max_hp"] * owner_ratio)
-            wolf_display_max_hp = player_stats["max_hp"] - owner_display_max_hp
-        else:
-            owner_display_hp = player_hp
-            owner_display_max_hp = player_stats["max_hp"]
-            wolf_display_hp = 0
-            wolf_display_max_hp = 0
-
-        player_hp_display_text = (
-            f"❤️ Você: {max(0, owner_display_hp)}/{owner_display_max_hp}\n"
-            f"🐺 Lobo: {max(0, wolf_display_hp)}/{wolf_display_max_hp}"
-        )
-    else:
-        player_hp_display_text = f"❤️ {player_hp}/{player_stats['max_hp']}"
-
-    embed = Embed(title=f"⚔️ Batalha Iniciada! ⚔️", color=Color.orange())
-    embed.set_thumbnail(url=enemy.get("thumb"))
-    embed.add_field(
-        name=interaction.user.display_name,
-        value=player_hp_display_text,
-        inline=True,
-    )
-    embed.add_field(
-        name=enemy["name"], value=f"❤️ {enemy_hp}/{enemy['hp']}", inline=True
-    )
-
-    if not interaction.response.is_done():
-        await interaction.response.defer()
-
-    battle_message = await interaction.edit_original_response(embed=embed)
-
-    turn = 1
-    while player_hp > 0 and enemy_hp > 0:
-        await asyncio.sleep(2.5)
-
-        player_dmg = 0
-        attack_type_name = ""
-        crit_msg = ""
-        owner_dmg_display = 0
-        wolf_dmg_display = 0
-        is_domador_attack = False
-
-        cost_energy_special = TRANSFORM_COST
-        cost_energy_special = max(
-            1,
-            int(
-                cost_energy_special
-                * (1 - player_stats.get("cooldown_reduction_percent", 0.0))
-            ),
-        )
-
-        if raw_player_data["class"] == "Domador":
-            is_domador_attack = True
-            base_owner_attack = raw_player_data["base_attack"]
-            base_wolf_attack = int(raw_player_data["base_attack"] * 0.50)
-
-            base_owner_special_attack = raw_player_data["base_special_attack"]
-            base_wolf_special_attack = int(
-                raw_player_data["base_special_attack"] * 0.50
-            )
-
-        if turn == 1:
-            if initial_attack_style == "basico":
-                player_dmg = random.randint(
-                    player_stats["attack"] // 2, player_stats["attack"]
-                )
-                attack_type_name = "Ataque Básico"
-
-                if is_domador_attack:
-                    total_base_attack_for_display = base_owner_attack + base_wolf_attack
-                    if total_base_attack_for_display > 0:
-                        owner_dmg_display = int(
-                            player_dmg
-                            * (base_owner_attack / total_base_attack_for_display)
-                        )
-                        wolf_dmg_display = player_dmg - owner_dmg_display
-                    else:
-                        owner_dmg_display = player_dmg
-                        wolf_dmg_display = 0
-
-            elif initial_attack_style == "especial":
-                if raw_player_data["energy"] < cost_energy_special:
-                    player_dmg = random.randint(
-                        player_stats["attack"] // 2, player_stats["attack"]
-                    )
-                    attack_type_name = (
-                        "Ataque Básico (Energia Insuficiente para Especial)"
-                    )
-                    log.append(
-                        "⚠️ Energia insuficiente para Ataque Especial. Usando Ataque Básico."
-                    )
-
-                    if is_domador_attack:
-                        total_base_attack_for_display = (
-                            base_owner_attack + base_wolf_attack
-                        )
-                        if total_base_attack_for_display > 0:
-                            owner_dmg_display = int(
-                                player_dmg
-                                * (base_owner_attack / total_base_attack_for_display)
-                            )
-                            wolf_dmg_display = player_dmg - owner_dmg_display
-                        else:
-                            owner_dmg_display = player_dmg
-                            wolf_dmg_display = 0
-
-                else:
-                    player_dmg = random.randint(
-                        int(player_stats["special_attack"] * 0.8),
-                        int(player_stats["special_attack"] * 1.5),
-                    )
-                    attack_type_name = "Ataque Especial"
-                    raw_player_data["energy"] = max(
-                        0, raw_player_data["energy"] - cost_energy_special
-                    )
-
-                    if is_domador_attack:
-                        total_base_special_attack_for_display = (
-                            base_owner_special_attack + base_wolf_special_attack
-                        )
-                        if total_base_special_attack_for_display > 0:
-                            owner_dmg_display = int(
-                                player_dmg
-                                * (
-                                    base_owner_special_attack
-                                    / total_base_special_attack_for_display
-                                )
-                            )
-                            wolf_dmg_display = player_dmg - owner_dmg_display
-                        else:
-                            owner_dmg_display = player_dmg
-                            wolf_dmg_display = 0
-
-        else:
-            player_dmg = random.randint(
-                player_stats["attack"] // 2, player_stats["attack"]
-            )
-            attack_type_name = "Ataque Básico"
-
-            if is_domador_attack:
-                total_base_attack_for_display = base_owner_attack + base_wolf_attack
-                if total_base_attack_for_display > 0:
-                    owner_dmg_display = int(
-                        player_dmg * (base_owner_attack / total_base_attack_for_display)
-                    )
-                    wolf_dmg_display = player_dmg - owner_dmg_display
-                else:
-                    owner_dmg_display = player_dmg
-                    wolf_dmg_display = 0
-
-        if random.random() < CRITICAL_CHANCE:
-            player_dmg = int(player_dmg * CRITICAL_MULTIPLIER)
-            crit_msg = "💥 **CRÍTICO!** "
-            if is_domador_attack:
-                if initial_attack_style == "basico" or (
-                    turn == 1
-                    and initial_attack_style == "especial"
-                    and raw_player_data["energy"] < cost_energy_special
-                ):
-                    total_base_attack_for_display = base_owner_attack + base_wolf_attack
-                    if total_base_attack_for_display > 0:
-                        owner_dmg_display = int(
-                            player_dmg
-                            * (base_owner_attack / total_base_attack_for_display)
-                        )
-                        wolf_dmg_display = player_dmg - owner_dmg_display
-                elif initial_attack_style == "especial":
-                    total_base_special_attack_for_display = (
-                        base_owner_special_attack + base_wolf_special_attack
-                    )
-                    if total_base_special_attack_for_display > 0:
-                        owner_dmg_display = int(
-                            player_dmg
-                            * (
-                                base_owner_special_attack
-                                / total_base_special_attack_for_display
-                            )
-                        )
-                        wolf_dmg_display = player_dmg - owner_dmg_display
-
-        if raw_player_data["class"] == "Vampiro":
-            if attack_type_name == "Ataque Básico":
-                heal_from_vampire_basic = int(player_dmg * 0.5)
-                raw_player_data["hp"] = min(
-                    player_stats["max_hp"],  # Use effective max_hp as cap
-                    raw_player_data["hp"] + heal_from_vampire_basic,
-                )
-                log.append(f"🩸 Você sugou `{heal_from_vampire_basic}` HP do inimigo!")
-            elif attack_type_name == "Ataque Especial":
-                heal_from_vampire_special = int(player_dmg * 0.75)
-                raw_player_data["hp"] = min(
-                    player_stats["max_hp"],  # Use effective max_hp as cap
-                    raw_player_data["hp"] + heal_from_vampire_special,
-                )
-                log.append(
-                    f"🧛 Você sugou `{heal_from_vampire_special}` HP do inimigo com seu ataque especial!"
-                )
-
-        enemy_hp -= player_dmg
-
-        if is_domador_attack:
-            log.append(
-                f"➡️ **Turno {turn}**: {crit_msg}Você e seu lobo usaram **{attack_type_name}** e causaram `{player_dmg}` de dano (Você: `{owner_dmg_display}`, Lobo: `{wolf_dmg_display}`)."
-            )
-        else:
-            log.append(
-                f"➡️ **Turno {turn}**: {crit_msg}Você usou **{attack_type_name}** e causou `{player_dmg}` de dano."
-            )
-
-        if len(log) > 5:
-            log.pop(0)
-
-        player_hp = raw_player_data["hp"]
-
-        if raw_player_data["class"] == "Domador":
-            owner_base_for_ratio = raw_player_data["max_hp"]
-            wolf_base_for_ratio = int(raw_player_data["max_hp"] * 0.50)
-
-            total_ratio_base = owner_base_for_ratio + wolf_base_for_ratio
-
-            if total_ratio_base > 0:
-                owner_ratio = owner_base_for_ratio / total_ratio_base
-
-                owner_display_hp = int(player_hp * owner_ratio)
-                wolf_display_hp = player_hp - owner_display_hp
-            else:
-                owner_display_hp = player_hp
-                wolf_display_hp = 0
-            player_hp_display_text = (
-                f"❤️ Você: {max(0, owner_display_hp)}/{owner_display_max_hp}\n"
-                f"🐺 Lobo: {max(0, wolf_display_hp)}/{wolf_display_max_hp}"
-            )
-        else:
-            player_hp_display_text = f"❤️ {max(0, player_hp)}/{player_stats['max_hp']}"
-
-        embed.description = "\n".join(log)
-        embed.set_field_at(
-            0,
-            name=interaction.user.display_name,
-            value=player_hp_display_text,
-            inline=True,
-        )
-        embed.set_field_at(
-            1,
-            name=enemy["name"],
-            value=f"❤️ {max(0, enemy_hp)}/{enemy['hp']}",
-            inline=True,
-        )
-        await interaction.edit_original_response(embed=embed)
-
-        if enemy_hp <= 0:
-            break
-
-        await asyncio.sleep(2.5)
-
-        enemy_dmg = random.randint(enemy["attack"] // 2, enemy["attack"])
-
-        total_evasion_chance = player_stats.get("evasion_chance_bonus", 0.0)
-
-        if raw_player_data.get("bencao_dracula_active", False):
-            dracula_info = ITEMS_DATA.get("bencao_dracula", {})
-            total_evasion_chance += dracula_info.get("evasion_chance", 0.0)
-
-        if (
-            raw_player_data["class"] == "Vampiro"
-            and random.random() < total_evasion_chance
-        ):
-            hp_steal_percent_on_evade = ITEMS_DATA.get("bencao_dracula", {}).get(
-                "hp_steal_percent_on_evade", 0.0
-            )
-            hp_stolen_on_evade = int(enemy_dmg * hp_steal_percent_on_evade)
-            raw_player_data["hp"] = min(
-                player_stats["max_hp"],  # Use effective max_hp as cap
-                raw_player_data["hp"] + hp_stolen_on_evade,
-            )
-
-            log.append(
-                f"👻 **DESVIADO!** {enemy['name']} errou o ataque! Você sugou `{hp_stolen_on_evade}` HP!)"
-            )
-            if len(log) > 5:
-                log.pop(0)
-            player_hp = raw_player_data["hp"]
-
-            if raw_player_data["class"] == "Domador":
-                owner_base_for_ratio = raw_player_data["max_hp"]
-                wolf_base_for_ratio = int(raw_player_data["max_hp"] * 0.50)
-                total_ratio_base = owner_base_for_ratio + wolf_base_for_ratio
-                if total_ratio_base > 0:
-                    owner_ratio = owner_base_for_ratio / total_ratio_base
-                    owner_display_hp = int(player_hp * owner_ratio)
-                    wolf_display_hp = player_hp - owner_display_hp
-                else:
-                    owner_display_hp = player_hp
-                    wolf_display_hp = 0
-                player_hp_display_text = (
-                    f"❤️ Você: {max(0, owner_display_hp)}/{owner_display_max_hp}\n"
-                    f"🐺 Lobo: {max(0, wolf_display_hp)}/{wolf_display_max_hp}"
-                )
-            else:
-                player_hp_display_text = (
-                    f"❤️ {max(0, player_hp)}/{player_stats['max_hp']}"
-                )
-
-            embed.description = "\n".join(log)
-            embed.set_field_at(
-                0,
-                name=interaction.user.display_name,
-                value=player_hp_display_text,
-                inline=True,
-            )
-            await interaction.edit_original_response(embed=embed)
-            await asyncio.sleep(1.5)
-            continue
-
-        player_hp -= enemy_dmg
-        raw_player_data["hp"] = player_hp
-
-        amulet_info = ITEMS_DATA.get("amuleto_de_pedra", {})
-        if (
-            player_hp <= 0
-            and raw_player_data["inventory"].get("amuleto_de_pedra", 0) > 0
-            and not amulet_activated_this_combat
-            and not raw_player_data.get("amulet_used_since_revive", False)
-        ):
-            player_hp = 1
-            raw_player_data["hp"] = 1
-            amulet_activated_this_combat = True
-            raw_player_data["amulet_used_since_revive"] = True
-            log.append("✨ **Amuleto de Pedra ativado!** Você sobreviveu por um triz!")
-            if len(log) > 5:
-                log.pop(0)
-
-            if raw_player_data["class"] == "Domador":
-                owner_base_for_ratio = raw_player_data["max_hp"]
-                wolf_base_for_ratio = int(raw_player_data["max_hp"] * 0.50)
-                total_ratio_base = owner_base_for_ratio + wolf_base_for_ratio
-                if total_ratio_base > 0:
-                    owner_ratio = owner_base_for_ratio / total_ratio_base
-                    owner_display_hp = int(player_hp * owner_ratio)
-                    wolf_display_hp = player_hp - owner_display_hp
-                else:
-                    owner_display_hp = player_hp
-                    wolf_display_hp = 0
-                player_hp_display_text = (
-                    f"❤️ Você: {max(0, owner_display_hp)}/{owner_display_max_hp}\n"
-                    f"🐺 Lobo: {max(0, wolf_display_hp)}/{wolf_display_max_hp}"
-                )
-            else:
-                player_hp_display_text = (
-                    f"❤️ {max(0, player_hp)}/{player_stats['max_hp']}"
-                )
-
-            embed.description = "\n".join(log)
-            embed.set_field_at(
-                0,
-                name=interaction.user.display_name,
-                value=player_hp_display_text,
-                inline=True,
-            )
-            await interaction.edit_original_response(embed=embed)
-            await asyncio.sleep(1.5)
-            continue
-
-        log.append(f"⬅️ {enemy['name']} ataca e causa `{enemy_dmg}` de dano.")
-        if len(log) > 5:
-            log.pop(0)
-
-        if raw_player_data["class"] == "Domador":
-            owner_base_for_ratio = raw_player_data["max_hp"]
-            wolf_base_for_ratio = int(raw_player_data["max_hp"] * 0.50)
-            total_ratio_base = owner_base_for_ratio + wolf_base_for_ratio
-            if total_ratio_base > 0:
-                owner_ratio = owner_base_for_ratio / total_ratio_base
-                owner_display_hp = int(player_hp * owner_ratio)
-                wolf_display_hp = player_hp - owner_display_hp
-                player_hp_display_text = (
-                    f"❤️ Você: {max(0, owner_display_hp)}/{owner_display_max_hp}\n"
-                    f"🐺 Lobo: {max(0, wolf_display_hp)}/{wolf_display_max_hp}"
-                )
-            else:
-                owner_display_hp = player_hp
-                wolf_display_hp = 0
-                player_hp_display_text = (
-                    f"❤️ {max(0, player_hp)}/{player_stats['max_hp']}"
-                )
-        else:
-            player_hp_display_text = f"❤️ {max(0, player_hp)}/{player_stats['max_hp']}"
-
-        embed.description = "\n".join(log)
-        embed.set_field_at(
-            0,
-            name=interaction.user.display_name,
-            value=player_hp_display_text,
-            inline=True,
-        )
-        embed.set_field_at(
-            1,
-            name=enemy["name"],
-            value=f"❤️ {max(0, enemy_hp)}/{enemy['hp']}",
-            inline=True,
-        )
-        await interaction.edit_original_response(embed=embed)
-
-        turn += 1
-
-    final_embed = Embed()
-    raw_player_data["hp"] = max(0, player_hp)
-
-    if player_hp <= 0:
-        final_embed.title = "☠️ Você Foi Derrotado!"
-        final_embed.color = Color.dark_red()
-        raw_player_data["status"] = "dead"
-        raw_player_data["deaths"] += 1
-        final_embed.description = f"O {enemy['name']} foi muito forte para você."
-    else:
-        final_embed.title = "🏆 Vitória! 🏆"
-        final_embed.color = Color.green()
-        final_embed.description = f"Você derrotou o {enemy['name']}!"
-
-        xp_gain_raw = enemy["xp"]
-
-        xp_gain_raw = int(
-            xp_gain_raw * (1 + player_stats.get("xp_multiplier_passive", 0.0))
-        )
-
-        if raw_player_data.get("xptriple") is True:
-            xp_gain = xp_gain_raw * 3
-            xp_message = f"✨ +{xp_gain} XP (triplicado!)"
-        else:
-            xp_gain = xp_gain_raw
-            xp_message = f"✨ +{xp_gain} XP"
-
-        if player_stats.get(
-            "xp_multiplier_passive", 0.0
-        ) > 0 and not raw_player_data.get("xptriple"):
-            xp_message += (
-                f" (Bônus Passivo: +{int(player_stats['xp_multiplier_passive']*100)}%!)"
-            )
-        elif player_stats.get("xp_multiplier_passive", 0.0) > 0 and raw_player_data.get(
-            "xptriple"
-        ):
-            xp_message = f"✨ +{xp_gain} XP (triplicado + Bônus Passivo: +{int(player_stats['xp_multiplier_passive']*100)}%!)"
-
-        money_gain_raw = enemy["money"]
-        money_gain_raw = int(
-            money_gain_raw * (1 + player_stats.get("money_multiplier_passive", 0.0))
-        )
-
-        if raw_player_data.get("money_double") is True:
-            money_gain = money_gain_raw * 2
-            money_message = f"💰 +${money_gain} (duplicado!)"
-        else:
-            money_gain = money_gain_raw
-            money_message = f"💰 +${money_gain}"
-
-        if player_stats.get(
-            "money_multiplier_passive", 0.0
-        ) > 0 and not raw_player_data.get("money_double"):
-            money_message += f" (Bônus Passivo: +{int(player_stats['money_multiplier_passive']*100)}%!)"
-        elif player_stats.get(
-            "money_multiplier_passive", 0.0
-        ) > 0 and raw_player_data.get("money_double"):
-            money_message = f"💰 +${money_gain} (duplicado + Bônus Passivo: +{int(player_stats['money_multiplier_passive']*100)}%!)"
-
-        final_embed.add_field(
-            name="Recompensas", value=f"{money_message}\n{xp_message}"
-        )
-
-        raw_player_data["money"] += money_gain
-        raw_player_data["xp"] += xp_gain
-
-        # NEW: Add XP and Money to clan if player is in one
-        if raw_player_data.get("clan_id"):
-            clan_id = raw_player_data["clan_id"]
-            clan_data = clan_database.get(clan_id)
-            if clan_data:
-                clan_xp_contribution = int(
-                    xp_gain * CLAN_KILL_CONTRIBUTION_PERCENTAGE_XP
-                )
-                clan_money_contribution = int(
-                    money_gain * CLAN_KILL_CONTRIBUTION_PERCENTAGE_MONEY
-                )
-                clan_data["xp"] += clan_xp_contribution
-                clan_data["money"] += clan_money_contribution
-                save_clan_data()  # Save clan data after update
-                final_embed.add_field(
-                    name="Contribuição para o Clã",
-                    value=f"✨ +{clan_xp_contribution} XP\n💰 +${clan_money_contribution}",
-                    inline=False,
-                )
-
-        await bot_instance.check_and_process_levelup(
-            interaction.user, raw_player_data, interaction
-        )
-
-    save_data()
-    await interaction.edit_original_response(embed=final_embed)
+def display_money(amount: int) -> str:
+    """Formata um valor numérico para exibição como dinheiro."""
+    return f"${amount:,}"

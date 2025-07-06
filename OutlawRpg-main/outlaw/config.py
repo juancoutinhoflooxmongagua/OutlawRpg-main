@@ -16,6 +16,9 @@ TRANSFORM_COST = 2
 MAX_ENERGY = 10
 STARTING_LOCATION = "Abrigo dos Foras-da-Lei"
 
+# NEW: Relic System Configuration (Added these two lines!)
+HOURS_BETWEEN_KEY_CLAIMS = 1 # Players can claim a new relic key every 1 hour
+MAX_RELIC_KEYS = 3          # Maximum number of relic keys a player can hold
 
 # NEW: Clan System Configuration
 CLAN_RANK_REWARDS = {  # XP and Money rewards for top 3 clans

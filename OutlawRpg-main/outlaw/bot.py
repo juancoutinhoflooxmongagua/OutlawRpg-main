@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from dotenv import load_dotenv
 
 # Importar constantes e dados de config.py
-from .config import (
+from config import ( # Changed from .config to config
     XP_PER_LEVEL_BASE,
     ATTRIBUTE_POINTS_PER_LEVEL,
     MAX_ENERGY,
@@ -27,7 +27,7 @@ from .config import (
 )
 
 # Importar data manager
-from .data_manager import (
+from data_manager import ( # Changed from .data_manager to data_manager
     load_data,
     save_data,
     get_player_data,
@@ -38,7 +38,7 @@ from .data_manager import (
 )
 
 # Importar utilitários
-from .utils import (
+from utils import ( # Changed from .utils to utils
     calculate_effective_stats,
     run_turn_based_combat,
     check_and_process_levelup_internal,
@@ -47,18 +47,18 @@ from .utils import (
 )
 
 # Importar exceções personalizadas para tratamento de erros
-from .custom_checks import NotInCity, NotInWilderness
+from custom_checks import NotInCity, NotInWilderness # Changed from .custom_checks to custom_checks
 
 
 # Importar Cogs
-from .cogs.character_commands import CharacterCommands
-from .cogs.combat_commands import CombatCommands
-from .cogs.world_commands import WorldCommands
-from .cogs.admin_commands import AdminCommands
-from .cogs.utility_commands import UtilityCommands
-from .cogs.blessing_commands import BlessingCommands
-from .cogs.clan_commands import ClanCommands
-from .cogs.relic_commands import RelicCommands
+from cogs.character_commands import CharacterCommands # Changed from .cogs.character_commands to cogs.character_commands
+from cogs.combat_commands import CombatCommands # Changed from .cogs.combat_commands to cogs.combat_commands
+from cogs.world_commands import WorldCommands # Changed from .cogs.world_commands to cogs.world_commands
+from cogs.admin_commands import AdminCommands # Changed from .cogs.admin_commands to cogs.admin_commands
+from cogs.utility_commands import UtilityCommands # Changed from .cogs.utility_commands to cogs.utility_commands
+from cogs.blessing_commands import BlessingCommands # Changed from .cogs.blessing_commands to cogs.blessing_commands
+from cogs.clan_commands import ClanCommands # Changed from .cogs.clan_commands to cogs.clan_commands
+from cogs.relic_commands import RelicCommands # Changed from .cogs.relic_commands to cogs.relic_commands
 
 
 # --- CONFIGURAÇÃO INICIAL E CONSTANTES ---
@@ -114,7 +114,7 @@ class OutlawsBot(commands.Bot):
         """Um manipulador de erros global para todos os comandos de barra."""
 
         # Importando exceções personalizadas localmente aqui para evitar importações circulares se as verificações forem importadas por Cogs
-        from .custom_checks import NotInCity, NotInWilderness
+        from custom_checks import NotInCity, NotInWilderness # Changed from .custom_checks to custom_checks
 
         if isinstance(error, app_commands.CommandOnCooldown):
             await interaction.response.send_message(
