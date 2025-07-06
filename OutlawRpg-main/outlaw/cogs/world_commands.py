@@ -162,13 +162,13 @@ class WorldCommands(commands.Cog):
 
 
     @app_commands.command(
-        name="reviver",
+        name="renascer", # Renamed from "reviver"
         description="Renasça dos mortos na última cidade que você visitou ou no Abrigo dos Foras-da-Lei.",
     )
     @app_commands.check(check_player_exists)
     @app_commands.check(is_not_in_city)
-    @app_commands.checks.cooldown(1, 300, key=lambda i: i.user.id) # 5 minutos de cooldown para reviver
-    async def reviver(self, i: Interaction):
+    @app_commands.checks.cooldown(1, 300, key=lambda i: i.user.id) # 5 minutos de cooldown para renascer
+    async def renascer(self, i: Interaction): # Renamed function as well
         player_data = get_player_data(i.user.id)
 
         if player_data.get("status") != "dead":
