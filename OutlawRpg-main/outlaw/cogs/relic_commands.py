@@ -1,4 +1,5 @@
 # File: OutlawRpg-main/outlaw/cogs/relic_commands.py
+# File: OutlawRpg-main/outlaw/cogs/relic_commands.py
 
 import discord
 from discord.ext import commands, tasks
@@ -151,10 +152,14 @@ class RelicCommands(commands.Cog):
     async def key_generation_task(self):
         all_user_data = player_database
 
-        user_ids_to_check = list(all_user_data.keys())
+        # Iterate over a copy of keys to avoid RuntimeError: dictionary changed size during iteration if player_database is modified
+        user_ids_to_check = list(all_user_data.keys()) #
 
         for user_id_str in user_ids_to_check:
-            user_id = int(user_id_str)
+            if not user_id_str.isdigit(): #
+                print(f"AVISO: Chave inválida encontrada no player_database durante geração de chaves: '{user_id_str}'. Ignorando.") #
+                continue #
+            user_id = int(user_id_str) #
             keys_added = check_and_add_keys(user_id)
 
             if keys_added > 0:

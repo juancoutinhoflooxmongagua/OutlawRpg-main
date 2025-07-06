@@ -1,3 +1,4 @@
+# File: OutlawRpg-main/outlaw/bot.py
 import discord
 from discord.ext import commands, tasks
 from discord import app_commands, Embed, Color, Interaction
@@ -165,6 +166,9 @@ class OutlawsBot(commands.Bot):
         for user_id_str in list(
             player_database.keys()
         ):  # Itera sobre uma cópia para evitar modificação durante a iteração
+            if not user_id_str.isdigit(): #
+                print(f"AVISO: Chave inválida encontrada no player_database: '{user_id_str}'. Ignorando.") #
+                continue #
             get_player_data(user_id_str)
         save_data()  # Salva quaisquer inicializações feitas
         load_clan_data()
@@ -223,8 +227,13 @@ class OutlawsBot(commands.Bot):
     @tasks.loop(seconds=60)  # Regeneração de energia e expiração de buffs a cada minuto
     async def energy_regeneration(self):
         now = datetime.now().timestamp()
-        for user_id_str, player_data in player_database.items():
-            user_id = int(user_id_str)
+        # Iterate over a copy of keys to avoid RuntimeError: dictionary changed size during iteration if player_database is modified
+        for user_id_str in list(player_database.keys()): #
+            if not user_id_str.isdigit(): #
+                print(f"AVISO: Chave inválida encontrada no player_database durante regeneração de energia: '{user_id_str}'. Ignorando.") #
+                continue #
+            user_id = int(user_id_str) #
+            player_data = player_database[user_id_str] #
 
             # Regeneração de Energia
             if player_data.get("energy", 0) < MAX_ENERGY:
@@ -308,8 +317,14 @@ class OutlawsBot(commands.Bot):
                 return
 
         total_synced = 0
-        for member_id_str, player_data in player_database.items():
-            member_id = int(member_id_str)
+        # Iterate over a copy of keys to avoid RuntimeError: dictionary changed size during iteration if player_database is modified
+        for member_id_str in list(player_database.keys()): #
+            if not member_id_str.isdigit(): #
+                print(f"AVISO: Chave inválida encontrada no player_database durante sincronização de cargos: '{member_id_str}'. Ignorando.") #
+                continue #
+            member_id = int(member_id_str) #
+            player_data = player_database[member_id_str] #
+
             member = guild.get_member(member_id)
 
             if not member:
